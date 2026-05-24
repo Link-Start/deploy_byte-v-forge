@@ -43,15 +43,40 @@ SKIP_HELM=${SKIP_HELM:-false}
 SKIP_VALIDATE=${SKIP_VALIDATE:-false}
 KEEP_REMOTE_TAR=${KEEP_REMOTE_TAR:-false}
 
-ALL_SERVICES=(
+SERVICE_CATALOG=(
+  "browser-automation|browser-automation|Dockerfile"
+  "workflow-runtime|workflow-runtime|Dockerfile"
+  "proxy-runtime|proxy-runtime|Dockerfile"
+  "proxy-runtime-protocol|proxy-runtime|Dockerfile"
+  "webui|.|webui/Dockerfile"
+  "gpt-service|.|gpt/gpt-service/Dockerfile"
+  "mailbox|mailbox|Dockerfile"
+  "sms-service|sms|Dockerfile"
+)
+
+SOURCE_REPOS=(
+  gpt
+  mailbox
+  webui
+  sms
   browser-automation
   workflow-runtime
   proxy-runtime
-  proxy-runtime-protocol
-  webui
-  gpt-service
-  mailbox
-  sms-service
+)
+
+RSYNC_EXCLUDES=(
+  --exclude '.git/'
+  --exclude '.codex/'
+  --exclude '.env'
+  --exclude '.temp'
+  --exclude '.tmp*/'
+  --exclude '.venv*/'
+  --exclude '**/__pycache__/'
+  --exclude '**/.pytest_cache/'
+  --exclude '**/node_modules/'
+  --exclude '**/dist/'
+  --exclude '**/build/'
+  --exclude '**/*.log'
 )
 
 usage() {
@@ -108,75 +133,51 @@ remote() {
 }
 
 valid_service() {
-  case "$1" in
-    browser-automation|workflow-runtime|proxy-runtime|proxy-runtime-protocol|webui|gpt-service|mailbox|sms-service)
-      return 0
-      ;;
-    *)
-      return 1
-      ;;
-  esac
+  service_catalog_field "$1" name >/dev/null
 }
 
 docker_context() {
-  case "$1" in
-    gpt-service)
-      printf '.'
-      ;;
-    mailbox)
-      printf 'mailbox'
-      ;;
-    webui)
-      printf '.'
-      ;;
-    browser-automation)
-      printf 'browser-automation'
-      ;;
-	workflow-runtime)
-	  printf 'workflow-runtime'
-	  ;;
-	proxy-runtime)
-	  printf 'proxy-runtime'
-	  ;;
-	proxy-runtime-protocol)
-	  printf 'proxy-runtime'
-	  ;;
-    sms-service)
-      printf 'sms'
-      ;;
-  esac
+  service_catalog_field "$1" context || die "unknown service: $1"
 }
 
 dockerfile_path() {
-  case "$1" in
-    gpt-service)
-      printf 'gpt/gpt-service/Dockerfile'
-      ;;
-    mailbox)
-      printf 'Dockerfile'
-      ;;
-    sms-service)
-      printf 'Dockerfile'
-      ;;
-    browser-automation)
-      printf 'Dockerfile'
-      ;;
-	workflow-runtime)
-	  printf 'Dockerfile'
-	  ;;
-	proxy-runtime)
-	  printf 'Dockerfile'
-	  ;;
-	proxy-runtime-protocol)
-	  printf 'Dockerfile'
-	  ;;
-    webui)
-      printf 'webui/Dockerfile'
-      ;;
-    *)
-      printf '%s/Dockerfile' "$1"
-      ;;
-  esac
+  service_catalog_field "$1" dockerfile || die "unknown service: $1"
+}
+
+service_catalog_field() {
+  local requested=$1
+  local field=$2
+  local entry name context dockerfile
+  for entry in "${SERVICE_CATALOG[@]}"; do
+    IFS='|' read -r name context dockerfile <<<"$entry"
+    if [[ "$name" != "$requested" ]]; then
+      continue
+    fi
+    case "$field" in
+      name)
+        printf '%s' "$name"
+        ;;
+      context)
+        printf '%s' "$context"
+        ;;
+      dockerfile)
+        printf '%s' "$dockerfile"
+        ;;
+      *)
+        return 1
+        ;;
+    esac
+    return 0
+  done
+  return 1
+}
+
+catalog_service_names() {
+  local entry name context dockerfile
+  for entry in "${SERVICE_CATALOG[@]}"; do
+    IFS='|' read -r name context dockerfile <<<"$entry"
+    printf '%s\n' "$name"
+  done
 }
 
 sync_one_repo() {
@@ -189,18 +190,7 @@ sync_one_repo() {
   log "sync $name source to $REMOTE_HOST:$dest"
   remote "mkdir -p $(shell_quote "$dest")"
   rsync -az --delete \
-    --exclude '.git/' \
-    --exclude '.codex/' \
-    --exclude '.env' \
-    --exclude '.temp' \
-    --exclude '.tmp*/' \
-    --exclude '.venv*/' \
-    --exclude '**/__pycache__/' \
-    --exclude '**/.pytest_cache/' \
-    --exclude '**/node_modules/' \
-    --exclude '**/dist/' \
-    --exclude '**/build/' \
-    --exclude '**/*.log' \
+    "${RSYNC_EXCLUDES[@]}" \
     "$source/" "$REMOTE_HOST:$dest/"
 }
 
@@ -319,7 +309,11 @@ parse_args() {
   fi
 
   if [[ ${#SERVICES[@]} -eq 1 && ${SERVICES[0]} == "all" ]]; then
-    SERVICES=("${ALL_SERVICES[@]}")
+    SERVICES=()
+    local service
+    while IFS= read -r service; do
+      SERVICES+=("$service")
+    done < <(catalog_service_names)
   fi
 
   for service in "${SERVICES[@]}"; do
@@ -333,38 +327,25 @@ sync_source() {
     return
   fi
 
+  local excludes repo
+  excludes=("${RSYNC_EXCLUDES[@]}")
+  for repo in "${SOURCE_REPOS[@]}"; do
+    excludes+=(--exclude "$repo/")
+  done
+  excludes+=(
+    --exclude 'gopay-capture/'
+    --exclude 'gopay-emulator/*.mitm'
+  )
+
   log "sync source to $REMOTE_HOST:$REMOTE_DIR"
   remote "mkdir -p $(shell_quote "$REMOTE_DIR")"
   rsync -az --delete \
-    --exclude '.git/' \
-    --exclude '.codex/' \
-    --exclude '.env' \
-    --exclude '.temp' \
-    --exclude '.tmp*/' \
-    --exclude '.venv*/' \
-    --exclude '**/__pycache__/' \
-    --exclude '**/.pytest_cache/' \
-    --exclude '**/node_modules/' \
-    --exclude '**/dist/' \
-    --exclude '**/build/' \
-    --exclude '**/*.log' \
-    --exclude 'gpt/' \
-    --exclude 'mailbox/' \
-    --exclude 'webui/' \
-    --exclude 'sms/' \
-    --exclude 'browser-automation/' \
-    --exclude 'proxy-runtime/' \
-    --exclude 'gopay-capture/' \
-    --exclude 'gopay-emulator/*.mitm' \
+    "${excludes[@]}" \
     "$DEPLOY_DIR/" "$REMOTE_HOST:$REMOTE_DIR/"
 
-  sync_one_repo gpt "$SOURCE_ROOT/gpt" "$REMOTE_DIR/gpt"
-  sync_one_repo mailbox "$SOURCE_ROOT/mailbox" "$REMOTE_DIR/mailbox"
-  sync_one_repo webui "$SOURCE_ROOT/webui" "$REMOTE_DIR/webui"
-  sync_one_repo sms "$SOURCE_ROOT/sms" "$REMOTE_DIR/sms"
-  sync_one_repo browser-automation "$SOURCE_ROOT/browser-automation" "$REMOTE_DIR/browser-automation"
-  sync_one_repo workflow-runtime "$SOURCE_ROOT/workflow-runtime" "$REMOTE_DIR/workflow-runtime"
-  sync_one_repo proxy-runtime "$SOURCE_ROOT/proxy-runtime" "$REMOTE_DIR/proxy-runtime"
+  for repo in "${SOURCE_REPOS[@]}"; do
+    sync_one_repo "$repo" "$SOURCE_ROOT/$repo" "$REMOTE_DIR/$repo"
+  done
 }
 
 sync_dashboard_modules() {
