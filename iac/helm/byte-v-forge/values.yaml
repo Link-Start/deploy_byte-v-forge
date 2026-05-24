@@ -45,6 +45,10 @@ dashboard:
         kind: DASHBOARD_SERVICE_PROBE_HTTP
         target: 'http://{{ include "byte-v-forge.componentFullname" (dict "root" . "component" "workflow-runtime") }}:8080/healthz'
         timeoutMs: 1500
+      - name: browser-automation
+        kind: DASHBOARD_SERVICE_PROBE_TCP
+        target: '{{ include "byte-v-forge.componentFullname" (dict "root" . "component" "browser-automation") }}:50051'
+        timeoutMs: 1500
       - name: proxy-runtime
         kind: DASHBOARD_SERVICE_PROBE_HTTP
         target: 'http://{{ include "byte-v-forge.componentFullname" (dict "root" . "component" "proxy-runtime") }}:8080/healthz'

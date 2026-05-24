@@ -23,6 +23,12 @@ services {
   timeout_ms: 1500
 }
 services {
+  name: "browser-automation"
+  kind: DASHBOARD_SERVICE_PROBE_TCP
+  target: "browser-automation:50051"
+  timeout_ms: 1500
+}
+services {
   name: "proxy-runtime"
   kind: DASHBOARD_SERVICE_PROBE_HTTP
   target: "http://proxy-runtime:8080/healthz"
