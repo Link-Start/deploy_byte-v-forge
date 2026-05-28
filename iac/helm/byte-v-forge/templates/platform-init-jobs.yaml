@@ -1,0 +1,107 @@
+{{- $fullname := include "byte-v-forge.fullname" . -}}
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ $fullname }}-db-migrations
+  labels:
+    {{- include "byte-v-forge.labels" . | nindent 4 }}
+  annotations:
+    helm.sh/hook: pre-install,pre-upgrade
+    helm.sh/hook-weight: "-1"
+    helm.sh/hook-delete-policy: before-hook-creation,hook-succeeded
+data:
+{{- range $path, $_ := .Files.Glob "files/migrations/*.sql" }}
+  {{ base $path }}: |-
+{{ $.Files.Get $path | indent 4 }}
+{{- end }}
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ $fullname }}-db-migrations
+  labels:
+    {{- include "byte-v-forge.labels" . | nindent 4 }}
+  annotations:
+    helm.sh/hook: pre-install,pre-upgrade
+    helm.sh/hook-delete-policy: before-hook-creation,hook-succeeded
+spec:
+  backoffLimit: 3
+  template:
+    metadata:
+      labels:
+        {{- include "byte-v-forge.selectorLabels" (dict "root" . "component" "platform-init") | nindent 8 }}
+        app.kubernetes.io/component: platform-db-migrations
+    spec:
+      enableServiceLinks: false
+      restartPolicy: OnFailure
+      containers:
+        - name: migrate
+          image: {{ printf "%s:%s" .Values.postgres.image.repository .Values.postgres.image.tag | quote }}
+          imagePullPolicy: {{ .Values.global.imagePullPolicy }}
+          env:
+            - name: PGHOST
+              value: {{ include "byte-v-forge.postgresHost" . | quote }}
+            - name: PGPORT
+              value: {{ include "byte-v-forge.postgresPort" . | quote }}
+            - name: PGDATABASE
+              value: {{ .Values.postgres.auth.database | quote }}
+            - name: PGUSER
+              value: {{ .Values.postgres.auth.user | quote }}
+            - name: PGPASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "byte-v-forge.appSecretName" . }}
+                  key: POSTGRES_PASSWORD
+          command:
+            - sh
+            - -ceu
+            - |
+              for file in /migrations/*.sql; do
+                [ -e "$file" ] || continue
+                psql -v ON_ERROR_STOP=1 -f "$file"
+              done
+          volumeMounts:
+            - name: migrations
+              mountPath: /migrations
+              readOnly: true
+      volumes:
+        - name: migrations
+          configMap:
+            name: {{ $fullname }}-db-migrations
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ $fullname }}-nats-init
+  labels:
+    {{- include "byte-v-forge.labels" . | nindent 4 }}
+  annotations:
+    helm.sh/hook: pre-install,pre-upgrade
+    helm.sh/hook-weight: "0"
+    helm.sh/hook-delete-policy: before-hook-creation,hook-succeeded
+spec:
+  backoffLimit: 3
+  template:
+    metadata:
+      labels:
+        {{- include "byte-v-forge.selectorLabels" (dict "root" . "component" "platform-init") | nindent 8 }}
+        app.kubernetes.io/component: platform-nats-init
+    spec:
+      enableServiceLinks: false
+      restartPolicy: OnFailure
+      containers:
+        - name: nats-init
+          image: docker.m.daocloud.io/natsio/nats-box:0.18.0
+          imagePullPolicy: {{ .Values.global.imagePullPolicy }}
+          env:
+            - name: PLATFORM_NATS_URL
+              value: {{ tpl .Values.configEnv.PLATFORM_NATS_URL . | quote }}
+            - name: PLATFORM_EVENT_STREAM_NAME
+              value: {{ .Values.configEnv.PLATFORM_EVENT_STREAM_NAME | quote }}
+          command:
+            - sh
+            - -ceu
+            - |
+              nats --server "$PLATFORM_NATS_URL" stream add "$PLATFORM_EVENT_STREAM_NAME" --subjects 'byte.v.forge.>' --storage file --retention limits --dupe-window 10m --defaults \
+                || nats --server "$PLATFORM_NATS_URL" stream edit "$PLATFORM_EVENT_STREAM_NAME" --subjects 'byte.v.forge.>' --storage file --retention limits --dupe-window 10m --defaults

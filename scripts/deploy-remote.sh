@@ -21,6 +21,17 @@ IMAGE_PREFIX=${IMAGE_PREFIX:-byte-v-forge}
 TAG=${TAG:-deploy-$(date +%Y%m%d%H%M%S)}
 HELM_TIMEOUT=${HELM_TIMEOUT:-10m}
 ROLLOUT_TIMEOUT=${ROLLOUT_TIMEOUT:-5m}
+TRAEFIK_ENABLED=${TRAEFIK_ENABLED:-false}
+TRAEFIK_RELEASE=${TRAEFIK_RELEASE:-byte-v-forge-traefik}
+TRAEFIK_NAMESPACE=${TRAEFIK_NAMESPACE:-traefik}
+TRAEFIK_CHART=${TRAEFIK_CHART:-oci://ghcr.io/traefik/helm/traefik}
+TRAEFIK_CHART_VERSION=${TRAEFIK_CHART_VERSION:-40.2.0}
+if [[ -z "${TRAEFIK_VALUES_FILE+x}" ]]; then
+  TRAEFIK_VALUES_FILE=$REMOTE_DIR/iac/helm/traefik-values.yaml
+  TRAEFIK_VALUES_FILE_DEFAULTED=true
+else
+  TRAEFIK_VALUES_FILE_DEFAULTED=false
+fi
 
 IMPORT_METHOD=${IMPORT_METHOD:-auto}
 VM_NAME=${VM_NAME:-byte-v-forge-1}
@@ -44,24 +55,24 @@ SKIP_VALIDATE=${SKIP_VALIDATE:-false}
 KEEP_REMOTE_TAR=${KEEP_REMOTE_TAR:-false}
 
 SERVICE_CATALOG=(
-  "browser-automation|browser-automation|Dockerfile"
-  "workflow-runtime|workflow-runtime|Dockerfile"
-  "proxy-runtime|proxy-runtime|Dockerfile"
-  "proxy-runtime-protocol|proxy-runtime|Dockerfile"
+  "browser-automation|.|browser-automation/Dockerfile"
+  "proxy-runtime|.|proxy-runtime/Dockerfile"
+  "workflow-runtime|.|workflow-runtime/Dockerfile"
   "webui|.|webui/Dockerfile"
   "gpt-service|.|gpt/gpt-service/Dockerfile"
-  "mailbox|mailbox|Dockerfile"
-  "sms-service|sms|Dockerfile"
+  "mailbox|.|mailbox/Dockerfile"
+  "sms-service|.|sms/Dockerfile"
 )
 
 SOURCE_REPOS=(
+  common-lib
   gpt
   mailbox
   webui
   sms
   browser-automation
-  workflow-runtime
   proxy-runtime
+  workflow-runtime
 )
 
 RSYNC_EXCLUDES=(
@@ -110,8 +121,10 @@ Environment overrides:
   IMPORT_HOST_IP, IMPORT_HTTP_BIND, IMPORT_HTTP_PORT, HELM_TIMEOUT,
   ROLLOUT_TIMEOUT, KEEP_REMOTE_TAR, SOURCE_ROOT, CAMOUFOX_FETCH_PROXY,
   VALUES_FILE, BROWSER_AUTOMATION_RUNTIME_IMAGE, REBUILD_BROWSER_AUTOMATION_RUNTIME,
-  DEPLOY_REGISTRY_PUSH_ADDR, DEPLOY_REGISTRY_PULL_ADDR. CAMOUFOX_FETCH_PROXY defaults
-  to http://host.docker.internal:10809 for browser-automation runtime builds.
+  DEPLOY_REGISTRY_PUSH_ADDR, DEPLOY_REGISTRY_PULL_ADDR, TRAEFIK_ENABLED,
+  TRAEFIK_RELEASE, TRAEFIK_NAMESPACE, TRAEFIK_CHART, TRAEFIK_CHART_VERSION,
+  TRAEFIK_VALUES_FILE. CAMOUFOX_FETCH_PROXY defaults to
+  http://host.docker.internal:10809 for browser-automation runtime builds.
 EOF
 }
 
@@ -228,6 +241,9 @@ parse_args() {
         if [[ "$CHART_DIR_DEFAULTED" == "true" ]]; then
           CHART_DIR=$REMOTE_DIR/iac/helm/byte-v-forge
         fi
+        if [[ "$TRAEFIK_VALUES_FILE_DEFAULTED" == "true" ]]; then
+          TRAEFIK_VALUES_FILE=$REMOTE_DIR/iac/helm/traefik-values.yaml
+        fi
         shift 2
         ;;
       --chart-dir)
@@ -327,6 +343,8 @@ sync_source() {
     return
   fi
 
+  stage_chart_sources
+
   local excludes repo
   excludes=("${RSYNC_EXCLUDES[@]}")
   for repo in "${SOURCE_REPOS[@]}"; do
@@ -343,9 +361,71 @@ sync_source() {
     "${excludes[@]}" \
     "$DEPLOY_DIR/" "$REMOTE_HOST:$REMOTE_DIR/"
 
-  for repo in "${SOURCE_REPOS[@]}"; do
+  local repo_list
+  repo_list=$(selected_source_repos)
+  log "sync selected repos: $(printf '%s' "$repo_list" | tr '\n' ' ')"
+  for repo in $repo_list; do
+    [[ -n "$repo" ]] || continue
     sync_one_repo "$repo" "$SOURCE_ROOT/$repo" "$REMOTE_DIR/$repo"
   done
+}
+
+selected_source_repos() {
+  local repo service
+  local selected=""
+  for service in "${SERVICES[@]}"; do
+    for repo in $(service_source_repos "$service"); do
+      case " $selected " in
+        *" $repo "*) ;;
+        *) selected="$selected $repo" ;;
+      esac
+    done
+  done
+  for repo in "${SOURCE_REPOS[@]}"; do
+    case " $selected " in
+      *" $repo "*) printf '%s\n' "$repo" ;;
+    esac
+  done
+}
+
+service_source_repos() {
+  case "$1" in
+    gpt-service)
+      printf '%s\n' common-lib gpt mailbox
+      ;;
+    webui)
+      printf '%s\n' common-lib webui gpt mailbox sms browser-automation workflow-runtime
+      ;;
+    mailbox)
+      printf '%s\n' common-lib mailbox
+      ;;
+    sms-service)
+      printf '%s\n' common-lib sms
+      ;;
+    browser-automation)
+      printf '%s\n' common-lib browser-automation
+      ;;
+    workflow-runtime)
+      printf '%s\n' common-lib workflow-runtime
+      ;;
+    proxy-runtime)
+      printf '%s\n' common-lib proxy-runtime
+      ;;
+    *)
+      printf '%s\n' "${SOURCE_REPOS[@]}"
+      ;;
+  esac
+}
+
+stage_chart_sources() {
+  local chart_files="$DEPLOY_DIR/iac/helm/byte-v-forge/files"
+  mkdir -p "$chart_files/migrations" "$chart_files/n8n-workflows"
+  rm -f "$chart_files/migrations/"*.sql "$chart_files/n8n-workflows/"*.json
+  cp "$SOURCE_ROOT/gpt/gpt-account/migrations/001_init.sql" "$chart_files/migrations/001_gpt_account.sql"
+  cp "$SOURCE_ROOT/gpt/orchestrator/migrations/001_init.sql" "$chart_files/migrations/002_gpt_orchestrator.sql"
+  cp "$SOURCE_ROOT/mailbox/services/mailbox-api/migrations/001_operations_outbox.sql" "$chart_files/migrations/003_mailbox_operations_outbox.sql"
+  cp "$SOURCE_ROOT/sms/migrations/001_init.sql" "$chart_files/migrations/004_sms.sql"
+  cp "$SOURCE_ROOT/gpt/workflows/n8n/"*.workflow.json "$chart_files/n8n-workflows/"
 }
 
 sync_dashboard_modules() {
@@ -360,7 +440,7 @@ sync_dashboard_modules() {
   if [[ "$needs_webui" != "true" ]]; then
     return
   fi
-  log "compose dashboard modules into webui build tree"
+  log "generate dashboard module registry"
   remote "cd $(shell_quote "$REMOTE_DIR") && SOURCE_ROOT=$(shell_quote "$REMOTE_DIR") FRONTEND_MODULES_CONFIG=$(shell_quote "$REMOTE_DIR/frontend-modules.json") ./scripts/sync-dashboard-modules.sh"
 }
 
@@ -793,6 +873,11 @@ validate_chart() {
   fi
 
   local flags rendered
+  if [[ "$TRAEFIK_ENABLED" == "true" ]]; then
+    log "traefik helm template"
+    remote "KUBECONFIG=$(shell_quote "$REMOTE_KUBECONFIG") $(shell_quote "$REMOTE_HELM") template $(shell_quote "$TRAEFIK_RELEASE") $(shell_quote "$TRAEFIK_CHART") --version $(shell_quote "$TRAEFIK_CHART_VERSION") --namespace $(shell_quote "$TRAEFIK_NAMESPACE") -f $(shell_quote "$TRAEFIK_VALUES_FILE") > $(shell_quote "/tmp/${TRAEFIK_RELEASE}-${TAG}.rendered.yaml")"
+  fi
+
   flags=$(helm_render_values_flags)
   rendered="/tmp/${RELEASE}-${TAG}.rendered.yaml"
   log "helm lint/template"
@@ -807,6 +892,11 @@ helm_upgrade() {
   fi
 
   local flags
+  if [[ "$TRAEFIK_ENABLED" == "true" ]]; then
+    log "helm upgrade traefik release=$TRAEFIK_RELEASE namespace=$TRAEFIK_NAMESPACE"
+    remote "KUBECONFIG=$(shell_quote "$REMOTE_KUBECONFIG") $(shell_quote "$REMOTE_HELM") upgrade --install $(shell_quote "$TRAEFIK_RELEASE") $(shell_quote "$TRAEFIK_CHART") --version $(shell_quote "$TRAEFIK_CHART_VERSION") --namespace $(shell_quote "$TRAEFIK_NAMESPACE") --create-namespace --rollback-on-failure --wait=watcher --wait-for-jobs --timeout $(shell_quote "$HELM_TIMEOUT") -f $(shell_quote "$TRAEFIK_VALUES_FILE")"
+  fi
+
   flags=$(helm_values_flags)
   log "helm upgrade release=$RELEASE namespace=$NAMESPACE tag=$TAG"
   remote "KUBECONFIG=$(shell_quote "$REMOTE_KUBECONFIG") $(shell_quote "$REMOTE_HELM") upgrade --install $(shell_quote "$RELEASE") $(shell_quote "$CHART_DIR") --namespace $(shell_quote "$NAMESPACE") --create-namespace --server-side=false --rollback-on-failure --wait=watcher --wait-for-jobs --timeout $(shell_quote "$HELM_TIMEOUT") $flags"

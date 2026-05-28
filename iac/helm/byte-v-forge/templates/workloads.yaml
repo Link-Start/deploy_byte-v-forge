@@ -28,6 +28,7 @@ spec:
         {{- toYaml . | nindent 8 }}
       {{- end }}
     spec:
+      enableServiceLinks: false
       serviceAccountName: {{ include "byte-v-forge.serviceAccountName" $ }}
       {{- with $.Values.global.imagePullSecrets }}
       imagePullSecrets:
@@ -51,6 +52,7 @@ spec:
       {{- with $workload.dnsPolicy }}
       dnsPolicy: {{ . }}
       {{- end }}
+      {{- $cloudflareTunnelSidecar := and (eq $component "mailbox") $.Values.cloudflareTunnel.enabled }}
       containers:
         - name: {{ $component }}
           image: {{ include "byte-v-forge.image" (dict "root" $ "image" $workload.image) | quote }}
@@ -69,6 +71,13 @@ spec:
             - name: {{ .name }}
               containerPort: {{ .containerPort }}
               protocol: {{ default "TCP" .protocol }}
+            {{- end }}
+            {{- range $range := $workload.portRanges }}
+            {{- range untilStep (int $range.containerPortStart) (int (add1 $range.containerPortEnd)) 1 }}
+            - name: {{ printf "%s-%d" $range.namePrefix . | quote }}
+              containerPort: {{ . }}
+              protocol: {{ default "TCP" $range.protocol }}
+            {{- end }}
             {{- end }}
           {{- end }}
           {{- if or $workload.postgresEnv $workload.env $workload.secretEnv }}
@@ -98,7 +107,7 @@ spec:
           {{- end }}
           {{- with $workload.volumeMounts }}
           volumeMounts:
-            {{- toYaml . | nindent 12 }}
+            {{- tpl (toYaml .) $ | nindent 12 }}
           {{- end }}
           {{- with $workload.probes }}
           readinessProbe:
@@ -109,6 +118,16 @@ spec:
             {{- else if .tcpSocketPort }}
             tcpSocket:
               port: {{ .tcpSocketPort }}
+            {{- else if .grpc }}
+            grpc:
+              port: {{ .grpc.port }}
+              {{- with .grpc.service }}
+              service: {{ . | quote }}
+              {{- end }}
+            {{- else if .exec }}
+            exec:
+              command:
+                {{- toYaml .exec.command | nindent 16 }}
             {{- end }}
             initialDelaySeconds: {{ default 5 .initialDelaySeconds }}
             periodSeconds: {{ default 10 .periodSeconds }}
@@ -120,12 +139,63 @@ spec:
             {{- else if .tcpSocketPort }}
             tcpSocket:
               port: {{ .tcpSocketPort }}
+            {{- else if .grpc }}
+            grpc:
+              port: {{ .grpc.port }}
+              {{- with .grpc.service }}
+              service: {{ . | quote }}
+              {{- end }}
+            {{- else if .exec }}
+            exec:
+              command:
+                {{- toYaml .exec.command | nindent 16 }}
             {{- end }}
             initialDelaySeconds: {{ default 20 .livenessInitialDelaySeconds }}
             periodSeconds: {{ default 20 .livenessPeriodSeconds }}
           {{- end }}
           resources:
             {{- toYaml $workload.resources | nindent 12 }}
+        {{- with $workload.extraContainers }}
+        {{- tpl (toYaml .) $ | nindent 8 }}
+        {{- end }}
+        {{- if $cloudflareTunnelSidecar }}
+        - name: cloudflare-tunnel
+          image: {{ include "byte-v-forge.image" (dict "root" $ "image" $.Values.cloudflareTunnel.image) | quote }}
+          imagePullPolicy: {{ default $.Values.global.imagePullPolicy $.Values.cloudflareTunnel.imagePullPolicy }}
+          command:
+            - cloudflared
+            - tunnel
+            - --no-autoupdate
+            - --loglevel
+            - info
+            - --metrics
+            - 0.0.0.0:{{ default 2000 $.Values.cloudflareTunnel.metricsPort }}
+            - run
+          env:
+            - name: TUNNEL_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "byte-v-forge.appSecretName" $ }}
+                  key: CLOUDFLARE_TUNNEL_TOKEN
+          ports:
+            - name: cf-metrics
+              containerPort: {{ default 2000 $.Values.cloudflareTunnel.metricsPort }}
+              protocol: TCP
+          readinessProbe:
+            httpGet:
+              path: /ready
+              port: cf-metrics
+            initialDelaySeconds: 10
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /ready
+              port: cf-metrics
+            initialDelaySeconds: 10
+            periodSeconds: 10
+          resources:
+            {{- toYaml $.Values.cloudflareTunnel.resources | nindent 12 }}
+        {{- end }}
       {{- with $workload.volumes }}
       volumes:
         {{- range . }}
@@ -152,6 +222,9 @@ spec:
             items:
               {{- toYaml . | nindent 14 }}
             {{- end }}
+          {{- else if eq .type "persistentVolumeClaim" }}
+          persistentVolumeClaim:
+            claimName: {{ tpl .claimName $ }}
           {{- end }}
         {{- end }}
       {{- end }}
@@ -174,6 +247,14 @@ spec:
       {{- if .nodePort }}
       nodePort: {{ .nodePort }}
       {{- end }}
+    {{- end }}
+    {{- range $range := $workload.service.portRanges }}
+    {{- range untilStep (int $range.portStart) (int (add1 $range.portEnd)) 1 }}
+    - name: {{ printf "%s-%d" $range.namePrefix . | quote }}
+      port: {{ . }}
+      targetPort: {{ printf "%s-%d" $range.namePrefix . | quote }}
+      protocol: {{ default "TCP" $range.protocol }}
+    {{- end }}
     {{- end }}
   selector:
     {{- include "byte-v-forge.selectorLabels" (dict "root" $ "component" $component) | nindent 4 }}

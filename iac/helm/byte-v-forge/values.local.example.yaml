@@ -4,20 +4,14 @@ global:
   imagePullSecrets: []
 
 configEnv:
+  PLATFORM_NATS_URL: 'nats://{{ include "byte-v-forge.componentFullname" (dict "root" . "component" "platform-nats") }}:4222'
+  PLATFORM_EVENT_STREAM_NAME: BYTE_V_FORGE_EVENTS
+  PLATFORM_REDIS_URL: 'redis://{{ include "byte-v-forge.componentFullname" (dict "root" . "component" "platform-redis") }}:6379/0'
+  N8N_PUBLIC_URL: http://n8n.byte-v-forge.example.internal
+  GPT_N8N_WEBHOOK_BASE_URL: 'http://{{ include "byte-v-forge.componentFullname" (dict "root" . "component" "n8n-webhook") }}:5678/webhook'
+  GPT_ACTION_API_BASE_URL: 'http://{{ include "byte-v-forge.componentFullname" (dict "root" . "component" "gpt-service") }}:8080/api/gpt/actions'
   MAILBOX_CLOUDFLARE_MAX_MESSAGES_PER_DOMAIN: "500"
   MAILBOX_OUTLOOK_MAX_MESSAGES_PER_MAILBOX: "100"
-
-mailboxOutboundWebhooks:
-  - name: gpt-service
-    url: 'http://{{ include "byte-v-forge.componentFullname" (dict "root" . "component" "gpt-service") }}:8081/webhooks/mailbox/email'
-    tokenEnv: GPT_MAILBOX_WEBHOOK_TOKEN
-    filter:
-      senderDomains:
-        - openai.com
-      recipientDomains:
-        - example.invalid
-    includeBody: true
-    previewLimit: 1000
 
 cloudflareEmail:
   zones:
@@ -26,9 +20,11 @@ cloudflareEmail:
       workerName: cloudflare-email-relay
       catchAllEnabled: true
 
+cloudflareTunnel:
+  enabled: false
+  hostname: hook.example.invalid
+
 workloads:
-  cloudflare-tunnel:
-    enabled: false
   gpt-service:
     image:
       repository: gpt-service
@@ -41,17 +37,13 @@ workloads:
     image:
       repository: browser-automation
       tag: dev
-  workflow-runtime:
-    image:
-      repository: workflow-runtime
-      tag: dev
   proxy-runtime:
     image:
       repository: proxy-runtime
       tag: dev
-  proxy-runtime-protocol:
+  workflow-runtime:
     image:
-      repository: proxy-runtime-protocol
+      repository: workflow-runtime
       tag: dev
   sms-service:
     image:
@@ -64,36 +56,16 @@ workloads:
       repository: webui
       tag: dev
 
-ingress:
-  webui:
-    enabled: true
-    className: nginx
-    hosts:
-      - host: byte-v-forge.example.internal
-        paths:
-          - path: /
-            pathType: Prefix
-  webhook:
-    enabled: true
-    className: nginx
-    hosts:
-      - host: webhook.byte-v-forge.example.internal
-        paths:
-          - path: /webhooks/email
-            pathType: Prefix
-            component: mailbox
-            portName: http-webhook
-          - path: /
-            pathType: Prefix
-            component: gpt-service
-            portName: http-webhook
 
 secrets:
   stringData:
     POSTGRES_PASSWORD: change-me
+    N8N_ENCRYPTION_KEY: change-me-at-least-32-characters
+    N8N_RUNNERS_AUTH_TOKEN: change-me-at-least-32-characters
+    N8N_API_KEY: ""
+    N8N_INSTANCE_OWNER_PASSWORD_HASH: "$2b$10$j6/JtPvAKtGGGMVOTqIQrOaq3b0.fQyK46ZWQdNN4E4e496n5ToYq"
     BROWSER_AUTOMATION_PROXY_REFS_JSON: '{"register":"socks5://proxy.internal:10810","outlook":"socks5://proxy.internal:10810"}'
     MAILBOX_WEBHOOK_TOKEN: change-me
-    GPT_MAILBOX_WEBHOOK_TOKEN: change-me
     MAILBOX_CLOUDFLARE_API_TOKEN: change-me
     CLOUDFLARE_TUNNEL_TOKEN: change-me
     GOPAY_DYNAMIC_EGRESS: 'socks5://{{ include "byte-v-forge.componentFullname" (dict "root" . "component" "proxy-runtime") }}:10811'
@@ -102,12 +74,9 @@ secrets:
     GOPAY_PAYMENT_PROFILE_JSON: >-
           {"name":"payment","proxy_url":"socks5://{{ include "byte-v-forge.componentFullname" (dict "root" . "component" "proxy-runtime") }}:10810","tls_profile":"chrome_146","user_agent":"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36","sec_ch_ua":"\"Google Chrome\";v=\"147\", \"Not.A/Brand\";v=\"8\", \"Chromium\";v=\"147\"","sec_ch_ua_platform":"\"Windows\"","locale":"zh-CN","platform":"Windows","pin_locale":"id"}
     CODEX_OAUTH_TOKEN_PROXY_URL: 'socks5://{{ include "byte-v-forge.componentFullname" (dict "root" . "component" "proxy-runtime") }}:10810'
-    CODEX_OAUTH_PROTOCOL_PROXY_URL: 'socks5://{{ include "byte-v-forge.componentFullname" (dict "root" . "component" "proxy-runtime-protocol") }}:10813'
+    CODEX_OAUTH_PROTOCOL_PROXY_URL: ''
     GOTO_SSO_CLIENT_SECRET: ""
     GOPAY_ADD_BALANCE_ENVELOPE_LINK: ""
     GOPAY_ADD_BALANCE_TRANSFER_INSTRUCTIONS: ""
-    PROXY_RUNTIME_1024_USERNAME: change-me
-    PROXY_RUNTIME_1024_PASSWORD: change-me
-    PROXY_RUNTIME_1024_SESSION_ID: change-me
-    PROXY_RUNTIME_1024_PROTOCOL_SESSION_ID: change-me
     PROXY_RUNTIME_STATIC_CHAIN: ""
+    PROXY_RUNTIME_ENCRYPTION_KEY: change-me-at-least-32-characters

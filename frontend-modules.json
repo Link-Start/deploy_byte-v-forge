@@ -1,29 +1,64 @@
 {
   "modules": [
     {
-      "name": "gpt",
-      "source": "gpt/webui/src/dashboard",
-      "target": "gpt"
+      "id": "gpt",
+      "name": "GPT",
+      "remoteName": "gpt",
+      "remoteEntry": "/mf/gpt/remoteEntry.js",
+      "exposedModule": "./dashboardModule",
+      "apiBase": "/api/gpt",
+      "service": "gpt-service",
+      "mfPrefix": "/mf/gpt",
+      "apiPrefix": "/api/gpt",
+      "enabled": true
     },
     {
-      "name": "mailbox",
-      "source": "mailbox/webui/src/dashboard",
-      "target": "mailbox"
+      "id": "mailbox",
+      "name": "Mailbox",
+      "remoteName": "mailbox",
+      "remoteEntry": "/mf/mailbox/remoteEntry.js",
+      "exposedModule": "./dashboardModule",
+      "apiBase": "/api/mailbox",
+      "service": "mailbox",
+      "mfPrefix": "/mf/mailbox",
+      "apiPrefix": "/api/mailbox",
+      "enabled": true
     },
     {
-      "name": "sms",
-      "source": "sms/webui/src/dashboard",
-      "target": "sms"
+      "id": "sms",
+      "name": "SMS",
+      "remoteName": "sms",
+      "remoteEntry": "/mf/sms/remoteEntry.js",
+      "exposedModule": "./dashboardModule",
+      "apiBase": "/api/sms",
+      "service": "sms-service",
+      "mfPrefix": "/mf/sms",
+      "apiPrefix": "/api/sms",
+      "enabled": true
     },
     {
-      "name": "workflow",
-      "source": "workflow-runtime/webui/src/dashboard",
-      "target": "workflow"
+      "id": "proxy-runtime",
+      "name": "Proxy Runtime",
+      "remoteName": "proxy_runtime",
+      "remoteEntry": "/mf/proxy-runtime/remoteEntry.js",
+      "exposedModule": "./dashboardModule",
+      "apiBase": "/api/proxy-runtime",
+      "service": "proxy-runtime",
+      "mfPrefix": "/mf/proxy-runtime",
+      "apiPrefix": "/api/proxy-runtime",
+      "enabled": true
     },
     {
-      "name": "proxy-runtime",
-      "source": "proxy-runtime/webui/src/dashboard",
-      "target": "proxy-runtime"
+      "id": "workflow-runtime",
+      "name": "Workflow Runtime",
+      "remoteName": "workflow_runtime",
+      "remoteEntry": "/mf/workflow-runtime/remoteEntry.js",
+      "exposedModule": "./dashboardModule",
+      "apiBase": "/api/workflow-runtime",
+      "service": "workflow-runtime",
+      "mfPrefix": "/mf/workflow-runtime",
+      "apiPrefix": "/api/workflow-runtime",
+      "enabled": true
     }
   ]
 }

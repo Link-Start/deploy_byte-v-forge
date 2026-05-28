@@ -1,0 +1,204 @@
+{{- if .Values.n8nWorkflows.enabled }}
+{{- $fullname := include "byte-v-forge.fullname" . -}}
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ $fullname }}-n8n-workflows
+  labels:
+    {{- include "byte-v-forge.labels" . | nindent 4 }}
+data:
+{{- range $path, $_ := .Files.Glob "files/n8n-workflows/*.json" }}
+  {{ base $path }}: |-
+{{ $.Files.Get $path | indent 4 }}
+{{- end }}
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: {{ $fullname }}-n8n-workflows
+  labels:
+    {{- include "byte-v-forge.labels" . | nindent 4 }}
+automountServiceAccountToken: true
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: {{ $fullname }}-n8n-workflows
+  labels:
+    {{- include "byte-v-forge.labels" . | nindent 4 }}
+rules:
+  - apiGroups: ["apps"]
+    resources: ["deployments"]
+    verbs: ["get", "patch"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: {{ $fullname }}-n8n-workflows
+  labels:
+    {{- include "byte-v-forge.labels" . | nindent 4 }}
+subjects:
+  - kind: ServiceAccount
+    name: {{ $fullname }}-n8n-workflows
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: {{ $fullname }}-n8n-workflows
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ $fullname }}-n8n-workflows
+  labels:
+    {{- include "byte-v-forge.labels" . | nindent 4 }}
+  annotations:
+    helm.sh/hook: post-install,post-upgrade
+    helm.sh/hook-delete-policy: before-hook-creation,hook-succeeded
+spec:
+  backoffLimit: 3
+  template:
+    metadata:
+      labels:
+        {{- include "byte-v-forge.selectorLabels" (dict "root" . "component" "platform-init") | nindent 8 }}
+        app.kubernetes.io/component: n8n-workflow-import
+    spec:
+      enableServiceLinks: false
+      serviceAccountName: {{ $fullname }}-n8n-workflows
+      automountServiceAccountToken: true
+      restartPolicy: OnFailure
+      containers:
+        - name: import
+          image: {{ include "byte-v-forge.image" (dict "root" . "image" (index .Values.workloads "n8n-main").image) | quote }}
+          imagePullPolicy: {{ default .Values.global.imagePullPolicy (index .Values.workloads "n8n-main").imagePullPolicy }}
+          env:
+            - name: DB_TYPE
+              value: postgresdb
+            - name: DB_POSTGRESDB_HOST
+              value: {{ include "byte-v-forge.componentFullname" (dict "root" . "component" "n8n-postgres") | quote }}
+            - name: DB_POSTGRESDB_PORT
+              value: "5432"
+            - name: DB_POSTGRESDB_DATABASE
+              value: n8n
+            - name: DB_POSTGRESDB_USER
+              value: n8n
+            - name: DB_TABLE_PREFIX
+              value: n8n_
+            - name: EXECUTIONS_MODE
+              value: queue
+            - name: N8N_BLOCK_ENV_ACCESS_IN_NODE
+              value: "false"
+            - name: N8N_ROLLOUT_DEPLOYMENTS
+              value: {{ printf "%s %s %s" (include "byte-v-forge.componentFullname" (dict "root" . "component" "n8n-main")) (include "byte-v-forge.componentFullname" (dict "root" . "component" "n8n-webhook")) (include "byte-v-forge.componentFullname" (dict "root" . "component" "n8n-worker")) | quote }}
+            - name: QUEUE_BULL_REDIS_HOST
+              value: {{ include "byte-v-forge.componentFullname" (dict "root" . "component" "n8n-redis") | quote }}
+            - name: QUEUE_BULL_REDIS_PORT
+              value: "6379"
+            - name: DB_POSTGRESDB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "byte-v-forge.appSecretName" . }}
+                  key: N8N_POSTGRES_PASSWORD
+            - name: N8N_ENCRYPTION_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "byte-v-forge.appSecretName" . }}
+                  key: N8N_ENCRYPTION_KEY
+          command:
+            - sh
+            - -ceu
+            - |
+              for attempt in $(seq 1 60); do
+                if n8n import:workflow --separate --input=/workflows --activeState=fromJson; then
+                  for file in /workflows/*.json; do
+                    id="$(node -e "console.log(require(process.argv[1]).id)" "$file")"
+                    [ -n "$id" ] && n8n publish:workflow --id="$id"
+                  done
+                  node <<'NODE'
+              const fs = require('fs');
+              const https = require('https');
+              const apiHost = process.env.KUBERNETES_SERVICE_HOST;
+              const apiPort = process.env.KUBERNETES_SERVICE_PORT_HTTPS || '443';
+              const namespace = fs.readFileSync('/var/run/secrets/kubernetes.io/serviceaccount/namespace', 'utf8').trim();
+              const token = fs.readFileSync('/var/run/secrets/kubernetes.io/serviceaccount/token', 'utf8').trim();
+              const ca = fs.readFileSync('/var/run/secrets/kubernetes.io/serviceaccount/ca.crt');
+              const deployments = (process.env.N8N_ROLLOUT_DEPLOYMENTS || '').split(/\s+/).filter(Boolean);
+              const rolloutAt = new Date().toISOString();
+              const patch = JSON.stringify({ spec: { template: { metadata: { annotations: { 'byte-v-forge.io/n8n-workflows-reloaded-at': rolloutAt } } } } });
+
+              function request(method, path, body) {
+                return new Promise((resolve, reject) => {
+                  const req = https.request({
+                    hostname: apiHost,
+                    port: apiPort,
+                    method,
+                    path,
+                    ca,
+                    headers: {
+                      Authorization: `Bearer ${token}`,
+                      ...(body ? {
+                        'Content-Type': 'application/strategic-merge-patch+json',
+                        'Content-Length': Buffer.byteLength(body),
+                      } : {}),
+                    },
+                  }, (res) => {
+                    let data = '';
+                    res.setEncoding('utf8');
+                    res.on('data', chunk => { data += chunk; });
+                    res.on('end', () => {
+                      if (res.statusCode < 200 || res.statusCode >= 300) {
+                        reject(new Error(`${method} ${path} failed: ${res.statusCode} ${data}`));
+                        return;
+                      }
+                      resolve(data ? JSON.parse(data) : {});
+                    });
+                  });
+                  req.on('error', reject);
+                  if (body) req.write(body);
+                  req.end();
+                });
+              }
+
+              async function waitRollout(name, generation) {
+                const path = `/apis/apps/v1/namespaces/${namespace}/deployments/${name}`;
+                const deadline = Date.now() + 180000;
+                while (Date.now() < deadline) {
+                  const deployment = await request('GET', path);
+                  const status = deployment.status || {};
+                  const desired = (deployment.spec || {}).replicas || 1;
+                  if (status.observedGeneration >= generation &&
+                      status.updatedReplicas === desired &&
+                      status.readyReplicas === desired &&
+                      status.availableReplicas === desired) {
+                    return;
+                  }
+                  await new Promise(resolve => setTimeout(resolve, 3000));
+                }
+                throw new Error(`deployment ${name} rollout timed out`);
+              }
+
+              (async () => {
+                for (const name of deployments) {
+                  const path = `/apis/apps/v1/namespaces/${namespace}/deployments/${name}`;
+                  const deployment = await request('PATCH', path, patch);
+                  await waitRollout(name, deployment.metadata.generation);
+                }
+              })().catch((err) => {
+                console.error(err.message);
+                process.exit(1);
+              });
+              NODE
+                  exit 0
+                fi
+                sleep 5
+              done
+              exit 1
+          volumeMounts:
+            - name: workflows
+              mountPath: /workflows
+              readOnly: true
+      volumes:
+        - name: workflows
+          configMap:
+            name: {{ $fullname }}-n8n-workflows
+{{- end }}

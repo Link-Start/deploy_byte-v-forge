@@ -1,5 +1,50 @@
 name: byte-v-forge
 
+x-n8n-environment: &n8n-environment
+  DB_TYPE: postgresdb
+  DB_POSTGRESDB_HOST: n8n-postgres
+  DB_POSTGRESDB_PORT: "5432"
+  DB_POSTGRESDB_DATABASE: n8n
+  DB_POSTGRESDB_USER: n8n
+  DB_POSTGRESDB_PASSWORD: ${N8N_POSTGRES_PASSWORD:-byte_v_forge_n8n}
+  DB_TABLE_PREFIX: n8n_
+  EXECUTIONS_MODE: queue
+  QUEUE_BULL_REDIS_HOST: n8n-redis
+  QUEUE_BULL_REDIS_PORT: "6379"
+  N8N_ENCRYPTION_KEY: ${N8N_ENCRYPTION_KEY:-byte_v_forge_n8n_encryption_key_change_me_32}
+  N8N_EDITOR_BASE_URL: ${N8N_PUBLIC_URL:-http://localhost:5678}
+  WEBHOOK_URL: ${WEBHOOK_URL:-http://localhost:8081/}
+  N8N_PROXY_HOPS: "1"
+  N8N_ENFORCE_SETTINGS_FILE_PERMISSIONS: "true"
+  N8N_SECURE_COOKIE: "false"
+  N8N_DIAGNOSTICS_ENABLED: "false"
+  N8N_VERSION_NOTIFICATIONS_ENABLED: "false"
+  N8N_TEMPLATES_ENABLED: "false"
+  N8N_BLOCK_ENV_ACCESS_IN_NODE: "false"
+  GPT_ACTION_API_BASE_URL: ${GPT_ACTION_API_BASE_URL:-http://gpt-service:8080/api/gpt/actions}
+  PROXY_RUNTIME_API_BASE_URL: ${PROXY_RUNTIME_API_BASE_URL:-http://proxy-runtime:8080/api/proxy-runtime}
+  N8N_INSTANCE_OWNER_MANAGED_BY_ENV: "true"
+  N8N_INSTANCE_OWNER_EMAIL: ${N8N_INSTANCE_OWNER_EMAIL:-byte-v-forge@byte-v-forge.local}
+  N8N_INSTANCE_OWNER_FIRST_NAME: ${N8N_INSTANCE_OWNER_FIRST_NAME:-Byte}
+  N8N_INSTANCE_OWNER_LAST_NAME: ${N8N_INSTANCE_OWNER_LAST_NAME:-Forge}
+  N8N_INSTANCE_OWNER_PASSWORD_HASH: ${N8N_INSTANCE_OWNER_PASSWORD_HASH:-$$2b$$10$$j6/JtPvAKtGGGMVOTqIQrOaq3b0.fQyK46ZWQdNN4E4e496n5ToYq}
+
+x-n8n-runner-environment: &n8n-runner-environment
+  N8N_RUNNERS_MODE: external
+  N8N_RUNNERS_BROKER_LISTEN_ADDRESS: 0.0.0.0
+  N8N_RUNNERS_AUTH_TOKEN: ${N8N_RUNNERS_AUTH_TOKEN:-byte_v_forge_n8n_runner_auth_token_change_me_32}
+  N8N_NATIVE_PYTHON_RUNNER: "true"
+
+x-n8n-task-runner-environment: &n8n-task-runner-environment
+  N8N_RUNNERS_TASK_BROKER_URI: http://n8n-worker:5679
+  N8N_RUNNERS_AUTH_TOKEN: ${N8N_RUNNERS_AUTH_TOKEN:-byte_v_forge_n8n_runner_auth_token_change_me_32}
+  N8N_RUNNERS_AUTO_SHUTDOWN_TIMEOUT: "0"
+  N8N_RUNNERS_MAX_CONCURRENCY: "5"
+  N8N_RUNNERS_LAUNCHER_HEALTH_CHECK_PORT: "5680"
+  N8N_BLOCK_ENV_ACCESS_IN_NODE: "false"
+  GPT_ACTION_API_BASE_URL: ${GPT_ACTION_API_BASE_URL:-http://gpt-service:8080/api/gpt/actions}
+  PROXY_RUNTIME_API_BASE_URL: ${PROXY_RUNTIME_API_BASE_URL:-http://proxy-runtime:8080/api/proxy-runtime}
+
 services:
   postgres:
     image: docker.m.daocloud.io/library/postgres:15-alpine
@@ -13,40 +58,203 @@ services:
       - pgdata:/var/lib/postgresql/data
     restart: always
 
-  workflow-runtime-engine:
-    image: docker.m.daocloud.io/temporalio/auto-setup:1.29.2
+  traefik:
+    image: docker.m.daocloud.io/library/traefik:v3.7.1
+    command:
+      - --api=true
+      - --api.insecure=true
+      - --ping=true
+      - --providers.docker=true
+      - --providers.docker.exposedbydefault=false
+      - --entrypoints.web.address=:80
+      - --entrypoints.webhook.address=:8081
+      - --entrypoints.internal.address=:9000
+    ports:
+      - "${WEBUI_PORT:-8080}:80"
+      - "${WEBHOOK_PORT:-8081}:8081"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    healthcheck:
+      test: ["CMD", "traefik", "healthcheck", "--ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+    restart: always
+
+  n8n-redis:
+    image: docker.m.daocloud.io/library/redis:7-alpine
+    command: ["redis-server", "--save", "", "--appendonly", "no"]
+    restart: always
+
+  n8n-postgres:
+    image: docker.m.daocloud.io/library/postgres:15-alpine
     environment:
-      - DB=postgres12
-      - DB_PORT=5432
-      - POSTGRES_USER=${POSTGRES_USER:-byte_v_forge}
-      - POSTGRES_PWD=${POSTGRES_PASSWORD:-byte_v_forge}
-      - POSTGRES_SEEDS=postgres
-      - DBNAME=workflow_runtime
-      - VISIBILITY_DBNAME=workflow_runtime_visibility
+      - POSTGRES_USER=n8n
+      - POSTGRES_PASSWORD=${N8N_POSTGRES_PASSWORD:-byte_v_forge_n8n}
+      - POSTGRES_DB=n8n
+      - PGDATA=/var/lib/postgresql/data/pgdata
+    volumes:
+      - n8n_pgdata:/var/lib/postgresql/data
+    restart: always
+
+  platform-redis:
+    image: docker.m.daocloud.io/library/redis:7-alpine
+    command: ["redis-server", "--save", "", "--appendonly", "no"]
+    restart: always
+
+  platform-nats:
+    image: docker.m.daocloud.io/library/nats:2.14.1
+    command: ["-js", "-sd", "/data", "-m", "8222"]
+    ports:
+      - "127.0.0.1:${PLATFORM_NATS_PORT:-4222}:4222"
+      - "127.0.0.1:${PLATFORM_NATS_MONITOR_PORT:-8222}:8222"
+    volumes:
+      - nats_data:/data
+    restart: always
+
+  platform-nats-init:
+    image: docker.m.daocloud.io/natsio/nats-box:0.18.0
+    environment:
+      - PLATFORM_EVENT_STREAM_NAME=${PLATFORM_EVENT_STREAM_NAME:-BYTE_V_FORGE_EVENTS}
+    command:
+      - sh
+      - -ceu
+      - |
+        nats --server "$${PLATFORM_NATS_URL}" stream add "$${PLATFORM_EVENT_STREAM_NAME}" --subjects 'byte.v.forge.>' --storage file --retention limits --dupe-window 10m --defaults \
+          || nats --server "$${PLATFORM_NATS_URL}" stream edit "$${PLATFORM_EVENT_STREAM_NAME}" --subjects 'byte.v.forge.>' --storage file --retention limits --dupe-window 10m --defaults
     depends_on:
-      postgres:
+      - platform-nats
+
+  platform-db-migrations:
+    image: docker.m.daocloud.io/library/postgres:15-alpine
+    environment:
+      - PGHOST=postgres
+      - PGPORT=5432
+      - PGDATABASE=${POSTGRES_DB:-byte_v_forge}
+      - PGUSER=${POSTGRES_USER:-byte_v_forge}
+      - PGPASSWORD=${POSTGRES_PASSWORD:-byte_v_forge}
+    volumes:
+      - ../sms/migrations:/migrations/sms:ro
+      - ../mailbox/services/mailbox-api/migrations:/migrations/mailbox:ro
+      - ../gpt/orchestrator/migrations:/migrations/gpt-orchestrator:ro
+      - ../gpt/gpt-account/migrations:/migrations/gpt-account:ro
+    command:
+      - sh
+      - -ceu
+      - |
+        for dir in /migrations/gpt-account /migrations/gpt-orchestrator /migrations/mailbox /migrations/sms; do
+          for file in "$${dir}"/*.sql; do
+            [ -e "$${file}" ] || continue
+            psql -v ON_ERROR_STOP=1 -f "$${file}"
+          done
+        done
+    depends_on:
+      - postgres
+
+  n8n-main:
+    image: docker.n8n.io/n8nio/n8n:2.21.7
+    ports:
+      - "127.0.0.1:${N8N_EDITOR_PORT:-5678}:5678"
+    environment:
+      <<: *n8n-environment
+      OFFLOAD_MANUAL_EXECUTIONS_TO_WORKERS: "true"
+    volumes:
+      - n8n_data:/home/node/.n8n
+    depends_on:
+      n8n-postgres:
+        condition: service_started
+      n8n-redis:
+        condition: service_started
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.n8n-editor.rule=Host(`n8n.byte-v-forge.internal`)"
+      - "traefik.http.routers.n8n-editor.entrypoints=web"
+      - "traefik.http.routers.n8n-editor.priority=200"
+      - "traefik.http.routers.n8n-editor.service=n8n-editor"
+      - "traefik.http.services.n8n-editor.loadbalancer.server.port=5678"
+      - "traefik.http.services.n8n-editor.loadbalancer.healthcheck.path=/healthz"
+    restart: always
+
+  n8n-worker:
+    image: docker.n8n.io/n8nio/n8n:2.21.7
+    command: ["worker", "--concurrency=5"]
+    environment:
+      <<: [*n8n-environment, *n8n-runner-environment]
+      QUEUE_HEALTH_CHECK_ACTIVE: "true"
+    volumes:
+      - n8n_data:/home/node/.n8n
+    depends_on:
+      n8n-postgres:
+        condition: service_started
+      n8n-redis:
         condition: service_started
     restart: always
 
-  workflow-runtime:
-    build:
-      context: ../workflow-runtime
-      dockerfile: Dockerfile
-    ports:
-      - "${WORKFLOW_RUNTIME_PORT:-7233}:7233"
-    environment:
-      - WORKFLOW_RUNTIME_LISTEN_ADDR=:7233
-      - WORKFLOW_RUNTIME_BACKEND_ADDR=workflow-runtime-engine:7233
-      - WORKFLOW_RUNTIME_HEALTH_ADDR=:8080
-      - WORKFLOW_RUNTIME_DIAL_TIMEOUT_SECONDS=5
+
+  n8n-task-runner:
+    image: docker.io/n8nio/runners:2.21.7
+    environment: *n8n-task-runner-environment
     depends_on:
-      - workflow-runtime-engine
+      n8n-worker:
+        condition: service_started
     restart: always
+
+  n8n-workflow-import:
+    image: docker.n8n.io/n8nio/n8n:2.21.7
+    environment: *n8n-environment
+    volumes:
+      - n8n_data:/home/node/.n8n
+      - ../gpt/workflows/n8n:/workflows:ro
+    command:
+      - sh
+      - -ceu
+      - |
+        for attempt in $$(seq 1 60); do
+          if n8n import:workflow --separate --input=/workflows --activeState=fromJson; then
+            for file in /workflows/*.workflow.json; do
+              id="$$(node -e "console.log(require(process.argv[1]).id)" "$$file")"
+              [ -n "$$id" ] && n8n publish:workflow --id="$$id"
+            done
+            exit 0
+          fi
+          sleep 5
+        done
+        exit 1
+    depends_on:
+      n8n-main:
+        condition: service_started
+      n8n-postgres:
+        condition: service_started
+      n8n-redis:
+        condition: service_started
+    restart: "no"
+
+  n8n-webhook:
+    image: docker.n8n.io/n8nio/n8n:2.21.7
+    command: ["webhook"]
+    environment: *n8n-environment
+    volumes:
+      - n8n_data:/home/node/.n8n
+    depends_on:
+      n8n-postgres:
+        condition: service_started
+      n8n-redis:
+        condition: service_started
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.n8n-webhook.rule=PathPrefix(`/webhook`) || PathPrefix(`/webhook-test`)"
+      - "traefik.http.routers.n8n-webhook.entrypoints=webhook"
+      - "traefik.http.routers.n8n-webhook.priority=200"
+      - "traefik.http.routers.n8n-webhook.service=n8n-webhook"
+      - "traefik.http.services.n8n-webhook.loadbalancer.server.port=5678"
+      - "traefik.http.services.n8n-webhook.loadbalancer.healthcheck.path=/healthz"
+    restart: always
+
 
   proxy-runtime:
     build:
-      context: ../proxy-runtime
-      dockerfile: Dockerfile
+      context: ..
+      dockerfile: proxy-runtime/Dockerfile
     ports:
       - "127.0.0.1:${PROXY_RUNTIME_HTTP_PORT:-8083}:8080"
       - "${PROXY_RUNTIME_COMMON_EGRESS_PORT:-10810}:10810"
@@ -54,25 +262,48 @@ services:
       - "${PROXY_RUNTIME_CHECKOUT_EGRESS_PORT:-10812}:10812"
     environment:
       - PROXY_RUNTIME_ADDR=:8080
+      - PROXY_RUNTIME_POSTGRES_DSN=host=postgres user=${POSTGRES_USER:-byte_v_forge} password=${POSTGRES_PASSWORD:-byte_v_forge} dbname=${POSTGRES_DB:-byte_v_forge} port=5432 sslmode=disable
+      - PROXY_RUNTIME_APPLY_MIGRATIONS=${PROXY_RUNTIME_APPLY_MIGRATIONS:-true}
+      - PROXY_RUNTIME_ROUTE_RUNTIME=${PROXY_RUNTIME_ROUTE_RUNTIME:-gost}
+      - PROXY_RUNTIME_SOURCE_RUNTIME=${PROXY_RUNTIME_SOURCE_RUNTIME:-mihomo}
+      - PROXY_RUNTIME_MIHOMO_MIXED_ADDR=${PROXY_RUNTIME_MIHOMO_MIXED_ADDR:-127.0.0.1:18900}
+      - PROXY_RUNTIME_MIHOMO_API_ADDR=${PROXY_RUNTIME_MIHOMO_API_ADDR:-127.0.0.1:18901}
+      - PROXY_RUNTIME_ENCRYPTION_KEY=${PROXY_RUNTIME_ENCRYPTION_KEY:-byte_v_forge_proxy_runtime_encryption_key_change_me_32}
       - PROXY_RUNTIME_LISTENERS_JSON=${PROXY_RUNTIME_LISTENERS_JSON:-[{"id":"direct-egress","addr":":10810","protocol":"socks5","route":"upstream","upstream":"tcp://host.docker.internal:10810"},{"id":"dynamic-provider","addr":":10811","protocol":"socks5","route":"provider"},{"id":"checkout-egress","addr":":10812","protocol":"socks5","route":"upstream","upstream":"tcp://host.docker.internal:10813"}]}
       - PROXY_RUNTIME_LOCAL_PROTOCOL=socks5
+      - PROXY_RUNTIME_SESSION_LISTEN_HOST=0.0.0.0
+      - PROXY_RUNTIME_SESSION_PORT_START=${PROXY_RUNTIME_SESSION_PORT_START:-19080}
+      - PROXY_RUNTIME_SESSION_PORT_END=${PROXY_RUNTIME_SESSION_PORT_END:-19099}
       - PROXY_RUNTIME_STATIC_CHAIN=${PROXY_RUNTIME_STATIC_CHAIN:-}
-      - PROXY_RUNTIME_PROVIDER=1024proxy
-      - PROXY_RUNTIME_1024_PROXY_ADDR=${PROXY_RUNTIME_1024_PROXY_ADDR:-us.1024proxy.io:3000}
-      - PROXY_RUNTIME_1024_PROTOCOL=socks5
-      - PROXY_RUNTIME_1024_REGION=${PROXY_RUNTIME_1024_REGION:-ID}
-      - PROXY_RUNTIME_1024_USERNAME=${PROXY_RUNTIME_1024_USERNAME:-}
-      - PROXY_RUNTIME_1024_PASSWORD=${PROXY_RUNTIME_1024_PASSWORD:-}
-      - PROXY_RUNTIME_1024_SESSION_ID=${PROXY_RUNTIME_1024_SESSION_ID:-}
-      - PROXY_RUNTIME_1024_STICKY_MINUTES=${PROXY_RUNTIME_1024_STICKY_MINUTES:-10}
+      - PLATFORM_REDIS_URL=${PLATFORM_REDIS_URL:-redis://platform-redis:6379/0}
     extra_hosts:
       - "host.docker.internal:host-gateway"
+    volumes:
+      - proxy_runtime_mihomo:/var/lib/byte-v-forge/proxy-runtime/mihomo
+    depends_on:
+      - postgres
+      - platform-redis
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.proxy-runtime-status.rule=Host(`proxy-runtime.byte-v-forge.internal`)"
+      - "traefik.http.routers.proxy-runtime-status.entrypoints=internal"
+      - "traefik.http.routers.proxy-runtime-status.service=proxy-runtime"
+      - "traefik.http.services.proxy-runtime.loadbalancer.server.port=8080"
+      - "traefik.http.services.proxy-runtime.loadbalancer.healthcheck.path=/healthz"
+      - "traefik.http.routers.proxy-runtime-api.rule=PathPrefix(`/api/proxy-runtime`)"
+      - "traefik.http.routers.proxy-runtime-api.entrypoints=web"
+      - "traefik.http.routers.proxy-runtime-api.priority=100"
+      - "traefik.http.routers.proxy-runtime-api.service=proxy-runtime"
+      - "traefik.http.routers.proxy-runtime-mf.rule=PathPrefix(`/mf/proxy-runtime`)"
+      - "traefik.http.routers.proxy-runtime-mf.entrypoints=web"
+      - "traefik.http.routers.proxy-runtime-mf.priority=100"
+      - "traefik.http.routers.proxy-runtime-mf.service=proxy-runtime"
     restart: always
 
   browser-automation:
     build:
-      context: ../browser-automation
-      dockerfile: Dockerfile
+      context: ..
+      dockerfile: browser-automation/Dockerfile
       args:
         CAMOUFOX_FETCH_PROXY: ${CAMOUFOX_FETCH_PROXY:-}
       extra_hosts:
@@ -92,66 +323,120 @@ services:
     depends_on:
       postgres:
         condition: service_started
+      platform-nats:
+        condition: service_started
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.browser-automation-status.rule=Host(`browser-automation.byte-v-forge.internal`)"
+      - "traefik.http.routers.browser-automation-status.entrypoints=internal"
+      - "traefik.http.routers.browser-automation-status.service=browser-automation"
+      - "traefik.http.services.browser-automation.loadbalancer.server.port=50051"
+      - "traefik.http.services.browser-automation.loadbalancer.server.scheme=h2c"
+      - "traefik.http.services.browser-automation.loadbalancer.healthcheck.mode=grpc"
     restart: always
 
   mailbox:
     build:
-      context: ../mailbox
-      dockerfile: Dockerfile
+      context: ..
+      dockerfile: mailbox/Dockerfile
     init: true
     ports:
       - "${MAILBOX_GRPC_PORT:-50058}:50051"
-      - "127.0.0.1:${MAILBOX_WEBHOOK_PORT:-8082}:8082"
     environment:
       - MAILBOX_LISTEN_ADDR=:50051
       - MAILBOX_WEBHOOK_HTTP_ADDR=:8082
+      - MAILBOX_DASHBOARD_HTTP_ADDR=:8080
+      - MAILBOX_DASHBOARD_STATIC_DIR=/app/dashboard/mailbox
       - MAILBOX_WEBHOOK_TOKEN=${MAILBOX_WEBHOOK_TOKEN:-}
-      - MAILBOX_OUTBOUND_WEBHOOKS_FILE=/etc/mailbox/outbound-webhooks/webhooks.json
       - MAILBOX_CLOUDFLARE_EMAIL_CONFIG_FILE=/etc/mailbox/cloudflare-email/cloudflare-email.json
-      - GPT_MAILBOX_WEBHOOK_TOKEN=${GPT_MAILBOX_WEBHOOK_TOKEN:-}
       - MAILBOX_CLOUDFLARE_API_TOKEN=${MAILBOX_CLOUDFLARE_API_TOKEN:-}
       - MAILBOX_CLOUDFLARE_MAX_MESSAGES_PER_DOMAIN=${MAILBOX_CLOUDFLARE_MAX_MESSAGES_PER_DOMAIN:-500}
       - MAILBOX_OUTLOOK_MAX_MESSAGES_PER_MAILBOX=${MAILBOX_OUTLOOK_MAX_MESSAGES_PER_MAILBOX:-100}
+      - MAILBOX_COORDINATION_REDIS_URL=${PLATFORM_REDIS_URL:-redis://platform-redis:6379/0}
+      - MAILBOX_RECENT_EMAIL_REDIS_URL=${PLATFORM_REDIS_URL:-redis://platform-redis:6379/0}
+      - PLATFORM_EVENT_STREAM_NAME=${PLATFORM_EVENT_STREAM_NAME:-BYTE_V_FORGE_EVENTS}
+      - MAILBOX_RECENT_EMAIL_CACHE_KEY_PREFIX=${MAILBOX_RECENT_EMAIL_CACHE_KEY_PREFIX:-byte-v-forge:mailbox:recent-email}
+      - MAILBOX_RECENT_EMAIL_CACHE_TTL_SECONDS=${MAILBOX_RECENT_EMAIL_CACHE_TTL_SECONDS:-3600}
+      - MAILBOX_RECENT_EMAIL_CACHE_MAX_MESSAGES=${MAILBOX_RECENT_EMAIL_CACHE_MAX_MESSAGES:-20}
+      - MAILBOX_INBOX_LOCK_KEY_PREFIX=${MAILBOX_INBOX_LOCK_KEY_PREFIX:-byte-v-forge:mailbox:locks}
+      - MAILBOX_INBOX_LOCK_TTL_SECONDS=${MAILBOX_INBOX_LOCK_TTL_SECONDS:-600}
+      - MAILBOX_INBOX_LOCK_RETRY_SECONDS=${MAILBOX_INBOX_LOCK_RETRY_SECONDS:-1}
       - MAILBOX_PG_DSN=${MAILBOX_PG_DSN:-host=postgres user=${POSTGRES_USER:-byte_v_forge} password=${POSTGRES_PASSWORD:-byte_v_forge} dbname=${POSTGRES_DB:-byte_v_forge} port=5432 sslmode=disable}
       - BROWSER_AUTOMATION_ADDR=browser-automation:50051
-      - WORKFLOW_RUNTIME_ADDRESS=workflow-runtime:7233
-      - WORKFLOW_RUNTIME_NAMESPACE=${WORKFLOW_RUNTIME_NAMESPACE:-default}
-      - WORKFLOW_RUNTIME_TASK_QUEUE=${MAILBOX_WORKFLOW_RUNTIME_TASK_QUEUE:-byte-v-forge-mailbox-service}
-      - WORKFLOW_RUNTIME_IDENTITY=mailbox
     volumes:
-      - ./mailbox/outbound-webhooks.compose.json:/etc/mailbox/outbound-webhooks/webhooks.json:ro
       - ./mailbox/cloudflare-email.compose.json:/etc/mailbox/cloudflare-email/cloudflare-email.json:ro
     depends_on:
-      - postgres
-      - browser-automation
-      - workflow-runtime
+      postgres:
+        condition: service_started
+      platform-db-migrations:
+        condition: service_completed_successfully
+      platform-redis:
+        condition: service_started
+      platform-nats:
+        condition: service_started
+      platform-nats-init:
+        condition: service_completed_successfully
+      browser-automation:
+        condition: service_started
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.mailbox-webhook.rule=PathPrefix(`/webhooks/email`)"
+      - "traefik.http.routers.mailbox-webhook.entrypoints=webhook"
+      - "traefik.http.routers.mailbox-webhook.priority=100"
+      - "traefik.http.routers.mailbox-webhook.service=mailbox-webhook"
+      - "traefik.http.services.mailbox-webhook.loadbalancer.server.port=8082"
+      - "traefik.http.services.mailbox-webhook.loadbalancer.healthcheck.path=/healthz"
+      - "traefik.http.routers.mailbox-status.rule=Host(`mailbox.byte-v-forge.internal`)"
+      - "traefik.http.routers.mailbox-status.entrypoints=internal"
+      - "traefik.http.routers.mailbox-status.service=mailbox"
+      - "traefik.http.services.mailbox.loadbalancer.server.port=50051"
+      - "traefik.http.services.mailbox.loadbalancer.server.scheme=h2c"
+      - "traefik.http.services.mailbox.loadbalancer.healthcheck.mode=grpc"
+      - "traefik.http.routers.mailbox-api.rule=PathPrefix(`/api/mailbox`)"
+      - "traefik.http.routers.mailbox-api.entrypoints=web"
+      - "traefik.http.routers.mailbox-api.priority=100"
+      - "traefik.http.routers.mailbox-api.service=mailbox-dashboard"
+      - "traefik.http.routers.mailbox-mf.rule=PathPrefix(`/mf/mailbox`)"
+      - "traefik.http.routers.mailbox-mf.entrypoints=web"
+      - "traefik.http.routers.mailbox-mf.priority=100"
+      - "traefik.http.routers.mailbox-mf.service=mailbox-dashboard"
+      - "traefik.http.services.mailbox-dashboard.loadbalancer.server.port=8080"
+      - "traefik.http.services.mailbox-dashboard.loadbalancer.healthcheck.path=/healthz"
     restart: always
 
   gpt-service:
     build:
-      context: ../gpt
-      dockerfile: gpt-service/Dockerfile
+      context: ..
+      dockerfile: gpt/gpt-service/Dockerfile
     init: true
     ports:
       - "${GPT_SERVICE_GRPC_PORT:-50055}:50051"
       - "127.0.0.1:${GPT_ACCOUNT_GRPC_PORT:-50052}:50052"
       - "127.0.0.1:${GPT_PAYMENT_GRPC_PORT:-50054}:50054"
-      - "0.0.0.0:${GOPAY_WEBHOOK_PORT:-8081}:8081"
     environment:
       - GPT_SERVICE_LISTEN_ADDR=:50051
+      - GPT_DASHBOARD_HTTP_ADDR=:8080
+      - GPT_N8N_WEBHOOK_BASE_URL=${GPT_N8N_WEBHOOK_BASE_URL:-http://n8n-webhook:5678/webhook}
       - GPT_ACCOUNT_INTERNAL_ADDR=127.0.0.1:50052
       - GPT_GOPAY_PAYMENT_INTERNAL_ADDR=127.0.0.1:50054
       - GPT_GOPAY_APP_INTERNAL_PORT=50060
       - GPT_SERVICE_PG_DSN=host=postgres user=${POSTGRES_USER:-byte_v_forge} password=${POSTGRES_PASSWORD:-byte_v_forge} dbname=${POSTGRES_DB:-byte_v_forge} port=5432 sslmode=disable
+      - GPT_RUNTIME_SECRET_REDIS_URL=${PLATFORM_REDIS_URL:-redis://platform-redis:6379/0}
+      - GPT_OTP_RELAY_REDIS_URL=${PLATFORM_REDIS_URL:-redis://platform-redis:6379/0}
+      - GOPAY_STATE_REDIS_URL=${PLATFORM_REDIS_URL:-redis://platform-redis:6379/0}
+      - PLATFORM_EVENT_STREAM_NAME=${PLATFORM_EVENT_STREAM_NAME:-BYTE_V_FORGE_EVENTS}
+      - GPT_RUNTIME_SECRET_KEY_PREFIX=${GPT_RUNTIME_SECRET_KEY_PREFIX:-byte-v-forge:gpt:runtime-secrets}
+      - GPT_RUNTIME_SECRET_TTL_SECONDS=${GPT_RUNTIME_SECRET_TTL_SECONDS:-86400}
+      - GOPAY_STATE_KEY_PREFIX=${GOPAY_STATE_KEY_PREFIX:-byte-v-forge:gpt:gopay-app-state}
+      - GOPAY_STATE_TTL_SECONDS=${GOPAY_STATE_TTL_SECONDS:-604800}
       - BROWSER_AUTOMATION_ADDR=browser-automation:50051
       - SMS_ADDR=sms-service:50051
-      - MAILBOX_ADDR=mailbox:50051
       - CODEX_OAUTH_CLIENT_ID=${CODEX_OAUTH_CLIENT_ID:-app_EMoamEEZ73f0CkXaXp7hrann}
       - CODEX_OAUTH_REDIRECT_URI=${CODEX_OAUTH_REDIRECT_URI:-http://localhost:1455/auth/callback}
       - CODEX_OAUTH_AUTH_URL=${CODEX_OAUTH_AUTH_URL:-https://auth.openai.com/oauth/authorize}
       - CODEX_OAUTH_TOKEN_URL=${CODEX_OAUTH_TOKEN_URL:-https://auth.openai.com/oauth/token}
       - CODEX_OAUTH_TOKEN_PROXY_URL=${CODEX_OAUTH_TOKEN_PROXY_URL:-socks5://proxy-runtime:10810}
-      - CODEX_OAUTH_PROTOCOL_PROXY_URL=${CODEX_OAUTH_PROTOCOL_PROXY_URL:-socks5://proxy-runtime:10810}
+      - CODEX_OAUTH_PROTOCOL_PROXY_URL=${CODEX_OAUTH_PROTOCOL_PROXY_URL:-}
       - CODEX_OAUTH_PROTOCOL_TLS_PROFILE=${CODEX_OAUTH_PROTOCOL_TLS_PROFILE:-chrome_146}
       - CODEX_OAUTH_PROTOCOL_SESSION_DUMP_ENABLED=${CODEX_OAUTH_PROTOCOL_SESSION_DUMP_ENABLED:-true}
       - CODEX_OAUTH_SCOPE=${CODEX_OAUTH_SCOPE:-openid profile email offline_access api.connectors.read api.connectors.invoke}
@@ -160,14 +445,8 @@ services:
       - CODEX_OAUTH_PHONE_LABEL=${CODEX_OAUTH_PHONE_LABEL:-codex-oauth-add-phone}
       - CODEX_OAUTH_PHONE_COUNTRY_ISO2=${CODEX_OAUTH_PHONE_COUNTRY_ISO2:-TH}
       - CODEX_OAUTH_PHONE_COUNTRY_CALLING_CODE=${CODEX_OAUTH_PHONE_COUNTRY_CALLING_CODE:-66}
-      - CODEX_OAUTH_PHONE_MAX_PRICE_USD=${CODEX_OAUTH_PHONE_MAX_PRICE_USD:-0.068}
       - CODEX_OAUTH_PHONE_WAIT_SECONDS=${CODEX_OAUTH_PHONE_WAIT_SECONDS:-120}
       - CODEX_OAUTH_PHONE_MIN_REUSE_REMAINING_SECONDS=${CODEX_OAUTH_PHONE_MIN_REUSE_REMAINING_SECONDS:-180}
-      - GPT_MAILBOX_WEBHOOK_TOKEN=${GPT_MAILBOX_WEBHOOK_TOKEN:-}
-      - WORKFLOW_RUNTIME_ADDRESS=workflow-runtime:7233
-      - WORKFLOW_RUNTIME_NAMESPACE=${WORKFLOW_RUNTIME_NAMESPACE:-default}
-      - WORKFLOW_RUNTIME_TASK_QUEUE=${GPT_WORKFLOW_RUNTIME_TASK_QUEUE:-byte-v-forge-gpt-service}
-      - WORKFLOW_RUNTIME_IDENTITY=gpt-service
       - GOPAY_DYNAMIC_EGRESS=${GOPAY_DYNAMIC_EGRESS:-socks5://proxy-runtime:10811}
       - 'GOPAY_CHECKOUT_PROFILE_JSON={"name":"checkout","proxy_url":"socks5://proxy-runtime:10812","tls_profile":"chrome_146","user_agent":"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36","sec_ch_ua":"\"Google Chrome\";v=\"147\", \"Not.A/Brand\";v=\"8\", \"Chromium\";v=\"147\"","sec_ch_ua_platform":"\"Windows\"","locale":"en-US","platform":"Windows","pin_locale":"id"}'
       - 'GOPAY_PAYMENT_PROFILE_JSON={"name":"payment","proxy_url":"socks5://proxy-runtime:10810","tls_profile":"chrome_146","user_agent":"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36","sec_ch_ua":"\"Google Chrome\";v=\"147\", \"Not.A/Brand\";v=\"8\", \"Chromium\";v=\"147\"","sec_ch_ua_platform":"\"Windows\"","locale":"zh-CN","platform":"Windows","pin_locale":"id"}'
@@ -181,53 +460,144 @@ services:
     extra_hosts:
       - "host.docker.internal:host-gateway"
     depends_on:
-      - postgres
-      - browser-automation
-      - mailbox
-      - sms-service
-      - workflow-runtime
-      - proxy-runtime
+      postgres:
+        condition: service_started
+      platform-db-migrations:
+        condition: service_completed_successfully
+      platform-redis:
+        condition: service_started
+      platform-nats:
+        condition: service_started
+      platform-nats-init:
+        condition: service_completed_successfully
+      browser-automation:
+        condition: service_started
+      mailbox:
+        condition: service_started
+      sms-service:
+        condition: service_started
+      proxy-runtime:
+        condition: service_started
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.gpt-webhook.rule=PathPrefix(`/`)"
+      - "traefik.http.routers.gpt-webhook.entrypoints=webhook"
+      - "traefik.http.routers.gpt-webhook.priority=1"
+      - "traefik.http.routers.gpt-webhook.service=gpt-service-webhook"
+      - "traefik.http.services.gpt-service-webhook.loadbalancer.server.port=8081"
+      - "traefik.http.routers.gpt-service-status.rule=Host(`gpt-service.byte-v-forge.internal`)"
+      - "traefik.http.routers.gpt-service-status.entrypoints=internal"
+      - "traefik.http.routers.gpt-service-status.service=gpt-service"
+      - "traefik.http.services.gpt-service.loadbalancer.server.port=50051"
+      - "traefik.http.services.gpt-service.loadbalancer.server.scheme=h2c"
+      - "traefik.http.services.gpt-service.loadbalancer.healthcheck.mode=grpc"
+      - "traefik.http.routers.gpt-api.rule=PathPrefix(`/api/gpt`)"
+      - "traefik.http.routers.gpt-api.entrypoints=web"
+      - "traefik.http.routers.gpt-api.priority=100"
+      - "traefik.http.routers.gpt-api.service=gpt-service-dashboard"
+      - "traefik.http.routers.gpt-mf.rule=PathPrefix(`/mf/gpt`)"
+      - "traefik.http.routers.gpt-mf.entrypoints=web"
+      - "traefik.http.routers.gpt-mf.priority=100"
+      - "traefik.http.routers.gpt-mf.service=gpt-service-dashboard"
+      - "traefik.http.services.gpt-service-dashboard.loadbalancer.server.port=8080"
+      - "traefik.http.services.gpt-service-dashboard.loadbalancer.healthcheck.path=/healthz"
     restart: always
 
   sms-service:
     build:
-      context: ../sms
-      dockerfile: Dockerfile
+      context: ..
+      dockerfile: sms/Dockerfile
     ports:
       - "127.0.0.1:${SMS_SERVICE_GRPC_PORT:-50061}:50051"
     environment:
       - SMS_LISTEN_ADDR=:50051
+      - SMS_DASHBOARD_HTTP_ADDR=:8080
+      - SMS_DASHBOARD_STATIC_DIR=/app/dashboard/sms
       - SMS_PG_DSN=host=postgres user=${POSTGRES_USER:-byte_v_forge} password=${POSTGRES_PASSWORD:-byte_v_forge} dbname=${POSTGRES_DB:-byte_v_forge} port=5432 sslmode=disable
+      - PLATFORM_REDIS_URL=${PLATFORM_REDIS_URL:-redis://platform-redis:6379/0}
+      - PLATFORM_EVENT_STREAM_NAME=${PLATFORM_EVENT_STREAM_NAME:-BYTE_V_FORGE_EVENTS}
     extra_hosts:
       - "host.docker.internal:host-gateway"
     depends_on:
-      - postgres
+      postgres:
+        condition: service_started
+      platform-db-migrations:
+        condition: service_completed_successfully
+      platform-nats:
+        condition: service_started
+      platform-nats-init:
+        condition: service_completed_successfully
+      platform-redis:
+        condition: service_started
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.sms-service-status.rule=Host(`sms-service.byte-v-forge.internal`)"
+      - "traefik.http.routers.sms-service-status.entrypoints=internal"
+      - "traefik.http.routers.sms-service-status.service=sms-service"
+      - "traefik.http.services.sms-service.loadbalancer.server.port=50051"
+      - "traefik.http.services.sms-service.loadbalancer.server.scheme=h2c"
+      - "traefik.http.services.sms-service.loadbalancer.healthcheck.mode=grpc"
+      - "traefik.http.routers.sms-api.rule=PathPrefix(`/api/sms`)"
+      - "traefik.http.routers.sms-api.entrypoints=web"
+      - "traefik.http.routers.sms-api.priority=100"
+      - "traefik.http.routers.sms-api.service=sms-service-dashboard"
+      - "traefik.http.routers.sms-mf.rule=PathPrefix(`/mf/sms`)"
+      - "traefik.http.routers.sms-mf.entrypoints=web"
+      - "traefik.http.routers.sms-mf.priority=100"
+      - "traefik.http.routers.sms-mf.service=sms-service-dashboard"
+      - "traefik.http.services.sms-service-dashboard.loadbalancer.server.port=8080"
+      - "traefik.http.services.sms-service-dashboard.loadbalancer.healthcheck.path=/healthz"
+    restart: always
+
+  workflow-runtime:
+    build:
+      context: ..
+      dockerfile: workflow-runtime/Dockerfile
+    environment:
+      - WORKFLOW_RUNTIME_HTTP_ADDR=:8080
+      - WORKFLOW_RUNTIME_DASHBOARD_STATIC_DIR=/app/dashboard/workflow-runtime
+      - N8N_INTERNAL_URL=http://n8n-main:5678
+      - N8N_PUBLIC_URL=${N8N_PUBLIC_URL:-http://localhost:5678}
+      - N8N_API_KEY=${N8N_API_KEY:-}
+    depends_on:
+      - traefik
+      - n8n-main
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.workflow-runtime-api.rule=PathPrefix(`/api/workflow-runtime`)"
+      - "traefik.http.routers.workflow-runtime-api.entrypoints=web"
+      - "traefik.http.routers.workflow-runtime-api.priority=100"
+      - "traefik.http.routers.workflow-runtime-api.service=workflow-runtime"
+      - "traefik.http.routers.workflow-runtime-mf.rule=PathPrefix(`/mf/workflow-runtime`)"
+      - "traefik.http.routers.workflow-runtime-mf.entrypoints=web"
+      - "traefik.http.routers.workflow-runtime-mf.priority=100"
+      - "traefik.http.routers.workflow-runtime-mf.service=workflow-runtime"
+      - "traefik.http.services.workflow-runtime.loadbalancer.server.port=8080"
+      - "traefik.http.services.workflow-runtime.loadbalancer.healthcheck.path=/healthz"
     restart: always
 
   webui:
     build:
       context: ..
       dockerfile: webui/Dockerfile
-    ports:
-      - "${WEBUI_PORT:-8080}:8080"
     environment:
       - LISTEN_ADDR=:8080
-      - GPT_ACCOUNT_ADDR=gpt-service:50052
-      - GPT_WORKFLOW_ADDR=gpt-service:50051
-      - GPT_PAYMENT_ADDR=gpt-service:50054
-      - MAILBOX_ADDR=mailbox:50051
-      - SMS_ADDR=sms-service:50051
-      - PROXY_RUNTIME_HTTP_ADDR=http://proxy-runtime:8080
-      - DASHBOARD_SERVICE_STATUS_CONFIG_FILE=/etc/webui/dashboard/service-status.textproto
-    volumes:
-      - ./dashboard/service-status.compose.textproto:/etc/webui/dashboard/service-status.textproto:ro
+      - TRAEFIK_API_ADDR=http://traefik:8080
     depends_on:
-      - gpt-service
-      - mailbox
-      - sms-service
-      - workflow-runtime
-      - proxy-runtime
+      - traefik
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.webui.rule=PathPrefix(`/`)"
+      - "traefik.http.routers.webui.entrypoints=web"
+      - "traefik.http.routers.webui.priority=1"
+      - "traefik.http.routers.webui.service=webui"
+      - "traefik.http.services.webui.loadbalancer.server.port=8080"
+      - "traefik.http.services.webui.loadbalancer.healthcheck.path=/api/health"
     restart: always
 
 volumes:
   pgdata:
+  n8n_pgdata:
+  n8n_data:
+  nats_data:
+  proxy_runtime_mihomo:

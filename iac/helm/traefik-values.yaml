@@ -1,0 +1,74 @@
+image:
+  registry: docker.m.daocloud.io
+  repository: library/traefik
+  tag: v3.7.1
+
+deployment:
+  replicas: 1
+
+api:
+  dashboard: true
+  insecure: true
+
+ingressClass:
+  enabled: false
+  isDefaultClass: false
+  name: traefik
+
+providers:
+  kubernetesCRD:
+    enabled: true
+  kubernetesIngress:
+    enabled: false
+    ingressClass: traefik
+  kubernetesGateway:
+    enabled: false
+
+gateway:
+  enabled: false
+
+gatewayClass:
+  enabled: false
+
+ports:
+  traefik:
+    expose:
+      default: false
+  web:
+    nodePort: 30080
+  websecure:
+    expose:
+      default: false
+  webhook:
+    port: 8081
+    exposedPort: 8081
+    nodePort: 30082
+    expose:
+      default: true
+    protocol: TCP
+  internal:
+    port: 9000
+    expose:
+      default: false
+    protocol: TCP
+
+service:
+  spec:
+    type: NodePort
+
+extraObjects:
+  - apiVersion: v1
+    kind: Service
+    metadata:
+      name: byte-v-forge-traefik-api
+      namespace: traefik
+      labels:
+        app.kubernetes.io/name: traefik
+    spec:
+      type: ClusterIP
+      selector:
+        app.kubernetes.io/name: traefik
+      ports:
+        - name: traefik
+          port: 8080
+          targetPort: traefik

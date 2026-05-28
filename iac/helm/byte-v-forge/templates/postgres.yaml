@@ -32,6 +32,7 @@ spec:
       labels:
         {{- include "byte-v-forge.selectorLabels" (dict "root" . "component" "postgres") | nindent 8 }}
     spec:
+      enableServiceLinks: false
       serviceAccountName: {{ include "byte-v-forge.serviceAccountName" . }}
       {{- with .Values.global.imagePullSecrets }}
       imagePullSecrets:

@@ -26,9 +26,10 @@ ALL_SERVICES=(
   mailbox
   sms-service
   proxy-runtime
-  workflow-runtime
-  workflow-runtime-engine
   postgres
+  platform-redis
+  platform-nats
+  n8n-redis
 )
 
 usage() {
@@ -44,8 +45,7 @@ Examples:
   scripts/logs-remote.sh --list-pods all
 
 Services:
-  browser-automation webui gpt-service mailbox sms-service proxy-runtime
-  workflow-runtime workflow-runtime-engine postgres
+  browser-automation webui gpt-service mailbox sms-service proxy-runtime postgres platform-redis platform-nats n8n-redis
 
 Options:
   -f, --follow              Follow logs.
@@ -90,7 +90,7 @@ join_by_comma() {
 
 valid_service() {
   case "$1" in
-    browser-automation|webui|gpt-service|mailbox|sms-service|proxy-runtime|workflow-runtime|workflow-runtime-engine|postgres)
+    browser-automation|webui|gpt-service|mailbox|sms-service|proxy-runtime|postgres|platform-redis|platform-nats|n8n-redis)
       return 0
       ;;
     *)

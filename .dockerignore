@@ -1,0 +1,13 @@
+**/.git
+**/.codex
+**/.env
+**/.venv
+**/.venv*
+**/__pycache__
+**/.pytest_cache
+**/node_modules
+**/dist
+**/build
+**/.wrangler
+**/*.log
+proxy-runtime/workers/cloudflare-edge-canary/.canary-token.local

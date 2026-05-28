@@ -1,0 +1,49 @@
+{{- if .Values.traefikStatus.enabled }}
+{{- range $component, $workload := .Values.workloads }}
+{{- if and $workload.enabled $workload.service $workload.service.enabled }}
+{{- $statusPort := dict }}
+{{- range $preferred := list "health" "http" "grpc" }}
+{{- range $port := $workload.service.ports }}
+{{- if and (not (hasKey $statusPort "name")) (eq $port.name $preferred) }}
+{{- $_ := set $statusPort "name" $port.name }}
+{{- $_ := set $statusPort "scheme" (ternary "h2c" "http" (eq $port.name "grpc")) }}
+{{- end }}
+{{- end }}
+{{- end }}
+{{- if hasKey $statusPort "name" }}
+---
+apiVersion: traefik.io/v1alpha1
+kind: TraefikService
+metadata:
+  name: {{ $component }}
+  labels:
+    {{- include "byte-v-forge.componentLabels" (dict "root" $ "component" $component) | nindent 4 }}
+spec:
+  weighted:
+    services:
+      - name: {{ include "byte-v-forge.componentFullname" (dict "root" $ "component" $component) }}
+        kind: Service
+        port: {{ get $statusPort "name" | quote }}
+        {{- if eq (get $statusPort "scheme") "h2c" }}
+        scheme: h2c
+        {{- end }}
+---
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: {{ printf "%s-status" $component | trunc 63 | trimSuffix "-" }}
+  labels:
+    {{- include "byte-v-forge.componentLabels" (dict "root" $ "component" $component) | nindent 4 }}
+spec:
+  entryPoints:
+    - {{ $.Values.traefikStatus.entryPoint | quote }}
+  routes:
+    - kind: Rule
+      match: Host(`{{ $component }}.{{ $.Values.traefikStatus.domainSuffix }}`)
+      services:
+        - name: {{ $component }}
+          kind: TraefikService
+{{- end }}
+{{- end }}
+{{- end }}
+{{- end }}

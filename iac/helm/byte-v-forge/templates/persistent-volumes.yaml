@@ -1,0 +1,24 @@
+{{- range $component, $workload := .Values.workloads }}
+{{- if $workload.enabled }}
+{{- range $volume := $workload.volumes }}
+{{- if and (eq $volume.type "persistentVolumeClaim") $volume.create }}
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ tpl $volume.claimName $ }}
+  labels:
+    {{- include "byte-v-forge.componentLabels" (dict "root" $ "component" $component) | nindent 4 }}
+spec:
+  accessModes:
+    {{- toYaml (default (list "ReadWriteOnce") $volume.accessModes) | nindent 4 }}
+  {{- with $volume.storageClassName }}
+  storageClassName: {{ . | quote }}
+  {{- end }}
+  resources:
+    requests:
+      storage: {{ default "10Gi" $volume.size | quote }}
+{{- end }}
+{{- end }}
+{{- end }}
+{{- end }}

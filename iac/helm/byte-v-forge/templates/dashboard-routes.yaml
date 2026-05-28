@@ -1,0 +1,25 @@
+{{- if .Values.dashboardRoutes.enabled }}
+{{- range $route := .Values.dashboardRoutes.routes }}
+{{- $component := $route.component }}
+{{- $workload := index $.Values.workloads $component }}
+{{- if and $workload $workload.enabled $workload.service $workload.service.enabled }}
+---
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: {{ printf "%s-dashboard" $route.name | trunc 63 | trimSuffix "-" }}
+  labels:
+    {{- include "byte-v-forge.componentLabels" (dict "root" $ "component" $component) | nindent 4 }}
+spec:
+  entryPoints:
+    - {{ default $.Values.dashboardRoutes.entryPoint $route.entryPoint | quote }}
+  routes:
+    - kind: Rule
+      match: {{ include "byte-v-forge.dashboardRouteRule" $route | quote }}
+      priority: {{ default 100 $route.priority }}
+      services:
+        - name: {{ include "byte-v-forge.componentFullname" (dict "root" $ "component" $component) }}
+          port: {{ $route.portName | quote }}
+{{- end }}
+{{- end }}
+{{- end }}

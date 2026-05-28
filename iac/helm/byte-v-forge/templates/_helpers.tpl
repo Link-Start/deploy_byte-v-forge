@@ -54,6 +54,7 @@ app.kubernetes.io/component: {{ .component }}
 {{- default (printf "%s-secret" (include "byte-v-forge.fullname" .)) .Values.secrets.name | trunc 63 | trimSuffix "-" -}}
 {{- end -}}
 
+
 {{- define "byte-v-forge.image" -}}
 {{- $registry := default "" .root.Values.global.imageRegistry -}}
 {{- $repository := required "image.repository is required" .image.repository -}}
@@ -85,4 +86,21 @@ app.kubernetes.io/component: {{ .component }}
 
 {{- define "byte-v-forge.pgDsn" -}}
 {{- printf "host=%s user=$(POSTGRES_USER) password=$(POSTGRES_PASSWORD) dbname=$(POSTGRES_DB) port=%v sslmode=%s" (include "byte-v-forge.postgresHost" .) (include "byte-v-forge.postgresPort" .) .Values.postgres.sslMode -}}
+{{- end -}}
+
+{{- define "byte-v-forge.dashboardPathRule" -}}
+{{- $parts := list -}}
+{{- range . -}}
+{{- $parts = append $parts (printf "PathPrefix(`%s`)" .) -}}
+{{- end -}}
+{{- join " || " $parts -}}
+{{- end -}}
+
+{{- define "byte-v-forge.dashboardRouteRule" -}}
+{{- $pathRule := include "byte-v-forge.dashboardPathRule" .prefixes -}}
+{{- if .host -}}
+{{- printf "Host(`%s`) && (%s)" .host $pathRule -}}
+{{- else -}}
+{{- $pathRule -}}
+{{- end -}}
 {{- end -}}
