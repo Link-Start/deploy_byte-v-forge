@@ -15,6 +15,9 @@ serviceAccount:
 podAnnotations: {}
 podLabels: {}
 
+gptPrivate:
+  enabled: false
+
 configEnv:
   BROWSER_AUTOMATION_APPLY_MIGRATIONS: "true"
   BROWSER_AUTOMATION_RUNTIME: camoufox
@@ -123,7 +126,7 @@ n8nWorkflows:
   enabled: true
   gptProbeAccount:
     id: UuCRf58ufLoDkhC2
-    name: Byte V Forge / GPT Probe Account
+    name: GPT Probe Account
     webhookPath: gpt/probe-account
 
 
@@ -141,16 +144,11 @@ secrets:
     MAILBOX_WEBHOOK_TOKEN: ""
     MAILBOX_CLOUDFLARE_API_TOKEN: ""
     CLOUDFLARE_TUNNEL_TOKEN: ""
-    GOPAY_DYNAMIC_EGRESS: 'socks5://{{ include "byte-v-forge.componentFullname" (dict "root" . "component" "proxy-runtime") }}:10811'
     GOPAY_CHECKOUT_PROFILE_JSON: >-
           {"name":"checkout","proxy_url":"socks5://{{ include "byte-v-forge.componentFullname" (dict "root" . "component" "proxy-runtime") }}:10812","tls_profile":"chrome_146","user_agent":"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36","sec_ch_ua":"\"Google Chrome\";v=\"147\", \"Not.A/Brand\";v=\"8\", \"Chromium\";v=\"147\"","sec_ch_ua_platform":"\"Windows\"","locale":"en-US","platform":"Windows","pin_locale":"id"}
     GOPAY_PAYMENT_PROFILE_JSON: >-
           {"name":"payment","proxy_url":"socks5://{{ include "byte-v-forge.componentFullname" (dict "root" . "component" "proxy-runtime") }}:10810","tls_profile":"chrome_146","user_agent":"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36","sec_ch_ua":"\"Google Chrome\";v=\"147\", \"Not.A/Brand\";v=\"8\", \"Chromium\";v=\"147\"","sec_ch_ua_platform":"\"Windows\"","locale":"zh-CN","platform":"Windows","pin_locale":"id"}
-    CODEX_OAUTH_TOKEN_PROXY_URL: 'socks5://{{ include "byte-v-forge.componentFullname" (dict "root" . "component" "proxy-runtime") }}:10810'
-    CODEX_OAUTH_PROTOCOL_PROXY_URL: ''
     GOTO_SSO_CLIENT_SECRET: ""
-    GOPAY_ADD_BALANCE_ENVELOPE_LINK: ""
-    GOPAY_ADD_BALANCE_TRANSFER_INSTRUCTIONS: ""
     PROXY_RUNTIME_STATIC_CHAIN: ""
     PROXY_RUNTIME_ENCRYPTION_KEY: byte_v_forge_proxy_runtime_encryption_key_change_me_32
 
@@ -700,58 +698,72 @@ workloads:
       GPT_SERVICE_PG_DSN: '{{ include "byte-v-forge.pgDsn" . }}'
       GPT_RUNTIME_SECRET_REDIS_URL: '{{ tpl .Values.configEnv.PLATFORM_REDIS_URL . }}'
       GPT_OTP_RELAY_REDIS_URL: '{{ tpl .Values.configEnv.PLATFORM_REDIS_URL . }}'
-      GOPAY_STATE_REDIS_URL: '{{ tpl .Values.configEnv.PLATFORM_REDIS_URL . }}'
       PLATFORM_NATS_URL: '{{ tpl .Values.configEnv.PLATFORM_NATS_URL . }}'
       PLATFORM_EVENT_STREAM_NAME: '{{ .Values.configEnv.PLATFORM_EVENT_STREAM_NAME }}'
       GPT_RUNTIME_SECRET_KEY_PREFIX: byte-v-forge:gpt:runtime-secrets
       GPT_RUNTIME_SECRET_TTL_SECONDS: "86400"
-      GOPAY_STATE_KEY_PREFIX: byte-v-forge:gpt:gopay-app-state
-      GOPAY_STATE_TTL_SECONDS: "604800"
       BROWSER_AUTOMATION_ADDR: '{{ include "byte-v-forge.componentFullname" (dict "root" . "component" "browser-automation") }}:50051'
       SMS_ADDR: '{{ include "byte-v-forge.componentFullname" (dict "root" . "component" "sms-service") }}:50051'
-      CODEX_OAUTH_CLIENT_ID: app_EMoamEEZ73f0CkXaXp7hrann
-      CODEX_OAUTH_REDIRECT_URI: http://localhost:1455/auth/callback
-      CODEX_OAUTH_AUTH_URL: https://auth.openai.com/oauth/authorize
-      CODEX_OAUTH_TOKEN_URL: https://auth.openai.com/oauth/token
-      CODEX_OAUTH_PROTOCOL_PROXY_RUNTIME_HTTP_ADDR: 'http://{{ include "byte-v-forge.componentFullname" (dict "root" . "component" "proxy-runtime") }}:8080'
-      CODEX_OAUTH_PROTOCOL_TLS_PROFILE: chrome_146
-      CODEX_OAUTH_PROTOCOL_SESSION_DUMP_ENABLED: "true"
-      CODEX_OAUTH_SCOPE: openid profile email offline_access api.connectors.read api.connectors.invoke
-      CODEX_OAUTH_PHONE_PROFILE_KEY: openai-th
-      CODEX_OAUTH_PHONE_MAX_REUSE_COUNT: "3"
-      CODEX_OAUTH_PHONE_LABEL: codex-oauth-add-phone
-      CODEX_OAUTH_PHONE_COUNTRY_ISO2: TH
-      CODEX_OAUTH_PHONE_COUNTRY_CALLING_CODE: "66"
-      CODEX_OAUTH_PHONE_WAIT_SECONDS: "120"
-      CODEX_OAUTH_PHONE_MIN_REUSE_REMAINING_SECONDS: "180"
       PROXY_RUNTIME_HTTP_ADDR: 'http://{{ include "byte-v-forge.componentFullname" (dict "root" . "component" "proxy-runtime") }}:8080'
-      GOPAY_SIGNUP_INITIATE_JITTER_MIN_SECONDS: "8"
-      GOPAY_SIGNUP_INITIATE_JITTER_MAX_SECONDS: "25"
-      GOPAY_SIGNUP_RATE_LIMIT_COOLDOWN_SECONDS: "900"
-    secretEnv:
-      - name: GOPAY_DYNAMIC_EGRESS
-        key: GOPAY_DYNAMIC_EGRESS
-      - name: GOPAY_CHECKOUT_PROFILE_JSON
-        key: GOPAY_CHECKOUT_PROFILE_JSON
-      - name: GOPAY_PAYMENT_PROFILE_JSON
-        key: GOPAY_PAYMENT_PROFILE_JSON
-      - name: CODEX_OAUTH_TOKEN_PROXY_URL
-        key: CODEX_OAUTH_TOKEN_PROXY_URL
-      - name: CODEX_OAUTH_PROTOCOL_PROXY_URL
-        key: CODEX_OAUTH_PROTOCOL_PROXY_URL
-      - name: GOTO_SSO_CLIENT_SECRET
-        key: GOTO_SSO_CLIENT_SECRET
-      - name: GOPAY_ADD_BALANCE_ENVELOPE_LINK
-        key: GOPAY_ADD_BALANCE_ENVELOPE_LINK
-      - name: GOPAY_ADD_BALANCE_TRANSFER_INSTRUCTIONS
-        key: GOPAY_ADD_BALANCE_TRANSFER_INSTRUCTIONS
+    extraContainers:
+      - name: gopay-app
+        image: '{{ include "byte-v-forge.image" (dict "root" . "image" (index .Values.workloads "gpt-service").image) }}'
+        imagePullPolicy: '{{ .Values.global.imagePullPolicy }}'
+        command: ["/app/gopay-sidecar/gopay-app.sh"]
+        env:
+          - name: GOPAY_APP_PORT
+            value: "50060"
+          - name: GOPAY_STATE_REDIS_URL
+            value: '{{ tpl .Values.configEnv.PLATFORM_REDIS_URL . }}'
+          - name: GOPAY_STATE_KEY_PREFIX
+            value: byte-v-forge:gpt:gopay-app-state
+          - name: GOPAY_STATE_TTL_SECONDS
+            value: "604800"
+          - name: PROXY_RUNTIME_HTTP_ADDR
+            value: 'http://{{ include "byte-v-forge.componentFullname" (dict "root" . "component" "proxy-runtime") }}:8080'
+          - name: GOPAY_SIGNUP_INITIATE_JITTER_MIN_SECONDS
+            value: "8"
+          - name: GOPAY_SIGNUP_INITIATE_JITTER_MAX_SECONDS
+            value: "25"
+          - name: GOPAY_SIGNUP_RATE_LIMIT_COOLDOWN_SECONDS
+            value: "900"
+          - name: GOTO_SSO_CLIENT_SECRET
+            valueFrom:
+              secretKeyRef:
+                name: '{{ include "byte-v-forge.appSecretName" . }}'
+                key: GOTO_SSO_CLIENT_SECRET
+        ports:
+          - name: gopay-app-grpc
+            containerPort: 50060
+            protocol: TCP
+        resources: {}
+      - name: gopay-payment
+        image: '{{ include "byte-v-forge.image" (dict "root" . "image" (index .Values.workloads "gpt-service").image) }}'
+        imagePullPolicy: '{{ .Values.global.imagePullPolicy }}'
+        command: ["/app/gopay-sidecar/gopay-payment.sh"]
+        env:
+          - name: GOPAY_PAYMENT_LISTEN_ADDR
+            value: ":50054"
+          - name: GOPAY_CHECKOUT_PROFILE_JSON
+            valueFrom:
+              secretKeyRef:
+                name: '{{ include "byte-v-forge.appSecretName" . }}'
+                key: GOPAY_CHECKOUT_PROFILE_JSON
+          - name: GOPAY_PAYMENT_PROFILE_JSON
+            valueFrom:
+              secretKeyRef:
+                name: '{{ include "byte-v-forge.appSecretName" . }}'
+                key: GOPAY_PAYMENT_PROFILE_JSON
+        ports:
+          - name: payment-grpc
+            containerPort: 50054
+            protocol: TCP
+        resources: {}
     ports:
       - name: grpc
         containerPort: 50051
       - name: account-grpc
         containerPort: 50052
-      - name: payment-grpc
-        containerPort: 50054
       - name: http-webhook
         containerPort: 8081
       - name: http-dashboard

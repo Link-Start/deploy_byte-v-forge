@@ -1,5 +1,11 @@
 {{- range $component, $workload := .Values.workloads }}
 {{- if $workload.enabled }}
+{{- $gptPrivateEnabled := true }}
+{{- with $.Values.gptPrivate }}
+{{- if hasKey . "enabled" }}
+{{- $gptPrivateEnabled = .enabled }}
+{{- end }}
+{{- end }}
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -155,8 +161,10 @@ spec:
           {{- end }}
           resources:
             {{- toYaml $workload.resources | nindent 12 }}
+        {{- if not (and (eq $component "gpt-service") (not $gptPrivateEnabled)) }}
         {{- with $workload.extraContainers }}
         {{- tpl (toYaml .) $ | nindent 8 }}
+        {{- end }}
         {{- end }}
         {{- if $cloudflareTunnelSidecar }}
         - name: cloudflare-tunnel
@@ -240,6 +248,7 @@ spec:
   type: {{ default "ClusterIP" $workload.service.type }}
   ports:
     {{- range $workload.service.ports }}
+    {{- if not (and (eq $component "gpt-service") (not $gptPrivateEnabled) (eq .name "payment-grpc")) }}
     - name: {{ .name }}
       port: {{ .port }}
       targetPort: {{ .targetPort }}
@@ -247,6 +256,7 @@ spec:
       {{- if .nodePort }}
       nodePort: {{ .nodePort }}
       {{- end }}
+    {{- end }}
     {{- end }}
     {{- range $range := $workload.service.portRanges }}
     {{- range untilStep (int $range.portStart) (int (add1 $range.portEnd)) 1 }}

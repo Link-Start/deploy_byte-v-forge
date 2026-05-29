@@ -3,6 +3,9 @@ global:
   imagePullPolicy: IfNotPresent
   imagePullSecrets: []
 
+gptPrivate:
+  enabled: false
+
 configEnv:
   PLATFORM_NATS_URL: 'nats://{{ include "byte-v-forge.componentFullname" (dict "root" . "component" "platform-nats") }}:4222'
   PLATFORM_EVENT_STREAM_NAME: BYTE_V_FORGE_EVENTS
@@ -68,15 +71,10 @@ secrets:
     MAILBOX_WEBHOOK_TOKEN: change-me
     MAILBOX_CLOUDFLARE_API_TOKEN: change-me
     CLOUDFLARE_TUNNEL_TOKEN: change-me
-    GOPAY_DYNAMIC_EGRESS: 'socks5://{{ include "byte-v-forge.componentFullname" (dict "root" . "component" "proxy-runtime") }}:10811'
     GOPAY_CHECKOUT_PROFILE_JSON: >-
           {"name":"checkout","proxy_url":"socks5://{{ include "byte-v-forge.componentFullname" (dict "root" . "component" "proxy-runtime") }}:10812","tls_profile":"chrome_146","user_agent":"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36","sec_ch_ua":"\"Google Chrome\";v=\"147\", \"Not.A/Brand\";v=\"8\", \"Chromium\";v=\"147\"","sec_ch_ua_platform":"\"Windows\"","locale":"en-US","platform":"Windows","pin_locale":"id"}
     GOPAY_PAYMENT_PROFILE_JSON: >-
           {"name":"payment","proxy_url":"socks5://{{ include "byte-v-forge.componentFullname" (dict "root" . "component" "proxy-runtime") }}:10810","tls_profile":"chrome_146","user_agent":"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36","sec_ch_ua":"\"Google Chrome\";v=\"147\", \"Not.A/Brand\";v=\"8\", \"Chromium\";v=\"147\"","sec_ch_ua_platform":"\"Windows\"","locale":"zh-CN","platform":"Windows","pin_locale":"id"}
-    CODEX_OAUTH_TOKEN_PROXY_URL: 'socks5://{{ include "byte-v-forge.componentFullname" (dict "root" . "component" "proxy-runtime") }}:10810'
-    CODEX_OAUTH_PROTOCOL_PROXY_URL: ''
     GOTO_SSO_CLIENT_SECRET: ""
-    GOPAY_ADD_BALANCE_ENVELOPE_LINK: ""
-    GOPAY_ADD_BALANCE_TRANSFER_INSTRUCTIONS: ""
     PROXY_RUNTIME_STATIC_CHAIN: ""
     PROXY_RUNTIME_ENCRYPTION_KEY: change-me-at-least-32-characters

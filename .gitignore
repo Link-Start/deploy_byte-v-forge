@@ -10,3 +10,4 @@ build/
 node_modules/
 *.rendered.yaml
 *.tar
+/iac/helm/byte-v-forge/files/n8n-workflows/

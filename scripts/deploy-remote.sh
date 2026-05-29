@@ -44,6 +44,10 @@ REMOTE_TAR=${REMOTE_TAR:-/tmp/byte-v-forge-images-${TAG}.tar}
 CAMOUFOX_FETCH_PROXY=${CAMOUFOX_FETCH_PROXY:-http://host.docker.internal:10809}
 BROWSER_AUTOMATION_RUNTIME_IMAGE=${BROWSER_AUTOMATION_RUNTIME_IMAGE:-${IMAGE_PREFIX}/browser-automation-runtime:camoufox-0.4.11-playwright-1.59.0-py3.12-bookworm}
 REBUILD_BROWSER_AUTOMATION_RUNTIME=${REBUILD_BROWSER_AUTOMATION_RUNTIME:-false}
+if [[ -z "${GPT_ORCHESTRATOR_BUILD_TAGS+x}" ]]; then
+  GPT_ORCHESTRATOR_BUILD_TAGS=
+fi
+GPT_SERVICE_BUILD_TARGET=${GPT_SERVICE_BUILD_TARGET:-}
 DEPLOY_REGISTRY_CONTAINER=${DEPLOY_REGISTRY_CONTAINER:-byte-v-forge-deploy-registry}
 DEPLOY_REGISTRY_PUSH_ADDR=${DEPLOY_REGISTRY_PUSH_ADDR:-127.0.0.1:5050}
 DEPLOY_REGISTRY_PULL_ADDR=${DEPLOY_REGISTRY_PULL_ADDR:-${IMPORT_HOST_IP}:30500}
@@ -67,6 +71,7 @@ SERVICE_CATALOG=(
 SOURCE_REPOS=(
   common-lib
   gpt
+  gpt-private
   mailbox
   webui
   sms
@@ -121,6 +126,7 @@ Environment overrides:
   IMPORT_HOST_IP, IMPORT_HTTP_BIND, IMPORT_HTTP_PORT, HELM_TIMEOUT,
   ROLLOUT_TIMEOUT, KEEP_REMOTE_TAR, SOURCE_ROOT, CAMOUFOX_FETCH_PROXY,
   VALUES_FILE, BROWSER_AUTOMATION_RUNTIME_IMAGE, REBUILD_BROWSER_AUTOMATION_RUNTIME,
+  GPT_ORCHESTRATOR_BUILD_TAGS, GPT_SERVICE_BUILD_TARGET,
   DEPLOY_REGISTRY_PUSH_ADDR, DEPLOY_REGISTRY_PULL_ADDR, TRAEFIK_ENABLED,
   TRAEFIK_RELEASE, TRAEFIK_NAMESPACE, TRAEFIK_CHART, TRAEFIK_CHART_VERSION,
   TRAEFIK_VALUES_FILE. CAMOUFOX_FETCH_PROXY defaults to
@@ -348,7 +354,7 @@ sync_source() {
   local excludes repo
   excludes=("${RSYNC_EXCLUDES[@]}")
   for repo in "${SOURCE_REPOS[@]}"; do
-    excludes+=(--exclude "$repo/")
+    excludes+=(--exclude "/$repo/")
   done
   excludes+=(
     --exclude 'gopay-capture/'
@@ -388,10 +394,43 @@ selected_source_repos() {
   done
 }
 
+service_selected() {
+  local target=$1
+  local service
+  for service in "${SERVICES[@]}"; do
+    [[ "$service" == "$target" ]] && return 0
+  done
+  return 1
+}
+
+gpt_private_plugins_enabled() {
+  local normalized=",${GPT_ORCHESTRATOR_BUILD_TAGS// /,},"
+  [[ "$normalized" == *",private_plugins,"* ]]
+}
+
+gpt_service_build_target() {
+  if [[ -n "$GPT_SERVICE_BUILD_TARGET" ]]; then
+    printf '%s\n' "$GPT_SERVICE_BUILD_TARGET"
+    return
+  fi
+  if gpt_private_plugins_enabled; then
+    printf '%s\n' gpt_service_private_runtime
+  else
+    printf '%s\n' gpt_service_runtime
+  fi
+}
+
+gpt_private_source_required() {
+  [[ "$(gpt_service_build_target)" == "gpt_service_private_runtime" ]]
+}
+
 service_source_repos() {
   case "$1" in
     gpt-service)
       printf '%s\n' common-lib gpt mailbox
+      if gpt_private_source_required; then
+        printf '%s\n' gpt-private
+      fi
       ;;
     webui)
       printf '%s\n' common-lib webui gpt mailbox sms browser-automation workflow-runtime
@@ -419,13 +458,32 @@ service_source_repos() {
 
 stage_chart_sources() {
   local chart_files="$DEPLOY_DIR/iac/helm/byte-v-forge/files"
-  mkdir -p "$chart_files/migrations" "$chart_files/n8n-workflows"
-  rm -f "$chart_files/migrations/"*.sql "$chart_files/n8n-workflows/"*.json
+  mkdir -p "$chart_files/migrations"
+  rm -rf "$chart_files/n8n-workflows"
+  mkdir -p "$chart_files/n8n-workflows"
+  rm -f "$chart_files/migrations/"*.sql
   cp "$SOURCE_ROOT/gpt/gpt-account/migrations/001_init.sql" "$chart_files/migrations/001_gpt_account.sql"
   cp "$SOURCE_ROOT/gpt/orchestrator/migrations/001_init.sql" "$chart_files/migrations/002_gpt_orchestrator.sql"
   cp "$SOURCE_ROOT/mailbox/services/mailbox-api/migrations/001_operations_outbox.sql" "$chart_files/migrations/003_mailbox_operations_outbox.sql"
   cp "$SOURCE_ROOT/sms/migrations/001_init.sql" "$chart_files/migrations/004_sms.sql"
-  cp "$SOURCE_ROOT/gpt/workflows/n8n/"*.workflow.json "$chart_files/n8n-workflows/"
+  copy_workflow_tree "$SOURCE_ROOT/gpt/workflows/n8n" "$chart_files/n8n-workflows"
+  if gpt_private_source_required && [ -d "$SOURCE_ROOT/gpt-private/workflows/n8n" ]; then
+    copy_workflow_tree "$SOURCE_ROOT/gpt-private/workflows/n8n" "$chart_files/n8n-workflows"
+  fi
+}
+
+copy_workflow_tree() {
+  local source_dir=$1
+  local target_dir=$2
+  [ -d "$source_dir" ] || return 0
+  mkdir -p "$target_dir"
+  (
+    cd "$source_dir"
+    find . -type f -name '*.workflow.json' -print | while IFS= read -r file; do
+      mkdir -p "$target_dir/$(dirname "$file")"
+      cp "$file" "$target_dir/$file"
+    done
+  )
 }
 
 sync_dashboard_modules() {
@@ -481,6 +539,8 @@ build_images() {
     if [[ "$service" == "browser-automation" ]]; then
       ensure_browser_automation_runtime_image
       build_flags="--build-arg BROWSER_AUTOMATION_RUNTIME_IMAGE=$(shell_quote "$BROWSER_AUTOMATION_RUNTIME_IMAGE")"
+    elif [[ "$service" == "gpt-service" ]]; then
+      build_flags="--target $(shell_quote "$(gpt_service_build_target)") --build-arg GPT_ORCHESTRATOR_BUILD_TAGS=$(shell_quote "$GPT_ORCHESTRATOR_BUILD_TAGS")"
     fi
     log "build $image"
     remote "cd $(shell_quote "$REMOTE_DIR") && docker build $build_flags -t $(shell_quote "$image") -f $(shell_quote "$dockerfile_arg") $(shell_quote "$context")"
@@ -793,6 +853,14 @@ write_overlay() {
   local tmp
   tmp=$(mktemp)
   {
+    if service_selected gpt-service; then
+      printf 'gptPrivate:\n'
+      if gpt_private_source_required; then
+        printf '  enabled: true\n'
+      else
+        printf '  enabled: false\n'
+      fi
+    fi
     printf 'workloads:\n'
     local service
     for service in "${SERVICES[@]}"; do

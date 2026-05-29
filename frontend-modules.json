@@ -10,7 +10,15 @@
       "service": "gpt-service",
       "mfPrefix": "/mf/gpt",
       "apiPrefix": "/api/gpt",
-      "enabled": true
+      "enabled": true,
+      "navKey": "accounts",
+      "navLabel": "GPT",
+      "navIcon": "openai",
+      "navSection": "main",
+      "navOrder": 10,
+      "requiredServices": [
+        "gpt-service"
+      ]
     },
     {
       "id": "mailbox",
@@ -22,7 +30,15 @@
       "service": "mailbox",
       "mfPrefix": "/mf/mailbox",
       "apiPrefix": "/api/mailbox",
-      "enabled": true
+      "enabled": true,
+      "navKey": "mailboxes",
+      "navLabel": "邮箱管理",
+      "navIcon": "mailbox",
+      "navSection": "infrastructure",
+      "navOrder": 20,
+      "requiredServices": [
+        "mailbox"
+      ]
     },
     {
       "id": "sms",
@@ -34,7 +50,15 @@
       "service": "sms-service",
       "mfPrefix": "/mf/sms",
       "apiPrefix": "/api/sms",
-      "enabled": true
+      "enabled": true,
+      "navKey": "sms",
+      "navLabel": "SMS",
+      "navIcon": "sms",
+      "navSection": "infrastructure",
+      "navOrder": 30,
+      "requiredServices": [
+        "sms-service"
+      ]
     },
     {
       "id": "proxy-runtime",
@@ -46,7 +70,15 @@
       "service": "proxy-runtime",
       "mfPrefix": "/mf/proxy-runtime",
       "apiPrefix": "/api/proxy-runtime",
-      "enabled": true
+      "enabled": true,
+      "navKey": "proxy-runtime",
+      "navLabel": "出口网关",
+      "navIcon": "proxy-runtime",
+      "navSection": "infrastructure",
+      "navOrder": 28,
+      "requiredServices": [
+        "proxy-runtime"
+      ]
     },
     {
       "id": "workflow-runtime",
@@ -58,7 +90,15 @@
       "service": "workflow-runtime",
       "mfPrefix": "/mf/workflow-runtime",
       "apiPrefix": "/api/workflow-runtime",
-      "enabled": true
+      "enabled": true,
+      "navKey": "workflow",
+      "navLabel": "Workflow",
+      "navIcon": "workflow",
+      "navSection": "infrastructure",
+      "navOrder": 90,
+      "requiredServices": [
+        "workflow-runtime"
+      ]
     }
   ]
 }

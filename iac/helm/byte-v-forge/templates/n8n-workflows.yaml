@@ -4,12 +4,24 @@
 apiVersion: v1
 kind: ConfigMap
 metadata:
+  name: {{ $fullname }}-n8n-workflow-tools
+  labels:
+    {{- include "byte-v-forge.labels" . | nindent 4 }}
+data:
+  sync-workflow-folders.js: |-
+{{ .Files.Get "files/n8n-sync-workflow-folders.js" | indent 4 }}
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
   name: {{ $fullname }}-n8n-workflows
   labels:
     {{- include "byte-v-forge.labels" . | nindent 4 }}
 data:
-{{- range $path, $_ := .Files.Glob "files/n8n-workflows/*.json" }}
-  {{ base $path }}: |-
+{{- range $path, $_ := .Files.Glob "files/n8n-workflows/**/*.json" }}
+{{- $rel := trimPrefix "files/n8n-workflows/" $path }}
+{{- $key := replace "/" "__" $rel }}
+  {{ $key | quote }}: |-
 {{ $.Files.Get $path | indent 4 }}
 {{- end }}
 ---
@@ -56,6 +68,7 @@ metadata:
     helm.sh/hook: post-install,post-upgrade
     helm.sh/hook-delete-policy: before-hook-creation,hook-succeeded
 spec:
+  activeDeadlineSeconds: 900
   backoffLimit: 3
   template:
     metadata:
@@ -108,12 +121,42 @@ spec:
             - sh
             - -ceu
             - |
+              workflow_files() {
+                find -L /workflows -path '*/..*' -prune -o -type f -name '*.workflow.json' -print | sort
+              }
+              import_workflow() {
+                file="$1"
+                set +e
+                timeout 180s n8n import:workflow --input="$file" --activeState=fromJson
+                status=$?
+                set -e
+                if [ "$status" -eq 124 ]; then
+                  echo "n8n import:workflow --input=$file timed out; retrying import batch"
+                  return 1
+                fi
+                return "$status"
+              }
+              publish_workflow() {
+                id="$1"
+                set +e
+                timeout 90s n8n publish:workflow --id="$id"
+                status=$?
+                set -e
+                if [ "$status" -eq 124 ]; then
+                  echo "n8n publish:workflow --id=$id timed out after output; continuing and relying on n8n rollout reload"
+                  return 0
+                fi
+                return "$status"
+              }
               for attempt in $(seq 1 60); do
-                if n8n import:workflow --separate --input=/workflows --activeState=fromJson; then
-                  for file in /workflows/*.json; do
+                if workflow_files | while read -r file; do
+                  import_workflow "$file"
+                done; then
+                  workflow_files | while read -r file; do
                     id="$(node -e "console.log(require(process.argv[1]).id)" "$file")"
-                    [ -n "$id" ] && n8n publish:workflow --id="$id"
+                    [ -n "$id" ] && publish_workflow "$id"
                   done
+                  (cd /usr/local/lib/node_modules/n8n && node /opt/byte-v-forge/sync-workflow-folders.js /workflows)
                   node <<'NODE'
               const fs = require('fs');
               const https = require('https');
@@ -197,8 +240,22 @@ spec:
             - name: workflows
               mountPath: /workflows
               readOnly: true
+            - name: workflow-tools
+              mountPath: /opt/byte-v-forge/sync-workflow-folders.js
+              subPath: sync-workflow-folders.js
+              readOnly: true
       volumes:
         - name: workflows
           configMap:
             name: {{ $fullname }}-n8n-workflows
+            items:
+{{- range $path, $_ := .Files.Glob "files/n8n-workflows/**/*.json" }}
+{{- $rel := trimPrefix "files/n8n-workflows/" $path }}
+{{- $key := replace "/" "__" $rel }}
+              - key: {{ $key | quote }}
+                path: {{ $rel | quote }}
+{{- end }}
+        - name: workflow-tools
+          configMap:
+            name: {{ $fullname }}-n8n-workflow-tools
 {{- end }}

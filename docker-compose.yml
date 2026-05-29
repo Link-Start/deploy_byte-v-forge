@@ -204,17 +204,29 @@ services:
     environment: *n8n-environment
     volumes:
       - n8n_data:/home/node/.n8n
-      - ../gpt/workflows/n8n:/workflows:ro
+      - ../gpt/workflows/n8n:/workflow-sources/public:ro
+      - ../gpt-private/workflows/n8n:/workflow-sources/private:ro
+      - ./iac/helm/byte-v-forge/files/n8n-sync-workflow-folders.js:/opt/byte-v-forge/sync-workflow-folders.js:ro
     command:
       - sh
       - -ceu
       - |
+        rm -rf /tmp/n8n-workflows
+        mkdir -p /tmp/n8n-workflows
+        cp -R /workflow-sources/public/. /tmp/n8n-workflows/
+        cp -R /workflow-sources/private/. /tmp/n8n-workflows/
+        workflow_files() {
+          find -L /tmp/n8n-workflows -path '*/..*' -prune -o -type f -name '*.workflow.json' -print | sort
+        }
         for attempt in $$(seq 1 60); do
-          if n8n import:workflow --separate --input=/workflows --activeState=fromJson; then
-            for file in /workflows/*.workflow.json; do
+          if workflow_files | while read -r file; do
+            n8n import:workflow --input="$$file" --activeState=fromJson
+          done; then
+            workflow_files | while read -r file; do
               id="$$(node -e "console.log(require(process.argv[1]).id)" "$$file")"
               [ -n "$$id" ] && n8n publish:workflow --id="$$id"
             done
+            (cd /usr/local/lib/node_modules/n8n && node /opt/byte-v-forge/sync-workflow-folders.js /tmp/n8n-workflows)
             exit 0
           fi
           sleep 5
@@ -408,55 +420,29 @@ services:
     build:
       context: ..
       dockerfile: gpt/gpt-service/Dockerfile
+      target: ${GPT_SERVICE_BUILD_TARGET:-gpt_service_runtime}
+      args:
+        GPT_ORCHESTRATOR_BUILD_TAGS: ${GPT_ORCHESTRATOR_BUILD_TAGS:-}
     init: true
     ports:
       - "${GPT_SERVICE_GRPC_PORT:-50055}:50051"
       - "127.0.0.1:${GPT_ACCOUNT_GRPC_PORT:-50052}:50052"
-      - "127.0.0.1:${GPT_PAYMENT_GRPC_PORT:-50054}:50054"
     environment:
       - GPT_SERVICE_LISTEN_ADDR=:50051
       - GPT_DASHBOARD_HTTP_ADDR=:8080
       - GPT_N8N_WEBHOOK_BASE_URL=${GPT_N8N_WEBHOOK_BASE_URL:-http://n8n-webhook:5678/webhook}
       - GPT_ACCOUNT_INTERNAL_ADDR=127.0.0.1:50052
-      - GPT_GOPAY_PAYMENT_INTERNAL_ADDR=127.0.0.1:50054
-      - GPT_GOPAY_APP_INTERNAL_PORT=50060
+      - GPT_GOPAY_PAYMENT_INTERNAL_ADDR=gopay-payment-sidecar:50054
+      - GPT_GOPAY_APP_INTERNAL_ADDR=gopay-app-sidecar:50060
       - GPT_SERVICE_PG_DSN=host=postgres user=${POSTGRES_USER:-byte_v_forge} password=${POSTGRES_PASSWORD:-byte_v_forge} dbname=${POSTGRES_DB:-byte_v_forge} port=5432 sslmode=disable
       - GPT_RUNTIME_SECRET_REDIS_URL=${PLATFORM_REDIS_URL:-redis://platform-redis:6379/0}
       - GPT_OTP_RELAY_REDIS_URL=${PLATFORM_REDIS_URL:-redis://platform-redis:6379/0}
-      - GOPAY_STATE_REDIS_URL=${PLATFORM_REDIS_URL:-redis://platform-redis:6379/0}
       - PLATFORM_EVENT_STREAM_NAME=${PLATFORM_EVENT_STREAM_NAME:-BYTE_V_FORGE_EVENTS}
       - GPT_RUNTIME_SECRET_KEY_PREFIX=${GPT_RUNTIME_SECRET_KEY_PREFIX:-byte-v-forge:gpt:runtime-secrets}
       - GPT_RUNTIME_SECRET_TTL_SECONDS=${GPT_RUNTIME_SECRET_TTL_SECONDS:-86400}
-      - GOPAY_STATE_KEY_PREFIX=${GOPAY_STATE_KEY_PREFIX:-byte-v-forge:gpt:gopay-app-state}
-      - GOPAY_STATE_TTL_SECONDS=${GOPAY_STATE_TTL_SECONDS:-604800}
       - BROWSER_AUTOMATION_ADDR=browser-automation:50051
       - SMS_ADDR=sms-service:50051
-      - CODEX_OAUTH_CLIENT_ID=${CODEX_OAUTH_CLIENT_ID:-app_EMoamEEZ73f0CkXaXp7hrann}
-      - CODEX_OAUTH_REDIRECT_URI=${CODEX_OAUTH_REDIRECT_URI:-http://localhost:1455/auth/callback}
-      - CODEX_OAUTH_AUTH_URL=${CODEX_OAUTH_AUTH_URL:-https://auth.openai.com/oauth/authorize}
-      - CODEX_OAUTH_TOKEN_URL=${CODEX_OAUTH_TOKEN_URL:-https://auth.openai.com/oauth/token}
-      - CODEX_OAUTH_TOKEN_PROXY_URL=${CODEX_OAUTH_TOKEN_PROXY_URL:-socks5://proxy-runtime:10810}
-      - CODEX_OAUTH_PROTOCOL_PROXY_URL=${CODEX_OAUTH_PROTOCOL_PROXY_URL:-}
-      - CODEX_OAUTH_PROTOCOL_TLS_PROFILE=${CODEX_OAUTH_PROTOCOL_TLS_PROFILE:-chrome_146}
-      - CODEX_OAUTH_PROTOCOL_SESSION_DUMP_ENABLED=${CODEX_OAUTH_PROTOCOL_SESSION_DUMP_ENABLED:-true}
-      - CODEX_OAUTH_SCOPE=${CODEX_OAUTH_SCOPE:-openid profile email offline_access api.connectors.read api.connectors.invoke}
-      - CODEX_OAUTH_PHONE_PROFILE_KEY=${CODEX_OAUTH_PHONE_PROFILE_KEY:-openai-th}
-      - CODEX_OAUTH_PHONE_MAX_REUSE_COUNT=${CODEX_OAUTH_PHONE_MAX_REUSE_COUNT:-3}
-      - CODEX_OAUTH_PHONE_LABEL=${CODEX_OAUTH_PHONE_LABEL:-codex-oauth-add-phone}
-      - CODEX_OAUTH_PHONE_COUNTRY_ISO2=${CODEX_OAUTH_PHONE_COUNTRY_ISO2:-TH}
-      - CODEX_OAUTH_PHONE_COUNTRY_CALLING_CODE=${CODEX_OAUTH_PHONE_COUNTRY_CALLING_CODE:-66}
-      - CODEX_OAUTH_PHONE_WAIT_SECONDS=${CODEX_OAUTH_PHONE_WAIT_SECONDS:-120}
-      - CODEX_OAUTH_PHONE_MIN_REUSE_REMAINING_SECONDS=${CODEX_OAUTH_PHONE_MIN_REUSE_REMAINING_SECONDS:-180}
-      - GOPAY_DYNAMIC_EGRESS=${GOPAY_DYNAMIC_EGRESS:-socks5://proxy-runtime:10811}
-      - 'GOPAY_CHECKOUT_PROFILE_JSON={"name":"checkout","proxy_url":"socks5://proxy-runtime:10812","tls_profile":"chrome_146","user_agent":"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36","sec_ch_ua":"\"Google Chrome\";v=\"147\", \"Not.A/Brand\";v=\"8\", \"Chromium\";v=\"147\"","sec_ch_ua_platform":"\"Windows\"","locale":"en-US","platform":"Windows","pin_locale":"id"}'
-      - 'GOPAY_PAYMENT_PROFILE_JSON={"name":"payment","proxy_url":"socks5://proxy-runtime:10810","tls_profile":"chrome_146","user_agent":"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36","sec_ch_ua":"\"Google Chrome\";v=\"147\", \"Not.A/Brand\";v=\"8\", \"Chromium\";v=\"147\"","sec_ch_ua_platform":"\"Windows\"","locale":"zh-CN","platform":"Windows","pin_locale":"id"}'
       - PROXY_RUNTIME_HTTP_ADDR=${PROXY_RUNTIME_HTTP_ADDR:-http://proxy-runtime:8080}
-      - GOPAY_SIGNUP_INITIATE_JITTER_MIN_SECONDS=${GOPAY_SIGNUP_INITIATE_JITTER_MIN_SECONDS:-8}
-      - GOPAY_SIGNUP_INITIATE_JITTER_MAX_SECONDS=${GOPAY_SIGNUP_INITIATE_JITTER_MAX_SECONDS:-25}
-      - GOPAY_SIGNUP_RATE_LIMIT_COOLDOWN_SECONDS=${GOPAY_SIGNUP_RATE_LIMIT_COOLDOWN_SECONDS:-900}
-      - GOTO_SSO_CLIENT_SECRET=${GOTO_SSO_CLIENT_SECRET:-}
-      - GOPAY_ADD_BALANCE_ENVELOPE_LINK=${GOPAY_ADD_BALANCE_ENVELOPE_LINK:-}
-      - GOPAY_ADD_BALANCE_TRANSFER_INSTRUCTIONS=${GOPAY_ADD_BALANCE_TRANSFER_INSTRUCTIONS:-}
     extra_hosts:
       - "host.docker.internal:host-gateway"
     depends_on:
@@ -477,6 +463,10 @@ services:
       sms-service:
         condition: service_started
       proxy-runtime:
+        condition: service_started
+      gopay-app-sidecar:
+        condition: service_started
+      gopay-payment-sidecar:
         condition: service_started
     labels:
       - "traefik.enable=true"
@@ -501,6 +491,66 @@ services:
       - "traefik.http.routers.gpt-mf.service=gpt-service-dashboard"
       - "traefik.http.services.gpt-service-dashboard.loadbalancer.server.port=8080"
       - "traefik.http.services.gpt-service-dashboard.loadbalancer.healthcheck.path=/healthz"
+    restart: always
+
+  gopay-app-sidecar:
+    build:
+      context: ..
+      dockerfile: gpt/gpt-service/Dockerfile
+      target: ${GPT_SERVICE_BUILD_TARGET:-gpt_service_runtime}
+      args:
+        GPT_ORCHESTRATOR_BUILD_TAGS: ${GPT_ORCHESTRATOR_BUILD_TAGS:-}
+    command:
+      - /bin/sh
+      - -ec
+      - |
+        if [ "${GPT_SERVICE_BUILD_TARGET:-gpt_service_runtime}" = "gpt_service_runtime" ]; then
+          exec sleep infinity
+        fi
+        exec /app/gopay-sidecar/gopay-app.sh
+    environment:
+      - GPT_SERVICE_BUILD_TARGET=${GPT_SERVICE_BUILD_TARGET:-gpt_service_runtime}
+      - GOPAY_APP_PORT=50060
+      - GOPAY_STATE_REDIS_URL=${PLATFORM_REDIS_URL:-redis://platform-redis:6379/0}
+      - GOPAY_STATE_KEY_PREFIX=${GOPAY_STATE_KEY_PREFIX:-byte-v-forge:gpt:gopay-app-state}
+      - GOPAY_STATE_TTL_SECONDS=${GOPAY_STATE_TTL_SECONDS:-604800}
+      - PROXY_RUNTIME_HTTP_ADDR=${PROXY_RUNTIME_HTTP_ADDR:-http://proxy-runtime:8080}
+      - GOPAY_SIGNUP_INITIATE_JITTER_MIN_SECONDS=${GOPAY_SIGNUP_INITIATE_JITTER_MIN_SECONDS:-8}
+      - GOPAY_SIGNUP_INITIATE_JITTER_MAX_SECONDS=${GOPAY_SIGNUP_INITIATE_JITTER_MAX_SECONDS:-25}
+      - GOPAY_SIGNUP_RATE_LIMIT_COOLDOWN_SECONDS=${GOPAY_SIGNUP_RATE_LIMIT_COOLDOWN_SECONDS:-900}
+      - GOTO_SSO_CLIENT_SECRET=${GOTO_SSO_CLIENT_SECRET:-}
+    depends_on:
+      platform-redis:
+        condition: service_started
+      proxy-runtime:
+        condition: service_started
+    restart: always
+
+  gopay-payment-sidecar:
+    build:
+      context: ..
+      dockerfile: gpt/gpt-service/Dockerfile
+      target: ${GPT_SERVICE_BUILD_TARGET:-gpt_service_runtime}
+      args:
+        GPT_ORCHESTRATOR_BUILD_TAGS: ${GPT_ORCHESTRATOR_BUILD_TAGS:-}
+    command:
+      - /bin/sh
+      - -ec
+      - |
+        if [ "${GPT_SERVICE_BUILD_TARGET:-gpt_service_runtime}" = "gpt_service_runtime" ]; then
+          exec sleep infinity
+        fi
+        exec /app/gopay-sidecar/gopay-payment.sh
+    ports:
+      - "127.0.0.1:${GPT_PAYMENT_GRPC_PORT:-50054}:50054"
+    environment:
+      - GPT_SERVICE_BUILD_TARGET=${GPT_SERVICE_BUILD_TARGET:-gpt_service_runtime}
+      - GOPAY_PAYMENT_LISTEN_ADDR=:50054
+      - 'GOPAY_CHECKOUT_PROFILE_JSON={"name":"checkout","proxy_url":"socks5://proxy-runtime:10812","tls_profile":"chrome_146","user_agent":"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36","sec_ch_ua":"\"Google Chrome\";v=\"147\", \"Not.A/Brand\";v=\"8\", \"Chromium\";v=\"147\"","sec_ch_ua_platform":"\"Windows\"","locale":"en-US","platform":"Windows","pin_locale":"id"}'
+      - 'GOPAY_PAYMENT_PROFILE_JSON={"name":"payment","proxy_url":"socks5://proxy-runtime:10810","tls_profile":"chrome_146","user_agent":"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36","sec_ch_ua":"\"Google Chrome\";v=\"147\", \"Not.A/Brand\";v=\"8\", \"Chromium\";v=\"147\"","sec_ch_ua_platform":"\"Windows\"","locale":"zh-CN","platform":"Windows","pin_locale":"id"}'
+    depends_on:
+      proxy-runtime:
+        condition: service_started
     restart: always
 
   sms-service:

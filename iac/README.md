@@ -18,7 +18,7 @@ iac/
 - `secrets.stringData`：敏感参数，渲染为 Secret。
 - `cloudflareEmail`：Cloudflare Email Routing 配置，渲染为 mailbox 读取的 proto JSON。
 - `workloads`：每个服务的镜像、端口、探针、挂载和副本数。
-- `dashboardRoutes`：WebUI、各 dashboard remote/API、n8n editor/webhook 和 GoPay OTP webhook 的 Traefik `IngressRoute` 声明；Kubernetes 不再渲染标准 `Ingress`。
+- `dashboardRoutes`：WebUI、各 dashboard remote/API、n8n editor/webhook 和 mailbox webhook 的 Traefik `IngressRoute` 声明；Kubernetes 不再渲染标准 `Ingress`。
 - `traefikStatus`：WebUI 读取 Traefik API 和内部状态路由的配置；服务发现/状态不再使用手写探测清单。
 - `workloads.n8n-main`、`workloads.n8n-worker`、`workloads.n8n-webhook`、`workloads.n8n-postgres`、`workloads.n8n-redis`：n8n queue mode；独立 Postgres 持久化，独立 Redis 承载队列；workflow 编排使用 n8n editor。
 - `workloads.workflow-runtime`：Workflow 原生 dashboard remote 和 `/api/workflow-runtime/*` API；对接 n8n public API，n8n editor 不内嵌到业务前端。
