@@ -467,7 +467,7 @@ stage_chart_sources() {
   cp "$SOURCE_ROOT/mailbox/services/mailbox-api/migrations/001_operations_outbox.sql" "$chart_files/migrations/003_mailbox_operations_outbox.sql"
   cp "$SOURCE_ROOT/sms/migrations/001_init.sql" "$chart_files/migrations/004_sms.sql"
   copy_workflow_tree "$SOURCE_ROOT/gpt/workflows/n8n" "$chart_files/n8n-workflows"
-  if gpt_private_source_required && [ -d "$SOURCE_ROOT/gpt-private/workflows/n8n" ]; then
+  if [ -d "$SOURCE_ROOT/gpt-private/workflows/n8n" ]; then
     copy_workflow_tree "$SOURCE_ROOT/gpt-private/workflows/n8n" "$chart_files/n8n-workflows"
   fi
 }
