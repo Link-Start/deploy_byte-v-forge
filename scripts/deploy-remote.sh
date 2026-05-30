@@ -40,14 +40,22 @@ IMPORT_HTTP_BIND=${IMPORT_HTTP_BIND:-$IMPORT_HOST_IP}
 IMPORT_HTTP_PORT=${IMPORT_HTTP_PORT:-31888}
 IMPORT_TIMEOUT_SECONDS=${IMPORT_TIMEOUT_SECONDS:-600}
 REMOTE_TAR=${REMOTE_TAR:-/tmp/byte-v-forge-images-${TAG}.tar}
+N8N_WORKFLOW_CHECKSUM_FILE=/tmp/byte-v-forge-n8n-workflows.sha256
+N8N_WORKFLOW_IMPORT_ENABLED=false
+N8N_WORKFLOW_CHECKSUM=
 
 CAMOUFOX_FETCH_PROXY=${CAMOUFOX_FETCH_PROXY:-http://host.docker.internal:10809}
 BROWSER_AUTOMATION_RUNTIME_IMAGE=${BROWSER_AUTOMATION_RUNTIME_IMAGE:-${IMAGE_PREFIX}/browser-automation-runtime:camoufox-0.4.11-playwright-1.59.0-py3.12-bookworm}
 REBUILD_BROWSER_AUTOMATION_RUNTIME=${REBUILD_BROWSER_AUTOMATION_RUNTIME:-false}
-if [[ -z "${GPT_ORCHESTRATOR_BUILD_TAGS+x}" ]]; then
+if [[ -d "$SOURCE_ROOT/gpt-private/plugins" && -d "$SOURCE_ROOT/gpt-private/gopay" ]]; then
+  GPT_PRIVATE_AVAILABLE=true
+  GPT_ORCHESTRATOR_BUILD_TAGS=private_plugins
+  GPT_SERVICE_BUILD_TARGET=gpt_service_private_runtime
+else
+  GPT_PRIVATE_AVAILABLE=false
   GPT_ORCHESTRATOR_BUILD_TAGS=
+  GPT_SERVICE_BUILD_TARGET=gpt_service_runtime
 fi
-GPT_SERVICE_BUILD_TARGET=${GPT_SERVICE_BUILD_TARGET:-}
 DEPLOY_REGISTRY_CONTAINER=${DEPLOY_REGISTRY_CONTAINER:-byte-v-forge-deploy-registry}
 DEPLOY_REGISTRY_PUSH_ADDR=${DEPLOY_REGISTRY_PUSH_ADDR:-127.0.0.1:5050}
 DEPLOY_REGISTRY_PULL_ADDR=${DEPLOY_REGISTRY_PULL_ADDR:-${IMPORT_HOST_IP}:30500}
@@ -126,7 +134,6 @@ Environment overrides:
   IMPORT_HOST_IP, IMPORT_HTTP_BIND, IMPORT_HTTP_PORT, HELM_TIMEOUT,
   ROLLOUT_TIMEOUT, KEEP_REMOTE_TAR, SOURCE_ROOT, CAMOUFOX_FETCH_PROXY,
   VALUES_FILE, BROWSER_AUTOMATION_RUNTIME_IMAGE, REBUILD_BROWSER_AUTOMATION_RUNTIME,
-  GPT_ORCHESTRATOR_BUILD_TAGS, GPT_SERVICE_BUILD_TARGET,
   DEPLOY_REGISTRY_PUSH_ADDR, DEPLOY_REGISTRY_PULL_ADDR, TRAEFIK_ENABLED,
   TRAEFIK_RELEASE, TRAEFIK_NAMESPACE, TRAEFIK_CHART, TRAEFIK_CHART_VERSION,
   TRAEFIK_VALUES_FILE. CAMOUFOX_FETCH_PROXY defaults to
@@ -403,21 +410,78 @@ service_selected() {
   return 1
 }
 
+n8n_workflow_service_selected() {
+  local service
+  for service in "${SERVICES[@]}"; do
+    case "$service" in
+      gpt-service|workflow-runtime|n8n-main|n8n-webhook|n8n-worker)
+        return 0
+        ;;
+    esac
+  done
+  return 1
+}
+
+n8n_workflow_checksum() {
+  local workflow_dir="$DEPLOY_DIR/iac/helm/byte-v-forge/files/n8n-workflows"
+  python3 - "$workflow_dir" <<'PY'
+import hashlib
+import pathlib
+import sys
+
+root = pathlib.Path(sys.argv[1])
+digest = hashlib.sha256()
+if root.exists():
+    for path in sorted(p for p in root.rglob("*.workflow.json") if p.is_file()):
+        rel = path.relative_to(root).as_posix()
+        digest.update(rel.encode("utf-8"))
+        digest.update(b"\0")
+        digest.update(path.read_bytes())
+        digest.update(b"\0")
+print(digest.hexdigest())
+PY
+}
+
+n8n_workflow_import_required() {
+  if ! n8n_workflow_service_selected; then
+    N8N_WORKFLOW_IMPORT_ENABLED=false
+    return 1
+  fi
+
+  N8N_WORKFLOW_CHECKSUM=$(n8n_workflow_checksum)
+  local previous
+  previous=$(remote "cat $(shell_quote "$N8N_WORKFLOW_CHECKSUM_FILE") 2>/dev/null || true")
+  previous=${previous//$'\r'/}
+  previous=${previous//$'\n'/}
+  if [[ -n "$previous" && "$previous" == "$N8N_WORKFLOW_CHECKSUM" ]]; then
+    N8N_WORKFLOW_IMPORT_ENABLED=false
+    log "n8n workflows unchanged; skip import"
+    return 1
+  fi
+
+  N8N_WORKFLOW_IMPORT_ENABLED=true
+  if [[ -z "$previous" ]]; then
+    log "n8n workflows not initialized; enable import"
+  else
+    log "n8n workflows changed; enable import"
+  fi
+  return 0
+}
+
+persist_n8n_workflow_checksum() {
+  if [[ "$SKIP_HELM" == "true" || "$N8N_WORKFLOW_IMPORT_ENABLED" != "true" || -z "$N8N_WORKFLOW_CHECKSUM" ]]; then
+    return
+  fi
+  log "persist n8n workflow checksum"
+  remote "printf '%s\n' $(shell_quote "$N8N_WORKFLOW_CHECKSUM") > $(shell_quote "$N8N_WORKFLOW_CHECKSUM_FILE")"
+}
+
 gpt_private_plugins_enabled() {
-  local normalized=",${GPT_ORCHESTRATOR_BUILD_TAGS// /,},"
-  [[ "$normalized" == *",private_plugins,"* ]]
+  [[ "$GPT_PRIVATE_AVAILABLE" == "true" ]]
 }
 
 gpt_service_build_target() {
-  if [[ -n "$GPT_SERVICE_BUILD_TARGET" ]]; then
-    printf '%s\n' "$GPT_SERVICE_BUILD_TARGET"
-    return
-  fi
-  if gpt_private_plugins_enabled; then
-    printf '%s\n' gpt_service_private_runtime
-  else
-    printf '%s\n' gpt_service_runtime
-  fi
+  printf '%s\n' "$GPT_SERVICE_BUILD_TARGET"
 }
 
 gpt_private_source_required() {
@@ -852,7 +916,15 @@ write_overlay() {
   OVERLAY_FILE=/tmp/byte-v-forge-deploy-overlay-${TAG}.yaml
   local tmp
   tmp=$(mktemp)
+  n8n_workflow_import_required || true
   {
+    printf 'n8nWorkflows:\n'
+    printf '  import:\n'
+    if [[ "$N8N_WORKFLOW_IMPORT_ENABLED" == "true" ]]; then
+      printf '    enabled: true\n'
+    else
+      printf '    enabled: false\n'
+    fi
     if service_selected gpt-service; then
       printf 'gptPrivate:\n'
       if gpt_private_source_required; then
@@ -1007,6 +1079,7 @@ main() {
   validate_chart
   helm_upgrade
   verify_rollout
+  persist_n8n_workflow_checksum
   persist_live_values
   cleanup_remote_tar
   log "done"

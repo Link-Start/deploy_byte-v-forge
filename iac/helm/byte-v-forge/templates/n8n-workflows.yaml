@@ -24,6 +24,7 @@ data:
   {{ $key | quote }}: |-
 {{ $.Files.Get $path | indent 4 }}
 {{- end }}
+{{- if .Values.n8nWorkflows.import.enabled }}
 ---
 apiVersion: v1
 kind: ServiceAccount
@@ -258,4 +259,5 @@ spec:
         - name: workflow-tools
           configMap:
             name: {{ $fullname }}-n8n-workflow-tools
+{{- end }}
 {{- end }}

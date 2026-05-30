@@ -67,6 +67,22 @@ dashboardRoutes:
       prefixes:
         - /webhooks/email
       priority: 200
+    - name: gopay-otp-webhook
+      component: gpt-service
+      portName: http-webhook
+      entryPoint: webhook
+      prefixes:
+        - /local
+        - /tg
+      priority: 200
+    - name: gopay-otp-webhook-web
+      component: gpt-service
+      portName: http-webhook
+      entryPoint: web
+      prefixes:
+        - /local
+        - /tg
+      priority: 300
     - name: sms
       component: sms-service
       portName: http-dashboard
@@ -124,6 +140,8 @@ cloudflareTunnel:
 
 n8nWorkflows:
   enabled: true
+  import:
+    enabled: false
   gptProbeAccount:
     id: UuCRf58ufLoDkhC2
     name: GPT Probe Account
@@ -736,6 +754,9 @@ workloads:
           - name: gopay-app-grpc
             containerPort: 50060
             protocol: TCP
+          - name: http-webhook
+            containerPort: 8081
+            protocol: TCP
         resources: {}
       - name: gopay-payment
         image: '{{ include "byte-v-forge.image" (dict "root" . "image" (index .Values.workloads "gpt-service").image) }}'
@@ -764,8 +785,6 @@ workloads:
         containerPort: 50051
       - name: account-grpc
         containerPort: 50052
-      - name: http-webhook
-        containerPort: 8081
       - name: http-dashboard
         containerPort: 8080
     service:
