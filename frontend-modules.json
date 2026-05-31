@@ -21,6 +21,46 @@
       ]
     },
     {
+      "id": "gopay-app",
+      "name": "GoPay App",
+      "remoteName": "gopay_app",
+      "remoteEntry": "/mf/gopay/remoteEntry.js",
+      "exposedModule": "./dashboardModule",
+      "apiBase": "/api/gopay",
+      "service": "gopay-app",
+      "mfPrefix": "/mf/gopay",
+      "apiPrefix": "/api/gopay",
+      "enabled": true,
+      "navKey": "gopay",
+      "navLabel": "GoPay",
+      "navIcon": "gopay-app",
+      "navSection": "main",
+      "navOrder": 16,
+      "requiredServices": [
+        "gopay-app"
+      ]
+    },
+    {
+      "id": "wa-app",
+      "name": "WA App",
+      "remoteName": "wa_app",
+      "remoteEntry": "/mf/wa/remoteEntry.js",
+      "exposedModule": "./dashboardModule",
+      "apiBase": "/api/wa",
+      "service": "wa-app-service",
+      "mfPrefix": "/mf/wa",
+      "apiPrefix": "/api/wa",
+      "enabled": true,
+      "navKey": "wa",
+      "navLabel": "WA 管理",
+      "navIcon": "wa-app",
+      "navSection": "main",
+      "navOrder": 18,
+      "requiredServices": [
+        "wa-app-service"
+      ]
+    },
+    {
       "id": "mailbox",
       "name": "Mailbox",
       "remoteName": "mailbox",

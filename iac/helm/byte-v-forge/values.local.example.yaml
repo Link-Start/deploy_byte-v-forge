@@ -12,7 +12,12 @@ configEnv:
   PLATFORM_REDIS_URL: 'redis://{{ include "byte-v-forge.componentFullname" (dict "root" . "component" "platform-redis") }}:6379/0'
   N8N_PUBLIC_URL: http://n8n.byte-v-forge.example.internal
   GPT_N8N_WEBHOOK_BASE_URL: 'http://{{ include "byte-v-forge.componentFullname" (dict "root" . "component" "n8n-webhook") }}:5678/webhook'
+  WA_N8N_WEBHOOK_BASE_URL: 'http://{{ include "byte-v-forge.componentFullname" (dict "root" . "component" "n8n-webhook") }}:5678/webhook'
+  GOPAY_N8N_WEBHOOK_BASE_URL: 'http://{{ include "byte-v-forge.componentFullname" (dict "root" . "component" "n8n-webhook") }}:5678/webhook'
   GPT_ACTION_API_BASE_URL: 'http://{{ include "byte-v-forge.componentFullname" (dict "root" . "component" "gpt-service") }}:8080/api/gpt/actions'
+  GOPAY_HTTP_LISTEN_ADDR: ":8080"
+  GOPAY_DASHBOARD_STATIC_DIR: /app/dashboard/gopay
+  GOPAY_ACTION_API_BASE_URL: 'http://{{ include "byte-v-forge.componentFullname" (dict "root" . "component" "gopay-app") }}:8080/api/gopay/actions'
   MAILBOX_CLOUDFLARE_MAX_MESSAGES_PER_DOMAIN: "500"
   MAILBOX_OUTLOOK_MAX_MESSAGES_PER_MAILBOX: "100"
 
@@ -31,6 +36,10 @@ workloads:
   gpt-service:
     image:
       repository: gpt-service
+      tag: dev
+  gopay-app:
+    image:
+      repository: gopay-app
       tag: dev
   mailbox:
     image:

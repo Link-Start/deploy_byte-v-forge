@@ -19,7 +19,15 @@ fi
 VALUES_FILE=${VALUES_FILE:-/tmp/byte-v-forge-deploy-values-live.yaml}
 IMAGE_PREFIX=${IMAGE_PREFIX:-byte-v-forge}
 TAG=${TAG:-deploy-$(date +%Y%m%d%H%M%S)}
+BUILD_CREATED_AT=${BUILD_CREATED_AT:-$(date -u +%Y-%m-%dT%H:%M:%SZ)}
+BUILD_PARALLELISM=${BUILD_PARALLELISM:-2}
+DOCKER_BUILDKIT=${DOCKER_BUILDKIT:-1}
+BUILDKIT_PROGRESS=${BUILDKIT_PROGRESS:-plain}
+DOCKER_BUILD_PULL=${DOCKER_BUILD_PULL:-false}
+DOCKER_BUILD_NO_CACHE=${DOCKER_BUILD_NO_CACHE:-false}
+SOURCE_REVISION=${SOURCE_REVISION:-}
 HELM_TIMEOUT=${HELM_TIMEOUT:-10m}
+HELM_HISTORY_MAX=${HELM_HISTORY_MAX:-0}
 ROLLOUT_TIMEOUT=${ROLLOUT_TIMEOUT:-5m}
 TRAEFIK_ENABLED=${TRAEFIK_ENABLED:-false}
 TRAEFIK_RELEASE=${TRAEFIK_RELEASE:-byte-v-forge-traefik}
@@ -47,7 +55,7 @@ N8N_WORKFLOW_CHECKSUM=
 CAMOUFOX_FETCH_PROXY=${CAMOUFOX_FETCH_PROXY:-http://host.docker.internal:10809}
 BROWSER_AUTOMATION_RUNTIME_IMAGE=${BROWSER_AUTOMATION_RUNTIME_IMAGE:-${IMAGE_PREFIX}/browser-automation-runtime:camoufox-0.4.11-playwright-1.59.0-py3.12-bookworm}
 REBUILD_BROWSER_AUTOMATION_RUNTIME=${REBUILD_BROWSER_AUTOMATION_RUNTIME:-false}
-if [[ -d "$SOURCE_ROOT/gpt-private/plugins" && -d "$SOURCE_ROOT/gpt-private/gopay" ]]; then
+if [[ -d "$SOURCE_ROOT/gpt-private/plugins" && -d "$SOURCE_ROOT/gpt-private/gopay" && -d "$SOURCE_ROOT/gopay-app" ]]; then
   GPT_PRIVATE_AVAILABLE=true
   GPT_ORCHESTRATOR_BUILD_TAGS=private_plugins
   GPT_SERVICE_BUILD_TARGET=gpt_service_private_runtime
@@ -64,6 +72,8 @@ SKIP_BUILD=${SKIP_BUILD:-false}
 SKIP_IMPORT=${SKIP_IMPORT:-false}
 SKIP_HELM=${SKIP_HELM:-false}
 SKIP_VALIDATE=${SKIP_VALIDATE:-false}
+SKIP_PREFLIGHT=${SKIP_PREFLIGHT:-false}
+VALIDATE_ONLY=${VALIDATE_ONLY:-false}
 KEEP_REMOTE_TAR=${KEEP_REMOTE_TAR:-false}
 
 SERVICE_CATALOG=(
@@ -72,20 +82,24 @@ SERVICE_CATALOG=(
   "workflow-runtime|.|workflow-runtime/Dockerfile"
   "webui|.|webui/Dockerfile"
   "gpt-service|.|gpt/gpt-service/Dockerfile"
+  "gopay-app|.|gopay-app/Dockerfile"
   "mailbox|.|mailbox/Dockerfile"
   "sms-service|.|sms/Dockerfile"
+  "wa-app-service|.|wa-app/Dockerfile"
 )
 
 SOURCE_REPOS=(
   common-lib
   gpt
   gpt-private
+  gopay-app
   mailbox
   webui
   sms
   browser-automation
   proxy-runtime
   workflow-runtime
+  wa-app
 )
 
 RSYNC_EXCLUDES=(
@@ -127,16 +141,22 @@ Options:
   --skip-import             Do not import images into the k3s node.
   --skip-helm               Do not run Helm upgrade.
   --skip-validate           Do not run helm lint/template before upgrade.
+  --skip-preflight          Do not run local/remote command and source checks.
+  --validate-only           Sync sources, render/lint Helm with the overlay, then exit.
+  --build-parallelism N     Number of image builds to run concurrently. Default: 2.
+  --build-pull              Pass --pull to docker build.
+  --build-no-cache          Pass --no-cache to docker build.
   -h, --help                Show this help.
 
 Environment overrides:
   REMOTE_KUBECONFIG, REMOTE_HELM, IMAGE_PREFIX, IMPORT_METHOD, VM_NAME,
   IMPORT_HOST_IP, IMPORT_HTTP_BIND, IMPORT_HTTP_PORT, HELM_TIMEOUT,
-  ROLLOUT_TIMEOUT, KEEP_REMOTE_TAR, SOURCE_ROOT, CAMOUFOX_FETCH_PROXY,
+  HELM_HISTORY_MAX, ROLLOUT_TIMEOUT, KEEP_REMOTE_TAR, SOURCE_ROOT, CAMOUFOX_FETCH_PROXY,
   VALUES_FILE, BROWSER_AUTOMATION_RUNTIME_IMAGE, REBUILD_BROWSER_AUTOMATION_RUNTIME,
   DEPLOY_REGISTRY_PUSH_ADDR, DEPLOY_REGISTRY_PULL_ADDR, TRAEFIK_ENABLED,
   TRAEFIK_RELEASE, TRAEFIK_NAMESPACE, TRAEFIK_CHART, TRAEFIK_CHART_VERSION,
-  TRAEFIK_VALUES_FILE. CAMOUFOX_FETCH_PROXY defaults to
+  TRAEFIK_VALUES_FILE, BUILD_PARALLELISM, DOCKER_BUILDKIT, BUILDKIT_PROGRESS,
+  DOCKER_BUILD_PULL, DOCKER_BUILD_NO_CACHE, SOURCE_REVISION. CAMOUFOX_FETCH_PROXY defaults to
   http://host.docker.internal:10809 for browser-automation runtime builds.
 EOF
 }
@@ -300,6 +320,27 @@ parse_args() {
         SKIP_VALIDATE=true
         shift
         ;;
+      --skip-preflight)
+        SKIP_PREFLIGHT=true
+        shift
+        ;;
+      --validate-only)
+        VALIDATE_ONLY=true
+        shift
+        ;;
+      --build-parallelism)
+        [[ $# -ge 2 ]] || die "--build-parallelism requires a value"
+        BUILD_PARALLELISM=$2
+        shift 2
+        ;;
+      --build-pull)
+        DOCKER_BUILD_PULL=true
+        shift
+        ;;
+      --build-no-cache)
+        DOCKER_BUILD_NO_CACHE=true
+        shift
+        ;;
       -h|--help)
         usage
         exit 0
@@ -332,6 +373,30 @@ parse_args() {
       ;;
   esac
 
+  case "$BUILD_PARALLELISM" in
+    ""|*[!0-9]*)
+      die "BUILD_PARALLELISM must be a positive integer"
+      ;;
+  esac
+  if [[ "$BUILD_PARALLELISM" -lt 1 ]]; then
+    die "BUILD_PARALLELISM must be a positive integer"
+  fi
+
+  case "$DOCKER_BUILDKIT" in
+    0|1) ;;
+    *) die "DOCKER_BUILDKIT must be 0 or 1" ;;
+  esac
+
+  case "$DOCKER_BUILD_PULL" in
+    true|false) ;;
+    *) die "DOCKER_BUILD_PULL must be true or false" ;;
+  esac
+
+  case "$DOCKER_BUILD_NO_CACHE" in
+    true|false) ;;
+    *) die "DOCKER_BUILD_NO_CACHE must be true or false" ;;
+  esac
+
   if [[ ${#SERVICES[@]} -eq 0 ]]; then
     usage
     die "service list is required; use all to deploy every workload"
@@ -348,6 +413,65 @@ parse_args() {
   for service in "${SERVICES[@]}"; do
     valid_service "$service" || die "unknown service: $service"
   done
+}
+
+init_deploy_metadata() {
+  if [[ -n "$SOURCE_REVISION" ]]; then
+    return
+  fi
+
+  local repo revision dirty selected
+  selected=$(selected_source_repos)
+  SOURCE_REVISION=""
+  for repo in $selected; do
+    [[ -d "$SOURCE_ROOT/$repo/.git" ]] || continue
+    revision=$(git -C "$SOURCE_ROOT/$repo" rev-parse --short=12 HEAD 2>/dev/null || true)
+    [[ -n "$revision" ]] || continue
+    dirty=""
+    if [[ -n "$(git -C "$SOURCE_ROOT/$repo" status --porcelain 2>/dev/null)" ]]; then
+      dirty="+dirty"
+    fi
+    if [[ -n "$SOURCE_REVISION" ]]; then
+      SOURCE_REVISION="${SOURCE_REVISION},"
+    fi
+    SOURCE_REVISION="${SOURCE_REVISION}${repo}:${revision}${dirty}"
+  done
+  SOURCE_REVISION=${SOURCE_REVISION:-unknown}
+}
+
+preflight() {
+  if [[ "$SKIP_PREFLIGHT" == "true" ]]; then
+    log "skip preflight"
+    return
+  fi
+
+  local command_name repo service dockerfile remote_checks
+  for command_name in ssh rsync git; do
+    command -v "$command_name" >/dev/null 2>&1 || die "$command_name is required locally"
+  done
+
+  if [[ "$SKIP_SYNC" != "true" ]]; then
+    for repo in $(selected_source_repos); do
+      [[ -d "$SOURCE_ROOT/$repo" ]] || die "missing source repo: $SOURCE_ROOT/$repo"
+    done
+    for service in "${SERVICES[@]}"; do
+      dockerfile=$(dockerfile_path "$service")
+      if [[ "$service" == "gpt-service" && "$(gpt_service_build_target)" == "gpt_service_private_runtime" ]]; then
+        dockerfile="gpt-private/gpt-service/Dockerfile"
+      fi
+      [[ -f "$SOURCE_ROOT/$dockerfile" ]] || die "missing Dockerfile for $service: $SOURCE_ROOT/$dockerfile"
+    done
+  fi
+
+  remote_checks="command -v python3 >/dev/null"
+  if [[ "$VALIDATE_ONLY" != "true" && "$SKIP_BUILD" != "true" ]]; then
+    remote_checks="$remote_checks && command -v docker >/dev/null"
+  fi
+  if [[ "$SKIP_HELM" != "true" ]]; then
+    remote_checks="$remote_checks && command -v kubectl >/dev/null && test -x $(shell_quote "$REMOTE_HELM")"
+  fi
+  log "preflight remote tooling"
+  remote "$remote_checks" || die "remote preflight failed"
 }
 
 sync_source() {
@@ -493,17 +617,23 @@ service_source_repos() {
     gpt-service)
       printf '%s\n' common-lib gpt mailbox
       if gpt_private_source_required; then
-        printf '%s\n' gpt-private
+        printf '%s\n' gpt-private gopay-app
       fi
       ;;
+    gopay-app)
+      printf '%s\n' common-lib gopay-app
+      ;;
     webui)
-      printf '%s\n' common-lib webui gpt mailbox sms browser-automation workflow-runtime
+      printf '%s\n' common-lib webui gpt mailbox sms wa-app gopay-app browser-automation workflow-runtime
       ;;
     mailbox)
       printf '%s\n' common-lib mailbox
       ;;
     sms-service)
       printf '%s\n' common-lib sms
+      ;;
+    wa-app-service)
+      printf '%s\n' common-lib wa-app
       ;;
     browser-automation)
       printf '%s\n' common-lib browser-automation
@@ -530,10 +660,16 @@ stage_chart_sources() {
   cp "$SOURCE_ROOT/gpt/orchestrator/migrations/001_init.sql" "$chart_files/migrations/002_gpt_orchestrator.sql"
   cp "$SOURCE_ROOT/mailbox/services/mailbox-api/migrations/001_operations_outbox.sql" "$chart_files/migrations/003_mailbox_operations_outbox.sql"
   cp "$SOURCE_ROOT/sms/migrations/001_init.sql" "$chart_files/migrations/004_sms.sql"
+  cp "$SOURCE_ROOT/wa-app/migrations/001_init.sql" "$chart_files/migrations/006_wa_app.sql"
+  if gpt_private_source_required && [[ -f "$SOURCE_ROOT/gpt-private/orchestrator/migrations/001_gopay_account_profiles.sql" ]]; then
+    cp "$SOURCE_ROOT/gpt-private/orchestrator/migrations/001_gopay_account_profiles.sql" "$chart_files/migrations/005_gpt_private.sql"
+  fi
   copy_workflow_tree "$SOURCE_ROOT/gpt/workflows/n8n" "$chart_files/n8n-workflows"
   if [ -d "$SOURCE_ROOT/gpt-private/workflows/n8n" ]; then
     copy_workflow_tree "$SOURCE_ROOT/gpt-private/workflows/n8n" "$chart_files/n8n-workflows"
   fi
+  copy_workflow_tree "$SOURCE_ROOT/gopay-app/workflows/n8n" "$chart_files/n8n-workflows"
+  copy_workflow_tree "$SOURCE_ROOT/wa-app/workflows/n8n" "$chart_files/n8n-workflows"
 }
 
 copy_workflow_tree() {
@@ -584,31 +720,70 @@ ensure_browser_automation_runtime_image() {
   remote "cd $(shell_quote "$REMOTE_DIR") && docker build $build_flags -t $(shell_quote "$BROWSER_AUTOMATION_RUNTIME_IMAGE") -f browser-automation/Dockerfile.runtime browser-automation"
 }
 
+build_image() {
+  local service context dockerfile dockerfile_arg image build_flags
+  service=$1
+  context=$(docker_context "$service")
+  dockerfile=$(dockerfile_path "$service")
+  dockerfile_arg=$dockerfile
+  if [[ "$service" == "gpt-service" && "$(gpt_service_build_target)" == "gpt_service_private_runtime" ]]; then
+    dockerfile_arg="gpt-private/gpt-service/Dockerfile"
+  elif [[ "$context" != "." && "$dockerfile" != /* ]]; then
+    dockerfile_arg=$context/$dockerfile
+  fi
+  image=$(image_ref "$service")
+  build_flags=""
+  if [[ "$DOCKER_BUILD_PULL" == "true" ]]; then
+    build_flags="$build_flags --pull"
+  fi
+  if [[ "$DOCKER_BUILD_NO_CACHE" == "true" ]]; then
+    build_flags="$build_flags --no-cache"
+  fi
+  build_flags="$build_flags --label $(shell_quote "org.opencontainers.image.created=$BUILD_CREATED_AT")"
+  build_flags="$build_flags --label $(shell_quote "org.opencontainers.image.version=$TAG")"
+  build_flags="$build_flags --label $(shell_quote "org.opencontainers.image.revision=$SOURCE_REVISION")"
+  build_flags="$build_flags --label $(shell_quote "org.opencontainers.image.source=byte-v-forge/$service")"
+  if [[ "$service" == "browser-automation" ]]; then
+    ensure_browser_automation_runtime_image
+    build_flags="$build_flags --build-arg BROWSER_AUTOMATION_RUNTIME_IMAGE=$(shell_quote "$BROWSER_AUTOMATION_RUNTIME_IMAGE")"
+  elif [[ "$service" == "gpt-service" ]]; then
+    build_flags="$build_flags --target $(shell_quote "$(gpt_service_build_target)") --build-arg GPT_ORCHESTRATOR_BUILD_TAGS=$(shell_quote "$GPT_ORCHESTRATOR_BUILD_TAGS")"
+  fi
+  log "build $image"
+  remote "cd $(shell_quote "$REMOTE_DIR") && DOCKER_BUILDKIT=$(shell_quote "$DOCKER_BUILDKIT") BUILDKIT_PROGRESS=$(shell_quote "$BUILDKIT_PROGRESS") docker build $build_flags -t $(shell_quote "$image") -f $(shell_quote "$dockerfile_arg") $(shell_quote "$context")"
+}
+
+wait_build_batch() {
+  local pid failed
+  failed=0
+  for pid in "$@"; do
+    if ! wait "$pid"; then
+      failed=1
+    fi
+  done
+  [[ "$failed" == "0" ]]
+}
+
 build_images() {
   if [[ "$SKIP_BUILD" == "true" ]]; then
     log "skip build"
     return
   fi
 
-  local service context dockerfile dockerfile_arg image build_flags
+  local service pids
+  pids=()
+  log "build parallelism: $BUILD_PARALLELISM"
   for service in "${SERVICES[@]}"; do
-    context=$(docker_context "$service")
-    dockerfile=$(dockerfile_path "$service")
-    dockerfile_arg=$dockerfile
-    if [[ "$context" != "." && "$dockerfile" != /* ]]; then
-      dockerfile_arg=$context/$dockerfile
+    build_image "$service" &
+    pids+=("$!")
+    if [[ "${#pids[@]}" -ge "$BUILD_PARALLELISM" ]]; then
+      wait_build_batch "${pids[@]}" || die "one or more image builds failed"
+      pids=()
     fi
-    image=$(image_ref "$service")
-    build_flags=""
-    if [[ "$service" == "browser-automation" ]]; then
-      ensure_browser_automation_runtime_image
-      build_flags="--build-arg BROWSER_AUTOMATION_RUNTIME_IMAGE=$(shell_quote "$BROWSER_AUTOMATION_RUNTIME_IMAGE")"
-    elif [[ "$service" == "gpt-service" ]]; then
-      build_flags="--target $(shell_quote "$(gpt_service_build_target)") --build-arg GPT_ORCHESTRATOR_BUILD_TAGS=$(shell_quote "$GPT_ORCHESTRATOR_BUILD_TAGS")"
-    fi
-    log "build $image"
-    remote "cd $(shell_quote "$REMOTE_DIR") && docker build $build_flags -t $(shell_quote "$image") -f $(shell_quote "$dockerfile_arg") $(shell_quote "$context")"
   done
+  if [[ "${#pids[@]}" -gt 0 ]]; then
+    wait_build_batch "${pids[@]}" || die "one or more image builds failed"
+  fi
 }
 
 ensure_image_tar() {
@@ -925,18 +1100,20 @@ write_overlay() {
     else
       printf '    enabled: false\n'
     fi
-    if service_selected gpt-service; then
-      printf 'gptPrivate:\n'
-      if gpt_private_source_required; then
-        printf '  enabled: true\n'
-      else
-        printf '  enabled: false\n'
-      fi
+    printf 'gptPrivate:\n'
+    if gpt_private_source_required; then
+      printf '  enabled: true\n'
+    else
+      printf '  enabled: false\n'
     fi
     printf 'workloads:\n'
     local service
     for service in "${SERVICES[@]}"; do
       printf '  %s:\n' "$service"
+      printf '    podAnnotations:\n'
+      printf '      byte-v-forge/deploy-tag: "%s"\n' "$TAG"
+      printf '      byte-v-forge/deploy-created-at: "%s"\n' "$BUILD_CREATED_AT"
+      printf '      byte-v-forge/source-revision: "%s"\n' "$SOURCE_REVISION"
       printf '    image:\n'
       printf '      repository: %s/%s\n' "$IMAGE_PREFIX" "$service"
       printf '      tag: %s\n' "$TAG"
@@ -1039,7 +1216,7 @@ helm_upgrade() {
 
   flags=$(helm_values_flags)
   log "helm upgrade release=$RELEASE namespace=$NAMESPACE tag=$TAG"
-  remote "KUBECONFIG=$(shell_quote "$REMOTE_KUBECONFIG") $(shell_quote "$REMOTE_HELM") upgrade --install $(shell_quote "$RELEASE") $(shell_quote "$CHART_DIR") --namespace $(shell_quote "$NAMESPACE") --create-namespace --server-side=false --rollback-on-failure --wait=watcher --wait-for-jobs --timeout $(shell_quote "$HELM_TIMEOUT") $flags"
+  remote "KUBECONFIG=$(shell_quote "$REMOTE_KUBECONFIG") $(shell_quote "$REMOTE_HELM") upgrade --install $(shell_quote "$RELEASE") $(shell_quote "$CHART_DIR") --namespace $(shell_quote "$NAMESPACE") --create-namespace --server-side=false --history-max $(shell_quote "$HELM_HISTORY_MAX") --rollback-on-failure --wait=watcher --wait-for-jobs --timeout $(shell_quote "$HELM_TIMEOUT") $flags"
 }
 
 verify_rollout() {
@@ -1067,11 +1244,21 @@ cleanup_remote_tar() {
 
 main() {
   parse_args "$@"
+  init_deploy_metadata
+  preflight
 
   log "services: ${SERVICES[*]}"
   log "tag: $TAG"
+  log "source revision: $SOURCE_REVISION"
+  log "build created at: $BUILD_CREATED_AT"
   sync_source
   sync_dashboard_modules
+  if [[ "$VALIDATE_ONLY" == "true" ]]; then
+    write_overlay
+    validate_chart
+    log "validate-only done"
+    return
+  fi
   build_images
   save_images
   import_images

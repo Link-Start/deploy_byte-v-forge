@@ -9,6 +9,7 @@
 - `iac/helm/byte-v-forge/`：Kubernetes Helm chart。
 - `iac/helm/traefik-values.yaml`：官方 Traefik Helm chart 的本项目默认 values。
 - `scripts/deploy-remote.sh`：远程构建、导入镜像和 Helm 升级脚本。
+- `scripts/validate-deploy-config.sh`：非构建类部署配置检查入口，执行脚本语法检查与 Helm lint/template。
 - `scripts/logs-remote.sh`：远程 Kubernetes 日志查看脚本。
 
 WebUI、n8n editor、n8n webhook 和 mailbox webhook 的外部 HTTP 入口统一走 Traefik `IngressRoute`，不再渲染 Kubernetes `Ingress`，也不再保留 ingress-nginx 双入口。Docker Compose 暴露 `WEBUI_PORT`、`WEBHOOK_PORT` 和本机 n8n editor 端口 `N8N_EDITOR_PORT`；Kubernetes 默认由 Traefik `web` NodePort 30080 发布 dashboard，由 `webhook` NodePort 30082 发布 webhook 路由。WebUI 的服务状态从 Traefik API 读取，不再维护手写服务探测清单。需要公网 mailbox webhook 时启用 `workloads.cloudflare-tunnel`，把 Cloudflare Tunnel token 写入 `secrets.stringData.CLOUDFLARE_TUNNEL_TOKEN`，并只在 Cloudflare Tunnel 上放行 `/webhooks/email/` 前缀。
@@ -17,10 +18,7 @@ Cloudflare 邮箱域名通过 Helm `cloudflareEmail` 声明 zones，并由 mailb
 ## Helm 渲染
 
 ```sh
-helm lint iac/helm/byte-v-forge
-helm template byte-v-forge iac/helm/byte-v-forge --namespace byte-v-forge >/tmp/byte-v-forge.yaml
-helm template byte-v-forge-traefik oci://ghcr.io/traefik/helm/traefik \
-  --version 40.2.0 --namespace traefik -f iac/helm/traefik-values.yaml >/tmp/byte-v-forge-traefik.yaml
+scripts/validate-deploy-config.sh
 ```
 
 ## 远程部署
@@ -29,8 +27,18 @@ helm template byte-v-forge-traefik oci://ghcr.io/traefik/helm/traefik \
 scripts/deploy-remote.sh all
 ```
 
-部署脚本默认从本仓父目录读取 sibling 目标仓源码，例如 `common-lib/`、`gpt/`、`mailbox/`、`sms/`、`browser-automation/`、`proxy-runtime/`、`workflow-runtime/` 和 `webui/`，并同步到远程构建目录。可通过 `SOURCE_ROOT` 指定源码父目录。
-n8n 直接以 queue mode 部署，使用独立 `n8n-postgres` 与 `n8n-redis`；owner 账号通过 n8n 官方环境变量预置，默认登录邮箱为 `byte-v-forge@byte-v-forge.local`、密码为 `byte-v-forge`；n8n public API key 需要在 n8n UI 创建后写入 `N8N_API_KEY`。workflow JSON/catalog 保留在拥有该能力的业务仓，例如 `mailbox/workflows/n8n/`、`gpt/workflows/n8n/` 和 `gpt-private/workflows/n8n/`；Codex 等公开 GPT workflow 可留在 `gpt`，注册/支付等私有 workflow 进入 `gpt-private`；`gpt-service` Dockerfile 默认最终 target 是 core runtime，不需要 `gpt-private`；部署脚本、Compose 和 Helm 默认走 core-only 构建边界；需要私有插件时显式设置 `GPT_SERVICE_BUILD_TARGET=gpt_service_private_runtime`、`GPT_ORCHESTRATOR_BUILD_TAGS=private_plugins`，并在 Helm 使用 `gptPrivate.enabled=true`；Compose core-only 下 GoPay sidecar 会以 noop 运行，Helm core-only 使用 `gptPrivate.enabled=false` 移除 GoPay extraContainers 和 payment service port；`workflow-runtime` 提供平台原生 dashboard 远程模块和状态 API，n8n editor 仅作为管理员编排入口。
+部署脚本默认只在远程宿主机构建镜像，启用 BuildKit，并给镜像写入 `org.opencontainers.image.*` 标签。默认并发构建数为 2，可按远程宿主机资源调整：
+
+```sh
+BUILD_PARALLELISM=3 scripts/deploy-remote.sh webui gpt-service
+scripts/deploy-remote.sh --build-pull --tag deploy-20260531 webui
+scripts/deploy-remote.sh --validate-only webui gpt-service
+```
+
+`--validate-only` 会同步源码、生成 dashboard module registry、写入本次 overlay，并只执行远程 Helm lint/template，不构建镜像、不导入镜像、不升级 release。常规部署会把本次 tag、构建时间和源码 revision 写入所选 workload 的 pod annotations，避免未选 workload 因全局 annotation 变化被动滚动。
+
+部署脚本默认从本仓父目录读取 sibling 目标仓源码，例如 `common-lib/`、`gpt/`、`gopay-app/`、`mailbox/`、`sms/`、`wa-app/`、`browser-automation/`、`proxy-runtime/`、`workflow-runtime/` 和 `webui/`，并同步到远程构建目录。可通过 `SOURCE_ROOT` 指定源码父目录。
+n8n 直接以 queue mode 部署，使用独立 `n8n-postgres` 与 `n8n-redis`；owner 账号通过 n8n 官方环境变量预置，默认登录邮箱为 `byte-v-forge@byte-v-forge.local`、密码为 `byte-v-forge`；n8n public API key 需要在 n8n UI 创建后写入 `N8N_API_KEY`。workflow JSON/catalog 保留在拥有该能力的业务仓，例如 `gpt/workflows/n8n/`、`gpt-private/workflows/n8n/`、`gopay-app/workflows/n8n/` 和 `wa-app/workflows/n8n/`；Codex 等公开 GPT workflow 可留在 `gpt`，支付等私有 GPT workflow 进入 `gpt-private`，GoPay account workflow 进入 `gopay-app`；`gpt-service` Dockerfile 默认最终 target 是 core runtime，不需要 `gpt-private`；部署脚本、Compose 和 Helm 默认走 core-only 构建边界；需要私有插件时显式设置 `GPT_SERVICE_BUILD_TARGET=gpt_service_private_runtime`、`GPT_ORCHESTRATOR_BUILD_TAGS=private_plugins`，并在 Helm 使用 `gptPrivate.enabled=true`；Compose core-only 下 GoPay sidecar 会以 noop 运行，Helm core-only 使用 `gptPrivate.enabled=false` 移除 GoPay extraContainers 和 payment service port；`workflow-runtime` 提供平台原生 dashboard 远程模块和状态 API，n8n editor 仅作为管理员编排入口。
 业务短生命周期缓存、relay、GoPay app runtime state、mailbox 近期验证码热读和分布式抓取锁，以及 workflow 入参敏感临时值使用独立 `platform-redis`，通过 `PLATFORM_REDIS_URL` 注入业务服务；`GPT_RUNTIME_SECRET_TTL_SECONDS` 控制 GPT 临时 secret 保留时间，`GOPAY_STATE_TTL_SECONDS` 控制 GoPay app runtime state 保留时间，`MAILBOX_RECENT_EMAIL_CACHE_TTL_SECONDS` 控制 mailbox 近期邮件缓存保留时间，`MAILBOX_INBOX_LOCK_TTL_SECONDS` 控制 mailbox 跨副本抓取锁租约。跨服务持久事件、mailbox 公共邮件事件、mailbox 注册/OAuth、入站邮件 poll/fetch、SMS activation 轮询/取消、GPT OTP 投影消费和异步工作唤醒使用 `platform-nats` NATS JetStream，通过 `PLATFORM_NATS_URL` 注入业务服务；`PLATFORM_EVENT_STREAM_*` 控制平台事件流名称、subject 和保留时间。业务数据库仍是状态真源。`n8n-redis` 只归 n8n queue mode 使用，不作为业务缓存、业务事件流或业务状态源。
 部署脚本默认先安装/升级 Traefik release `byte-v-forge-traefik`，再升级 `byte-v-forge` Helm release；可通过脚本参数或环境变量覆盖。
 `browser-automation` 使用独立 runtime base 镜像承载 Camoufox、Playwright、GeoIP 和浏览器资源；常规业务部署只重建服务二进制层。远程镜像导入默认先尝试宿主机本地 registry 分层导入，失败后才回退到 qemu guest agent tar 导入。registry 端口可通过 `DEPLOY_REGISTRY_PUSH_ADDR` 和 `DEPLOY_REGISTRY_PULL_ADDR` 覆盖。

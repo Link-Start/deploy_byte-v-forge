@@ -29,7 +29,8 @@ spec:
         {{- with $.Values.podLabels }}
         {{- toYaml . | nindent 8 }}
         {{- end }}
-      {{- with $.Values.podAnnotations }}
+      {{- $podAnnotations := merge (dict) (default (dict) $.Values.podAnnotations) (default (dict) $workload.podAnnotations) }}
+      {{- with $podAnnotations }}
       annotations:
         {{- toYaml . | nindent 8 }}
       {{- end }}

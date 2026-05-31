@@ -22,6 +22,8 @@ x-n8n-environment: &n8n-environment
   N8N_TEMPLATES_ENABLED: "false"
   N8N_BLOCK_ENV_ACCESS_IN_NODE: "false"
   GPT_ACTION_API_BASE_URL: ${GPT_ACTION_API_BASE_URL:-http://gpt-service:8080/api/gpt/actions}
+  GOPAY_ACTION_API_BASE_URL: ${GOPAY_ACTION_API_BASE_URL:-http://gopay-app:8080/api/gopay/actions}
+  WA_ACTION_API_BASE_URL: ${WA_ACTION_API_BASE_URL:-http://wa-app-service:8080/api/wa/actions}
   PROXY_RUNTIME_API_BASE_URL: ${PROXY_RUNTIME_API_BASE_URL:-http://proxy-runtime:8080/api/proxy-runtime}
   N8N_INSTANCE_OWNER_MANAGED_BY_ENV: "true"
   N8N_INSTANCE_OWNER_EMAIL: ${N8N_INSTANCE_OWNER_EMAIL:-byte-v-forge@byte-v-forge.local}
@@ -43,6 +45,8 @@ x-n8n-task-runner-environment: &n8n-task-runner-environment
   N8N_RUNNERS_LAUNCHER_HEALTH_CHECK_PORT: "5680"
   N8N_BLOCK_ENV_ACCESS_IN_NODE: "false"
   GPT_ACTION_API_BASE_URL: ${GPT_ACTION_API_BASE_URL:-http://gpt-service:8080/api/gpt/actions}
+  GOPAY_ACTION_API_BASE_URL: ${GOPAY_ACTION_API_BASE_URL:-http://gopay-app:8080/api/gopay/actions}
+  WA_ACTION_API_BASE_URL: ${WA_ACTION_API_BASE_URL:-http://wa-app-service:8080/api/wa/actions}
   PROXY_RUNTIME_API_BASE_URL: ${PROXY_RUNTIME_API_BASE_URL:-http://proxy-runtime:8080/api/proxy-runtime}
 
 services:
@@ -135,14 +139,16 @@ services:
       - PGPASSWORD=${POSTGRES_PASSWORD:-byte_v_forge}
     volumes:
       - ../sms/migrations:/migrations/sms:ro
+      - ../wa-app/migrations:/migrations/wa-app:ro
       - ../mailbox/services/mailbox-api/migrations:/migrations/mailbox:ro
       - ../gpt/orchestrator/migrations:/migrations/gpt-orchestrator:ro
       - ../gpt/gpt-account/migrations:/migrations/gpt-account:ro
+      - ../gpt-private/orchestrator/migrations:/migrations/gpt-private:ro
     command:
       - sh
       - -ceu
       - |
-        for dir in /migrations/gpt-account /migrations/gpt-orchestrator /migrations/mailbox /migrations/sms; do
+        for dir in /migrations/gpt-account /migrations/gpt-orchestrator /migrations/gpt-private /migrations/mailbox /migrations/sms /migrations/wa-app; do
           for file in "$${dir}"/*.sql; do
             [ -e "$${file}" ] || continue
             psql -v ON_ERROR_STOP=1 -f "$${file}"
@@ -206,6 +212,8 @@ services:
       - n8n_data:/home/node/.n8n
       - ../gpt/workflows/n8n:/workflow-sources/public:ro
       - ../gpt-private/workflows/n8n:/workflow-sources/private:ro
+      - ../gopay-app/workflows/n8n:/workflow-sources/gopay:ro
+      - ../wa-app/workflows/n8n:/workflow-sources/wa:ro
       - ./iac/helm/byte-v-forge/files/n8n-sync-workflow-folders.js:/opt/byte-v-forge/sync-workflow-folders.js:ro
     command:
       - sh
@@ -213,8 +221,9 @@ services:
       - |
         rm -rf /tmp/n8n-workflows
         mkdir -p /tmp/n8n-workflows
-        cp -R /workflow-sources/public/. /tmp/n8n-workflows/
-        cp -R /workflow-sources/private/. /tmp/n8n-workflows/
+        for source in /workflow-sources/public /workflow-sources/private /workflow-sources/gopay /workflow-sources/wa; do
+          [ -d "$$source" ] && cp -R "$$source"/. /tmp/n8n-workflows/
+        done
         workflow_files() {
           find -L /tmp/n8n-workflows -path '*/..*' -prune -o -type f -name '*.workflow.json' -print | sort
         }
@@ -284,6 +293,7 @@ services:
       - PROXY_RUNTIME_LISTENERS_JSON=${PROXY_RUNTIME_LISTENERS_JSON:-[{"id":"direct-egress","addr":":10810","protocol":"socks5","route":"upstream","upstream":"tcp://host.docker.internal:10810"},{"id":"dynamic-provider","addr":":10811","protocol":"socks5","route":"provider"},{"id":"checkout-egress","addr":":10812","protocol":"socks5","route":"upstream","upstream":"tcp://host.docker.internal:10813"}]}
       - PROXY_RUNTIME_LOCAL_PROTOCOL=socks5
       - PROXY_RUNTIME_SESSION_LISTEN_HOST=0.0.0.0
+      - PROXY_RUNTIME_SESSION_ADVERTISED_HOST=${PROXY_RUNTIME_SESSION_ADVERTISED_HOST:-proxy-runtime}
       - PROXY_RUNTIME_SESSION_PORT_START=${PROXY_RUNTIME_SESSION_PORT_START:-19080}
       - PROXY_RUNTIME_SESSION_PORT_END=${PROXY_RUNTIME_SESSION_PORT_END:-19099}
       - PROXY_RUNTIME_STATIC_CHAIN=${PROXY_RUNTIME_STATIC_CHAIN:-}
@@ -419,7 +429,7 @@ services:
   gpt-service:
     build:
       context: ..
-      dockerfile: gpt/gpt-service/Dockerfile
+      dockerfile: gpt-private/gpt-service/Dockerfile
       target: ${GPT_SERVICE_BUILD_TARGET:-gpt_service_runtime}
       args:
         GPT_ORCHESTRATOR_BUILD_TAGS: ${GPT_ORCHESTRATOR_BUILD_TAGS:-}
@@ -432,8 +442,8 @@ services:
       - GPT_DASHBOARD_HTTP_ADDR=:8080
       - GPT_N8N_WEBHOOK_BASE_URL=${GPT_N8N_WEBHOOK_BASE_URL:-http://n8n-webhook:5678/webhook}
       - GPT_ACCOUNT_INTERNAL_ADDR=127.0.0.1:50052
-      - GPT_GOPAY_PAYMENT_INTERNAL_ADDR=gopay-payment-sidecar:50054
-      - GPT_GOPAY_APP_INTERNAL_ADDR=gopay-app-sidecar:50060
+      - GPT_PAYMENT_INTERNAL_ADDR=gopay-payment-sidecar:50054
+      - GPT_PRIVATE_APP_INTERNAL_ADDR=gopay-app:50051
       - GPT_SERVICE_PG_DSN=host=postgres user=${POSTGRES_USER:-byte_v_forge} password=${POSTGRES_PASSWORD:-byte_v_forge} dbname=${POSTGRES_DB:-byte_v_forge} port=5432 sslmode=disable
       - GPT_RUNTIME_SECRET_REDIS_URL=${PLATFORM_REDIS_URL:-redis://platform-redis:6379/0}
       - GPT_OTP_RELAY_REDIS_URL=${PLATFORM_REDIS_URL:-redis://platform-redis:6379/0}
@@ -464,17 +474,12 @@ services:
         condition: service_started
       proxy-runtime:
         condition: service_started
-      gopay-app-sidecar:
+      gopay-app:
         condition: service_started
       gopay-payment-sidecar:
         condition: service_started
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.gpt-webhook.rule=PathPrefix(`/`)"
-      - "traefik.http.routers.gpt-webhook.entrypoints=webhook"
-      - "traefik.http.routers.gpt-webhook.priority=1"
-      - "traefik.http.routers.gpt-webhook.service=gpt-service-webhook"
-      - "traefik.http.services.gpt-service-webhook.loadbalancer.server.port=8081"
       - "traefik.http.routers.gpt-service-status.rule=Host(`gpt-service.byte-v-forge.internal`)"
       - "traefik.http.routers.gpt-service-status.entrypoints=internal"
       - "traefik.http.routers.gpt-service-status.service=gpt-service"
@@ -493,43 +498,55 @@ services:
       - "traefik.http.services.gpt-service-dashboard.loadbalancer.healthcheck.path=/healthz"
     restart: always
 
-  gopay-app-sidecar:
+  gopay-app:
     build:
       context: ..
-      dockerfile: gpt/gpt-service/Dockerfile
-      target: ${GPT_SERVICE_BUILD_TARGET:-gpt_service_runtime}
-      args:
-        GPT_ORCHESTRATOR_BUILD_TAGS: ${GPT_ORCHESTRATOR_BUILD_TAGS:-}
-    command:
-      - /bin/sh
-      - -ec
-      - |
-        if [ "${GPT_SERVICE_BUILD_TARGET:-gpt_service_runtime}" = "gpt_service_runtime" ]; then
-          exec sleep infinity
-        fi
-        exec /app/gopay-sidecar/gopay-app.sh
+      dockerfile: gopay-app/Dockerfile
     environment:
-      - GPT_SERVICE_BUILD_TARGET=${GPT_SERVICE_BUILD_TARGET:-gpt_service_runtime}
-      - GOPAY_APP_PORT=50060
+      - GOPAY_APP_PORT=50051
+      - GOPAY_HTTP_LISTEN_ADDR=:8080
+      - GOPAY_DASHBOARD_STATIC_DIR=/app/dashboard/gopay
+      - GOPAY_N8N_WEBHOOK_BASE_URL=${GOPAY_N8N_WEBHOOK_BASE_URL:-http://n8n-webhook:5678/webhook}
       - GOPAY_STATE_REDIS_URL=${PLATFORM_REDIS_URL:-redis://platform-redis:6379/0}
-      - GOPAY_STATE_KEY_PREFIX=${GOPAY_STATE_KEY_PREFIX:-byte-v-forge:gpt:gopay-app-state}
+      - GOPAY_STATE_KEY_PREFIX=${GOPAY_STATE_KEY_PREFIX:-byte-v-forge:gopay-app:state}
       - GOPAY_STATE_TTL_SECONDS=${GOPAY_STATE_TTL_SECONDS:-604800}
       - PROXY_RUNTIME_HTTP_ADDR=${PROXY_RUNTIME_HTTP_ADDR:-http://proxy-runtime:8080}
       - GOPAY_SIGNUP_INITIATE_JITTER_MIN_SECONDS=${GOPAY_SIGNUP_INITIATE_JITTER_MIN_SECONDS:-8}
       - GOPAY_SIGNUP_INITIATE_JITTER_MAX_SECONDS=${GOPAY_SIGNUP_INITIATE_JITTER_MAX_SECONDS:-25}
       - GOPAY_SIGNUP_RATE_LIMIT_COOLDOWN_SECONDS=${GOPAY_SIGNUP_RATE_LIMIT_COOLDOWN_SECONDS:-900}
+      - GOPAY_OTP_WEBHOOK_LISTEN_ADDR=:8081
+      - GOPAY_OTP_SUBMIT_URL=${GOPAY_OTP_SUBMIT_URL:-http://gopay-app:8080/api/gopay/otp/submit}
       - GOTO_SSO_CLIENT_SECRET=${GOTO_SSO_CLIENT_SECRET:-}
     depends_on:
       platform-redis:
         condition: service_started
       proxy-runtime:
         condition: service_started
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.gopay-otp-webhook.rule=PathPrefix(`/`)"
+      - "traefik.http.routers.gopay-otp-webhook.entrypoints=webhook"
+      - "traefik.http.routers.gopay-otp-webhook.priority=1"
+      - "traefik.http.routers.gopay-otp-webhook.service=gopay-app-webhook"
+      - "traefik.http.services.gopay-app-webhook.loadbalancer.server.port=8081"
+      - "traefik.http.routers.gopay-api.rule=PathPrefix(`/api/gopay`) || PathPrefix(`/mf/gopay`)"
+      - "traefik.http.routers.gopay-api.entrypoints=web"
+      - "traefik.http.routers.gopay-api.priority=100"
+      - "traefik.http.routers.gopay-api.service=gopay-app-api"
+      - "traefik.http.services.gopay-app-api.loadbalancer.server.port=8080"
+      - "traefik.http.services.gopay-app-api.loadbalancer.healthcheck.path=/api/gopay/health"
+      - "traefik.http.routers.gopay-app-status.rule=Host(`gopay-app.byte-v-forge.internal`)"
+      - "traefik.http.routers.gopay-app-status.entrypoints=internal"
+      - "traefik.http.routers.gopay-app-status.service=gopay-app"
+      - "traefik.http.services.gopay-app.loadbalancer.server.port=50051"
+      - "traefik.http.services.gopay-app.loadbalancer.server.scheme=h2c"
+      - "traefik.http.services.gopay-app.loadbalancer.healthcheck.mode=grpc"
     restart: always
 
   gopay-payment-sidecar:
     build:
       context: ..
-      dockerfile: gpt/gpt-service/Dockerfile
+      dockerfile: gpt-private/gpt-service/Dockerfile
       target: ${GPT_SERVICE_BUILD_TARGET:-gpt_service_runtime}
       args:
         GPT_ORCHESTRATOR_BUILD_TAGS: ${GPT_ORCHESTRATOR_BUILD_TAGS:-}
@@ -566,6 +583,7 @@ services:
       - SMS_PG_DSN=host=postgres user=${POSTGRES_USER:-byte_v_forge} password=${POSTGRES_PASSWORD:-byte_v_forge} dbname=${POSTGRES_DB:-byte_v_forge} port=5432 sslmode=disable
       - PLATFORM_REDIS_URL=${PLATFORM_REDIS_URL:-redis://platform-redis:6379/0}
       - PLATFORM_EVENT_STREAM_NAME=${PLATFORM_EVENT_STREAM_NAME:-BYTE_V_FORGE_EVENTS}
+      - SMS_PROVIDER_HTTP_PROXY=${SMS_PROVIDER_HTTP_PROXY:-socks5://proxy-runtime:10810}
     extra_hosts:
       - "host.docker.internal:host-gateway"
     depends_on:
@@ -597,6 +615,54 @@ services:
       - "traefik.http.routers.sms-mf.service=sms-service-dashboard"
       - "traefik.http.services.sms-service-dashboard.loadbalancer.server.port=8080"
       - "traefik.http.services.sms-service-dashboard.loadbalancer.healthcheck.path=/healthz"
+    restart: always
+
+  wa-app-service:
+    build:
+      context: ..
+      dockerfile: wa-app/Dockerfile
+    ports:
+      - "127.0.0.1:${WA_APP_GRPC_PORT:-50091}:50051"
+    environment:
+      - WA_APP_LISTEN_ADDR=:50051
+      - WA_APP_DASHBOARD_HTTP_ADDR=:8080
+      - WA_APP_DASHBOARD_STATIC_DIR=/app/dashboard/wa
+      - WA_N8N_WEBHOOK_BASE_URL=${WA_N8N_WEBHOOK_BASE_URL:-http://n8n-webhook:5678/webhook}
+      - WA_APP_PG_DSN=host=postgres user=${POSTGRES_USER:-byte_v_forge} password=${POSTGRES_PASSWORD:-byte_v_forge} dbname=${POSTGRES_DB:-byte_v_forge} port=5432 sslmode=disable
+      - PLATFORM_REDIS_URL=${PLATFORM_REDIS_URL:-redis://platform-redis:6379/0}
+      - PLATFORM_NATS_URL=${PLATFORM_NATS_URL:-nats://platform-nats:4222}
+      - PROXY_RUNTIME_API_BASE_URL=${PROXY_RUNTIME_API_BASE_URL:-http://proxy-runtime:8080/api/proxy-runtime}
+    depends_on:
+      postgres:
+        condition: service_started
+      platform-db-migrations:
+        condition: service_completed_successfully
+      platform-nats:
+        condition: service_started
+      platform-nats-init:
+        condition: service_completed_successfully
+      platform-redis:
+        condition: service_started
+      n8n-webhook:
+        condition: service_started
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.wa-app-service-status.rule=Host(`wa-app-service.byte-v-forge.internal`)"
+      - "traefik.http.routers.wa-app-service-status.entrypoints=internal"
+      - "traefik.http.routers.wa-app-service-status.service=wa-app-service"
+      - "traefik.http.services.wa-app-service.loadbalancer.server.port=50051"
+      - "traefik.http.services.wa-app-service.loadbalancer.server.scheme=h2c"
+      - "traefik.http.services.wa-app-service.loadbalancer.healthcheck.mode=grpc"
+      - "traefik.http.routers.wa-api.rule=PathPrefix(`/api/wa`)"
+      - "traefik.http.routers.wa-api.entrypoints=web"
+      - "traefik.http.routers.wa-api.priority=100"
+      - "traefik.http.routers.wa-api.service=wa-app-dashboard"
+      - "traefik.http.routers.wa-mf.rule=PathPrefix(`/mf/wa`)"
+      - "traefik.http.routers.wa-mf.entrypoints=web"
+      - "traefik.http.routers.wa-mf.priority=100"
+      - "traefik.http.routers.wa-mf.service=wa-app-dashboard"
+      - "traefik.http.services.wa-app-dashboard.loadbalancer.server.port=8080"
+      - "traefik.http.services.wa-app-dashboard.loadbalancer.healthcheck.path=/healthz"
     restart: always
 
   workflow-runtime:

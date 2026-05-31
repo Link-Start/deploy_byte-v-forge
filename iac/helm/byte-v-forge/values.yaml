@@ -26,12 +26,19 @@ configEnv:
   PLATFORM_REDIS_URL: 'redis://{{ include "byte-v-forge.componentFullname" (dict "root" . "component" "platform-redis") }}:6379/0'
   N8N_PUBLIC_URL: http://n8n.byte-v-forge.192.168.0.126.nip.io:30080
   GPT_N8N_WEBHOOK_BASE_URL: 'http://{{ include "byte-v-forge.componentFullname" (dict "root" . "component" "n8n-webhook") }}:5678/webhook'
+  WA_N8N_WEBHOOK_BASE_URL: 'http://{{ include "byte-v-forge.componentFullname" (dict "root" . "component" "n8n-webhook") }}:5678/webhook'
+  GOPAY_N8N_WEBHOOK_BASE_URL: 'http://{{ include "byte-v-forge.componentFullname" (dict "root" . "component" "n8n-webhook") }}:5678/webhook'
   GPT_ACTION_API_BASE_URL: 'http://{{ include "byte-v-forge.componentFullname" (dict "root" . "component" "gpt-service") }}:8080/api/gpt/actions'
+  GOPAY_ACTION_API_BASE_URL: 'http://{{ include "byte-v-forge.componentFullname" (dict "root" . "component" "gopay-app") }}:8080/api/gopay/actions'
+  WA_ACTION_API_BASE_URL: 'http://{{ include "byte-v-forge.componentFullname" (dict "root" . "component" "wa-app-service") }}:8080/api/wa/actions'
   PROXY_RUNTIME_API_BASE_URL: 'http://{{ include "byte-v-forge.componentFullname" (dict "root" . "component" "proxy-runtime") }}:8080/api/proxy-runtime'
   MAILBOX_WEBHOOK_HTTP_ADDR: ":8082"
   MAILBOX_DASHBOARD_HTTP_ADDR: ":8080"
   GPT_DASHBOARD_HTTP_ADDR: ":8080"
   SMS_DASHBOARD_HTTP_ADDR: ":8080"
+  WA_APP_DASHBOARD_HTTP_ADDR: ":8080"
+  GOPAY_HTTP_LISTEN_ADDR: ":8080"
+  GOPAY_DASHBOARD_STATIC_DIR: /app/dashboard/gopay
   MAILBOX_CLOUDFLARE_MAX_MESSAGES_PER_DOMAIN: "500"
   MAILBOX_OUTLOOK_MAX_MESSAGES_PER_MAILBOX: "100"
 
@@ -67,8 +74,15 @@ dashboardRoutes:
       prefixes:
         - /webhooks/email
       priority: 200
+    - name: gopay-app
+      component: gopay-app
+      portName: http-dashboard
+      prefixes:
+        - /api/gopay
+        - /mf/gopay
+      priority: 100
     - name: gopay-otp-webhook
-      component: gpt-service
+      component: gopay-app
       portName: http-webhook
       entryPoint: webhook
       prefixes:
@@ -76,7 +90,7 @@ dashboardRoutes:
         - /tg
       priority: 200
     - name: gopay-otp-webhook-web
-      component: gpt-service
+      component: gopay-app
       portName: http-webhook
       entryPoint: web
       prefixes:
@@ -89,6 +103,13 @@ dashboardRoutes:
       prefixes:
         - /api/sms
         - /mf/sms
+      priority: 100
+    - name: wa-app
+      component: wa-app-service
+      portName: http-dashboard
+      prefixes:
+        - /api/wa
+        - /mf/wa
       priority: 100
     - name: proxy-runtime
       component: proxy-runtime
@@ -360,6 +381,8 @@ workloads:
       N8N_INSTANCE_OWNER_FIRST_NAME: Byte
       N8N_INSTANCE_OWNER_LAST_NAME: Forge
       GPT_ACTION_API_BASE_URL: '{{ tpl .Values.configEnv.GPT_ACTION_API_BASE_URL . }}'
+      GOPAY_ACTION_API_BASE_URL: '{{ tpl .Values.configEnv.GOPAY_ACTION_API_BASE_URL . }}'
+      WA_ACTION_API_BASE_URL: '{{ tpl .Values.configEnv.WA_ACTION_API_BASE_URL . }}'
       PROXY_RUNTIME_API_BASE_URL: '{{ tpl .Values.configEnv.PROXY_RUNTIME_API_BASE_URL . }}'
     secretEnv:
       - name: DB_POSTGRESDB_PASSWORD
@@ -417,6 +440,8 @@ workloads:
       N8N_TEMPLATES_ENABLED: "false"
       N8N_BLOCK_ENV_ACCESS_IN_NODE: "false"
       GPT_ACTION_API_BASE_URL: '{{ tpl .Values.configEnv.GPT_ACTION_API_BASE_URL . }}'
+      GOPAY_ACTION_API_BASE_URL: '{{ tpl .Values.configEnv.GOPAY_ACTION_API_BASE_URL . }}'
+      WA_ACTION_API_BASE_URL: '{{ tpl .Values.configEnv.WA_ACTION_API_BASE_URL . }}'
       PROXY_RUNTIME_API_BASE_URL: '{{ tpl .Values.configEnv.PROXY_RUNTIME_API_BASE_URL . }}'
     secretEnv:
       - name: DB_POSTGRESDB_PASSWORD
@@ -454,6 +479,10 @@ workloads:
             value: "false"
           - name: GPT_ACTION_API_BASE_URL
             value: '{{ tpl .Values.configEnv.GPT_ACTION_API_BASE_URL . }}'
+          - name: GOPAY_ACTION_API_BASE_URL
+            value: '{{ tpl .Values.configEnv.GOPAY_ACTION_API_BASE_URL . }}'
+          - name: WA_ACTION_API_BASE_URL
+            value: '{{ tpl .Values.configEnv.WA_ACTION_API_BASE_URL . }}'
           - name: PROXY_RUNTIME_API_BASE_URL
             value: '{{ tpl .Values.configEnv.PROXY_RUNTIME_API_BASE_URL . }}'
         ports:
@@ -501,6 +530,8 @@ workloads:
       N8N_TEMPLATES_ENABLED: "false"
       N8N_BLOCK_ENV_ACCESS_IN_NODE: "false"
       GPT_ACTION_API_BASE_URL: '{{ tpl .Values.configEnv.GPT_ACTION_API_BASE_URL . }}'
+      GOPAY_ACTION_API_BASE_URL: '{{ tpl .Values.configEnv.GOPAY_ACTION_API_BASE_URL . }}'
+      WA_ACTION_API_BASE_URL: '{{ tpl .Values.configEnv.WA_ACTION_API_BASE_URL . }}'
       PROXY_RUNTIME_API_BASE_URL: '{{ tpl .Values.configEnv.PROXY_RUNTIME_API_BASE_URL . }}'
     secretEnv:
       - name: DB_POSTGRESDB_PASSWORD
@@ -542,6 +573,7 @@ workloads:
       PROXY_RUNTIME_LISTENERS_JSON: '[{"id":"direct-egress","addr":":10810","protocol":"socks5","route":"upstream","upstream":"tcp://192.168.122.1:10810"},{"id":"dynamic-provider","addr":":10811","protocol":"socks5","route":"provider"},{"id":"checkout-egress","addr":":10812","protocol":"socks5","route":"upstream","upstream":"tcp://192.168.122.1:10813"}]'
       PROXY_RUNTIME_LOCAL_PROTOCOL: socks5
       PROXY_RUNTIME_SESSION_LISTEN_HOST: 0.0.0.0
+      PROXY_RUNTIME_SESSION_ADVERTISED_HOST: '{{ include "byte-v-forge.componentFullname" (dict "root" . "component" "proxy-runtime") }}'
       PROXY_RUNTIME_SESSION_PORT_START: "19080"
       PROXY_RUNTIME_SESSION_PORT_END: "19099"
       PROXY_RUNTIME_DASHBOARD_STATIC_DIR: /app/dashboard/proxy-runtime
@@ -560,6 +592,10 @@ workloads:
         containerPort: 10811
       - name: checkout-socks
         containerPort: 10812
+    portRanges:
+      - namePrefix: src-socks
+        containerPortStart: 19080
+        containerPortEnd: 19099
     volumeMounts:
       - name: mihomo-state
         mountPath: /var/lib/byte-v-forge/proxy-runtime/mihomo
@@ -587,6 +623,10 @@ workloads:
         - name: checkout-socks
           port: 10812
           targetPort: checkout-socks
+      portRanges:
+        - namePrefix: src-socks
+          portStart: 19080
+          portEnd: 19099
     probes:
       httpGet:
         path: /healthz
@@ -711,8 +751,8 @@ workloads:
       GPT_DASHBOARD_HTTP_ADDR: '{{ .Values.configEnv.GPT_DASHBOARD_HTTP_ADDR }}'
       GPT_N8N_WEBHOOK_BASE_URL: '{{ tpl .Values.configEnv.GPT_N8N_WEBHOOK_BASE_URL . }}'
       GPT_ACCOUNT_INTERNAL_ADDR: "127.0.0.1:50052"
-      GPT_GOPAY_PAYMENT_INTERNAL_ADDR: "127.0.0.1:50054"
-      GPT_GOPAY_APP_INTERNAL_PORT: "50060"
+      GPT_PAYMENT_INTERNAL_ADDR: "127.0.0.1:50054"
+      GPT_PRIVATE_APP_INTERNAL_ADDR: '{{ include "byte-v-forge.componentFullname" (dict "root" . "component" "gopay-app") }}:50051'
       GPT_SERVICE_PG_DSN: '{{ include "byte-v-forge.pgDsn" . }}'
       GPT_RUNTIME_SECRET_REDIS_URL: '{{ tpl .Values.configEnv.PLATFORM_REDIS_URL . }}'
       GPT_OTP_RELAY_REDIS_URL: '{{ tpl .Values.configEnv.PLATFORM_REDIS_URL . }}'
@@ -724,40 +764,6 @@ workloads:
       SMS_ADDR: '{{ include "byte-v-forge.componentFullname" (dict "root" . "component" "sms-service") }}:50051'
       PROXY_RUNTIME_HTTP_ADDR: 'http://{{ include "byte-v-forge.componentFullname" (dict "root" . "component" "proxy-runtime") }}:8080'
     extraContainers:
-      - name: gopay-app
-        image: '{{ include "byte-v-forge.image" (dict "root" . "image" (index .Values.workloads "gpt-service").image) }}'
-        imagePullPolicy: '{{ .Values.global.imagePullPolicy }}'
-        command: ["/app/gopay-sidecar/gopay-app.sh"]
-        env:
-          - name: GOPAY_APP_PORT
-            value: "50060"
-          - name: GOPAY_STATE_REDIS_URL
-            value: '{{ tpl .Values.configEnv.PLATFORM_REDIS_URL . }}'
-          - name: GOPAY_STATE_KEY_PREFIX
-            value: byte-v-forge:gpt:gopay-app-state
-          - name: GOPAY_STATE_TTL_SECONDS
-            value: "604800"
-          - name: PROXY_RUNTIME_HTTP_ADDR
-            value: 'http://{{ include "byte-v-forge.componentFullname" (dict "root" . "component" "proxy-runtime") }}:8080'
-          - name: GOPAY_SIGNUP_INITIATE_JITTER_MIN_SECONDS
-            value: "8"
-          - name: GOPAY_SIGNUP_INITIATE_JITTER_MAX_SECONDS
-            value: "25"
-          - name: GOPAY_SIGNUP_RATE_LIMIT_COOLDOWN_SECONDS
-            value: "900"
-          - name: GOTO_SSO_CLIENT_SECRET
-            valueFrom:
-              secretKeyRef:
-                name: '{{ include "byte-v-forge.appSecretName" . }}'
-                key: GOTO_SSO_CLIENT_SECRET
-        ports:
-          - name: gopay-app-grpc
-            containerPort: 50060
-            protocol: TCP
-          - name: http-webhook
-            containerPort: 8081
-            protocol: TCP
-        resources: {}
       - name: gopay-payment
         image: '{{ include "byte-v-forge.image" (dict "root" . "image" (index .Values.workloads "gpt-service").image) }}'
         imagePullPolicy: '{{ .Values.global.imagePullPolicy }}'
@@ -800,12 +806,56 @@ workloads:
         - name: payment-grpc
           port: 50054
           targetPort: payment-grpc
-        - name: http-webhook
-          port: 8081
-          targetPort: http-webhook
         - name: http-dashboard
           port: 8080
           targetPort: http-dashboard
+    probes:
+      grpc:
+        port: 50051
+    resources: {}
+
+  gopay-app:
+    enabled: true
+    replicas: 1
+    image:
+      repository: byte-v-forge/gopay-app
+      tag: latest
+    env:
+      GOPAY_APP_PORT: "50051"
+      GOPAY_HTTP_LISTEN_ADDR: '{{ .Values.configEnv.GOPAY_HTTP_LISTEN_ADDR }}'
+      GOPAY_DASHBOARD_STATIC_DIR: '{{ .Values.configEnv.GOPAY_DASHBOARD_STATIC_DIR }}'
+      GOPAY_N8N_WEBHOOK_BASE_URL: '{{ tpl .Values.configEnv.GOPAY_N8N_WEBHOOK_BASE_URL . }}'
+      GOPAY_STATE_REDIS_URL: '{{ tpl .Values.configEnv.PLATFORM_REDIS_URL . }}'
+      GOPAY_STATE_KEY_PREFIX: byte-v-forge:gopay-app:state
+      GOPAY_STATE_TTL_SECONDS: "604800"
+      PROXY_RUNTIME_HTTP_ADDR: 'http://{{ include "byte-v-forge.componentFullname" (dict "root" . "component" "proxy-runtime") }}:8080'
+      GOPAY_SIGNUP_INITIATE_JITTER_MIN_SECONDS: "8"
+      GOPAY_SIGNUP_INITIATE_JITTER_MAX_SECONDS: "25"
+      GOPAY_SIGNUP_RATE_LIMIT_COOLDOWN_SECONDS: "900"
+      GOPAY_OTP_WEBHOOK_LISTEN_ADDR: ":8081"
+      GOPAY_OTP_SUBMIT_URL: 'http://{{ include "byte-v-forge.componentFullname" (dict "root" . "component" "gopay-app") }}:8080/api/gopay/otp/submit'
+    secretEnv:
+      - name: GOTO_SSO_CLIENT_SECRET
+    ports:
+      - name: grpc
+        containerPort: 50051
+      - name: http-dashboard
+        containerPort: 8080
+      - name: http-webhook
+        containerPort: 8081
+    service:
+      enabled: true
+      type: ClusterIP
+      ports:
+        - name: grpc
+          port: 50051
+          targetPort: grpc
+        - name: http-dashboard
+          port: 8080
+          targetPort: http-dashboard
+        - name: http-webhook
+          port: 8081
+          targetPort: http-webhook
     probes:
       grpc:
         port: 50051
@@ -827,6 +877,42 @@ workloads:
       PLATFORM_NATS_URL: '{{ tpl .Values.configEnv.PLATFORM_NATS_URL . }}'
       PLATFORM_EVENT_STREAM_NAME: '{{ .Values.configEnv.PLATFORM_EVENT_STREAM_NAME }}'
       SMS_PROVIDER_HTTP_PROXY: 'socks5://{{ include "byte-v-forge.componentFullname" (dict "root" . "component" "proxy-runtime") }}:10810'
+    ports:
+      - name: grpc
+        containerPort: 50051
+      - name: http-dashboard
+        containerPort: 8080
+    service:
+      enabled: true
+      type: ClusterIP
+      ports:
+        - name: grpc
+          port: 50051
+          targetPort: grpc
+        - name: http-dashboard
+          port: 8080
+          targetPort: http-dashboard
+    probes:
+      grpc:
+        port: 50051
+    resources: {}
+
+  wa-app-service:
+    enabled: true
+    replicas: 1
+    image:
+      repository: byte-v-forge/wa-app-service
+      tag: latest
+    postgresEnv: true
+    env:
+      WA_APP_LISTEN_ADDR: ":50051"
+      WA_APP_DASHBOARD_HTTP_ADDR: '{{ .Values.configEnv.WA_APP_DASHBOARD_HTTP_ADDR }}'
+      WA_APP_DASHBOARD_STATIC_DIR: /app/dashboard/wa
+      WA_N8N_WEBHOOK_BASE_URL: '{{ tpl .Values.configEnv.WA_N8N_WEBHOOK_BASE_URL . }}'
+      WA_APP_PG_DSN: '{{ include "byte-v-forge.pgDsn" . }}'
+      PLATFORM_REDIS_URL: '{{ tpl .Values.configEnv.PLATFORM_REDIS_URL . }}'
+      PLATFORM_NATS_URL: '{{ tpl .Values.configEnv.PLATFORM_NATS_URL . }}'
+      PROXY_RUNTIME_API_BASE_URL: '{{ tpl .Values.configEnv.PROXY_RUNTIME_API_BASE_URL . }}'
     ports:
       - name: grpc
         containerPort: 50051

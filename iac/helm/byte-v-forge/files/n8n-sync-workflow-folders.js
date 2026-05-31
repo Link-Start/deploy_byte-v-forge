@@ -12,6 +12,8 @@ try {
 
 const workflowRoot = path.resolve(process.argv[2] || process.env.N8N_WORKFLOW_DIR || '/workflows');
 const tablePrefix = process.env.DB_TABLE_PREFIX || 'n8n_';
+const managedWorkflowIdSQL = "(id like 'gpt-%' or id like 'gopay-%' or id like 'wa-%')";
+const managedFolderRoots = ['gpt', 'gopay-app', 'wa'];
 
 function fail(message) {
   console.error(`[n8n-folder-sync] ${message}`);
@@ -144,7 +146,7 @@ async function deleteRemovedManagedWorkflows(client, desiredWorkflowIds) {
   const stale = await client.query(
     `select id
        from ${table('workflow_entity')}
-      where id like 'gpt-%'
+      where ${managedWorkflowIdSQL}
         and not (id = any($1::text[]))
       order by id`,
     [desiredWorkflowIds],
@@ -162,39 +164,42 @@ async function deleteRemovedManagedWorkflows(client, desiredWorkflowIds) {
 
 async function pruneEmptyManagedFolders(client, projectId) {
   let deleted = 0;
-  for (;;) {
-    const result = await client.query(
-      `with recursive managed as (
-          select id, name, ${quoteColumn('parentFolderId')}
-            from ${table('folder')}
-           where ${quoteColumn('projectId')} = $1
-             and ${quoteColumn('parentFolderId')} is null
-             and name = 'gpt'
-          union all
-          select child.id, child.name, child.${quoteColumn('parentFolderId')}
-            from ${table('folder')} child
-            join managed on child.${quoteColumn('parentFolderId')} = managed.id
-        )
-        delete from ${table('folder')} folder
-         where folder.id in (select id from managed)
-           and not (folder.${quoteColumn('parentFolderId')} is null and folder.name = 'gpt')
-           and not exists (
-             select 1
-               from ${table('folder')} child
-              where child.${quoteColumn('parentFolderId')} = folder.id
-           )
-           and not exists (
-             select 1
-               from ${table('workflow_entity')} workflow
-              where workflow.${quoteColumn('parentFolderId')} = folder.id
-           )`,
-      [projectId],
-    );
-    if (result.rowCount === 0) {
-      return deleted;
+  for (const rootName of managedFolderRoots) {
+    for (;;) {
+      const result = await client.query(
+        `with recursive managed as (
+            select id, name, ${quoteColumn('parentFolderId')}
+              from ${table('folder')}
+             where ${quoteColumn('projectId')} = $1
+               and ${quoteColumn('parentFolderId')} is null
+               and name = $2
+            union all
+            select child.id, child.name, child.${quoteColumn('parentFolderId')}
+              from ${table('folder')} child
+              join managed on child.${quoteColumn('parentFolderId')} = managed.id
+          )
+          delete from ${table('folder')} folder
+           where folder.id in (select id from managed)
+             and not (folder.${quoteColumn('parentFolderId')} is null and folder.name = $2)
+             and not exists (
+               select 1
+                 from ${table('folder')} child
+                where child.${quoteColumn('parentFolderId')} = folder.id
+             )
+             and not exists (
+               select 1
+                 from ${table('workflow_entity')} workflow
+                where workflow.${quoteColumn('parentFolderId')} = folder.id
+             )`,
+        [projectId, rootName],
+      );
+      if (result.rowCount === 0) {
+        break;
+      }
+      deleted += result.rowCount;
     }
-    deleted += result.rowCount;
   }
+  return deleted;
 }
 
 async function syncWorkflowFolders() {
