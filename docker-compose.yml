@@ -23,7 +23,10 @@ x-n8n-environment: &n8n-environment
   N8N_BLOCK_ENV_ACCESS_IN_NODE: "false"
   GPT_ACTION_API_BASE_URL: ${GPT_ACTION_API_BASE_URL:-http://gpt-service:8080/api/gpt/actions}
   GOPAY_ACTION_API_BASE_URL: ${GOPAY_ACTION_API_BASE_URL:-http://gopay-app:8080/api/gopay/actions}
+  GOPAY_API_BASE_URL: ${GOPAY_API_BASE_URL:-http://gopay-app:8080/api/gopay}
   WA_ACTION_API_BASE_URL: ${WA_ACTION_API_BASE_URL:-http://wa-app-service:8080/api/wa/actions}
+  WA_API_BASE_URL: ${WA_API_BASE_URL:-http://wa-app-service:8080/api/wa}
+  SMS_API_BASE_URL: ${SMS_API_BASE_URL:-http://sms-service:8080/api/sms}
   PROXY_RUNTIME_API_BASE_URL: ${PROXY_RUNTIME_API_BASE_URL:-http://proxy-runtime:8080/api/proxy-runtime}
   N8N_INSTANCE_OWNER_MANAGED_BY_ENV: "true"
   N8N_INSTANCE_OWNER_EMAIL: ${N8N_INSTANCE_OWNER_EMAIL:-byte-v-forge@byte-v-forge.local}
@@ -46,7 +49,10 @@ x-n8n-task-runner-environment: &n8n-task-runner-environment
   N8N_BLOCK_ENV_ACCESS_IN_NODE: "false"
   GPT_ACTION_API_BASE_URL: ${GPT_ACTION_API_BASE_URL:-http://gpt-service:8080/api/gpt/actions}
   GOPAY_ACTION_API_BASE_URL: ${GOPAY_ACTION_API_BASE_URL:-http://gopay-app:8080/api/gopay/actions}
+  GOPAY_API_BASE_URL: ${GOPAY_API_BASE_URL:-http://gopay-app:8080/api/gopay}
   WA_ACTION_API_BASE_URL: ${WA_ACTION_API_BASE_URL:-http://wa-app-service:8080/api/wa/actions}
+  WA_API_BASE_URL: ${WA_API_BASE_URL:-http://wa-app-service:8080/api/wa}
+  SMS_API_BASE_URL: ${SMS_API_BASE_URL:-http://sms-service:8080/api/sms}
   PROXY_RUNTIME_API_BASE_URL: ${PROXY_RUNTIME_API_BASE_URL:-http://proxy-runtime:8080/api/proxy-runtime}
 
 services:

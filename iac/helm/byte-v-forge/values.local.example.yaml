@@ -18,6 +18,10 @@ configEnv:
   GOPAY_HTTP_LISTEN_ADDR: ":8080"
   GOPAY_DASHBOARD_STATIC_DIR: /app/dashboard/gopay
   GOPAY_ACTION_API_BASE_URL: 'http://{{ include "byte-v-forge.componentFullname" (dict "root" . "component" "gopay-app") }}:8080/api/gopay/actions'
+  GOPAY_API_BASE_URL: 'http://{{ include "byte-v-forge.componentFullname" (dict "root" . "component" "gopay-app") }}:8080/api/gopay'
+  WA_ACTION_API_BASE_URL: 'http://{{ include "byte-v-forge.componentFullname" (dict "root" . "component" "wa-app-service") }}:8080/api/wa/actions'
+  WA_API_BASE_URL: 'http://{{ include "byte-v-forge.componentFullname" (dict "root" . "component" "wa-app-service") }}:8080/api/wa'
+  SMS_API_BASE_URL: 'http://{{ include "byte-v-forge.componentFullname" (dict "root" . "component" "sms-service") }}:8080/api/sms'
   MAILBOX_CLOUDFLARE_MAX_MESSAGES_PER_DOMAIN: "500"
   MAILBOX_OUTLOOK_MAX_MESSAGES_PER_MAILBOX: "100"
 

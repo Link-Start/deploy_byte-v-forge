@@ -30,7 +30,10 @@ configEnv:
   GOPAY_N8N_WEBHOOK_BASE_URL: 'http://{{ include "byte-v-forge.componentFullname" (dict "root" . "component" "n8n-webhook") }}:5678/webhook'
   GPT_ACTION_API_BASE_URL: 'http://{{ include "byte-v-forge.componentFullname" (dict "root" . "component" "gpt-service") }}:8080/api/gpt/actions'
   GOPAY_ACTION_API_BASE_URL: 'http://{{ include "byte-v-forge.componentFullname" (dict "root" . "component" "gopay-app") }}:8080/api/gopay/actions'
+  GOPAY_API_BASE_URL: 'http://{{ include "byte-v-forge.componentFullname" (dict "root" . "component" "gopay-app") }}:8080/api/gopay'
   WA_ACTION_API_BASE_URL: 'http://{{ include "byte-v-forge.componentFullname" (dict "root" . "component" "wa-app-service") }}:8080/api/wa/actions'
+  WA_API_BASE_URL: 'http://{{ include "byte-v-forge.componentFullname" (dict "root" . "component" "wa-app-service") }}:8080/api/wa'
+  SMS_API_BASE_URL: 'http://{{ include "byte-v-forge.componentFullname" (dict "root" . "component" "sms-service") }}:8080/api/sms'
   PROXY_RUNTIME_API_BASE_URL: 'http://{{ include "byte-v-forge.componentFullname" (dict "root" . "component" "proxy-runtime") }}:8080/api/proxy-runtime'
   MAILBOX_WEBHOOK_HTTP_ADDR: ":8082"
   MAILBOX_DASHBOARD_HTTP_ADDR: ":8080"
@@ -382,7 +385,10 @@ workloads:
       N8N_INSTANCE_OWNER_LAST_NAME: Forge
       GPT_ACTION_API_BASE_URL: '{{ tpl .Values.configEnv.GPT_ACTION_API_BASE_URL . }}'
       GOPAY_ACTION_API_BASE_URL: '{{ tpl .Values.configEnv.GOPAY_ACTION_API_BASE_URL . }}'
+      GOPAY_API_BASE_URL: '{{ tpl .Values.configEnv.GOPAY_API_BASE_URL . }}'
       WA_ACTION_API_BASE_URL: '{{ tpl .Values.configEnv.WA_ACTION_API_BASE_URL . }}'
+      WA_API_BASE_URL: '{{ tpl .Values.configEnv.WA_API_BASE_URL . }}'
+      SMS_API_BASE_URL: '{{ tpl .Values.configEnv.SMS_API_BASE_URL . }}'
       PROXY_RUNTIME_API_BASE_URL: '{{ tpl .Values.configEnv.PROXY_RUNTIME_API_BASE_URL . }}'
     secretEnv:
       - name: DB_POSTGRESDB_PASSWORD
@@ -441,7 +447,10 @@ workloads:
       N8N_BLOCK_ENV_ACCESS_IN_NODE: "false"
       GPT_ACTION_API_BASE_URL: '{{ tpl .Values.configEnv.GPT_ACTION_API_BASE_URL . }}'
       GOPAY_ACTION_API_BASE_URL: '{{ tpl .Values.configEnv.GOPAY_ACTION_API_BASE_URL . }}'
+      GOPAY_API_BASE_URL: '{{ tpl .Values.configEnv.GOPAY_API_BASE_URL . }}'
       WA_ACTION_API_BASE_URL: '{{ tpl .Values.configEnv.WA_ACTION_API_BASE_URL . }}'
+      WA_API_BASE_URL: '{{ tpl .Values.configEnv.WA_API_BASE_URL . }}'
+      SMS_API_BASE_URL: '{{ tpl .Values.configEnv.SMS_API_BASE_URL . }}'
       PROXY_RUNTIME_API_BASE_URL: '{{ tpl .Values.configEnv.PROXY_RUNTIME_API_BASE_URL . }}'
     secretEnv:
       - name: DB_POSTGRESDB_PASSWORD
@@ -481,8 +490,14 @@ workloads:
             value: '{{ tpl .Values.configEnv.GPT_ACTION_API_BASE_URL . }}'
           - name: GOPAY_ACTION_API_BASE_URL
             value: '{{ tpl .Values.configEnv.GOPAY_ACTION_API_BASE_URL . }}'
+          - name: GOPAY_API_BASE_URL
+            value: '{{ tpl .Values.configEnv.GOPAY_API_BASE_URL . }}'
           - name: WA_ACTION_API_BASE_URL
             value: '{{ tpl .Values.configEnv.WA_ACTION_API_BASE_URL . }}'
+          - name: WA_API_BASE_URL
+            value: '{{ tpl .Values.configEnv.WA_API_BASE_URL . }}'
+          - name: SMS_API_BASE_URL
+            value: '{{ tpl .Values.configEnv.SMS_API_BASE_URL . }}'
           - name: PROXY_RUNTIME_API_BASE_URL
             value: '{{ tpl .Values.configEnv.PROXY_RUNTIME_API_BASE_URL . }}'
         ports:
@@ -531,7 +546,10 @@ workloads:
       N8N_BLOCK_ENV_ACCESS_IN_NODE: "false"
       GPT_ACTION_API_BASE_URL: '{{ tpl .Values.configEnv.GPT_ACTION_API_BASE_URL . }}'
       GOPAY_ACTION_API_BASE_URL: '{{ tpl .Values.configEnv.GOPAY_ACTION_API_BASE_URL . }}'
+      GOPAY_API_BASE_URL: '{{ tpl .Values.configEnv.GOPAY_API_BASE_URL . }}'
       WA_ACTION_API_BASE_URL: '{{ tpl .Values.configEnv.WA_ACTION_API_BASE_URL . }}'
+      WA_API_BASE_URL: '{{ tpl .Values.configEnv.WA_API_BASE_URL . }}'
+      SMS_API_BASE_URL: '{{ tpl .Values.configEnv.SMS_API_BASE_URL . }}'
       PROXY_RUNTIME_API_BASE_URL: '{{ tpl .Values.configEnv.PROXY_RUNTIME_API_BASE_URL . }}'
     secretEnv:
       - name: DB_POSTGRESDB_PASSWORD
