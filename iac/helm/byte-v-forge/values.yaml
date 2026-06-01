@@ -166,6 +166,8 @@ n8nWorkflows:
   enabled: true
   import:
     enabled: false
+    full: false
+    workflowFiles: []
   gptProbeAccount:
     id: UuCRf58ufLoDkhC2
     name: GPT Probe Account

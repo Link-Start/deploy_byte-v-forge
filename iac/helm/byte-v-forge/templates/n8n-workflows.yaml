@@ -1,5 +1,6 @@
 {{- if .Values.n8nWorkflows.enabled }}
 {{- $fullname := include "byte-v-forge.fullname" . -}}
+{{- $workflowImportFiles := default (list) .Values.n8nWorkflows.import.workflowFiles -}}
 ---
 apiVersion: v1
 kind: ConfigMap
@@ -104,6 +105,10 @@ spec:
               value: "false"
             - name: N8N_ROLLOUT_DEPLOYMENTS
               value: {{ printf "%s %s %s" (include "byte-v-forge.componentFullname" (dict "root" . "component" "n8n-main")) (include "byte-v-forge.componentFullname" (dict "root" . "component" "n8n-webhook")) (include "byte-v-forge.componentFullname" (dict "root" . "component" "n8n-worker")) | quote }}
+            - name: N8N_WORKFLOW_IMPORT_FULL
+              value: {{ ternary "true" "false" (default false .Values.n8nWorkflows.import.full) | quote }}
+            - name: N8N_WORKFLOW_IMPORT_FILES
+              value: {{ join "\n" $workflowImportFiles | quote }}
             - name: QUEUE_BULL_REDIS_HOST
               value: {{ include "byte-v-forge.componentFullname" (dict "root" . "component" "n8n-redis") | quote }}
             - name: QUEUE_BULL_REDIS_PORT
@@ -124,6 +129,27 @@ spec:
             - |
               workflow_files() {
                 find -L /workflows -path '*/..*' -prune -o -type f -name '*.workflow.json' -print | sort
+              }
+              workflow_files_to_import() {
+                if [ "${N8N_WORKFLOW_IMPORT_FULL:-false}" = "true" ]; then
+                  workflow_files
+                  return
+                fi
+                printf '%s\n' "${N8N_WORKFLOW_IMPORT_FILES:-}" | while IFS= read -r rel; do
+                  [ -n "$rel" ] || continue
+                  case "$rel" in
+                    /*|*..*)
+                      echo "invalid workflow import path: $rel" >&2
+                      exit 1
+                      ;;
+                  esac
+                  file="/workflows/$rel"
+                  if [ ! -f "$file" ]; then
+                    echo "selected workflow file not found: $file" >&2
+                    exit 1
+                  fi
+                  printf '%s\n' "$file"
+                done
               }
               import_workflow() {
                 file="$1"
@@ -149,14 +175,30 @@ spec:
                 fi
                 return "$status"
               }
+              import_selected_workflows() {
+                file_list="$1"
+                while IFS= read -r file; do
+                  import_workflow "$file" || return 1
+                done < "$file_list"
+              }
+              publish_selected_workflows() {
+                file_list="$1"
+                while IFS= read -r file; do
+                  id="$(node -e "console.log(require(process.argv[1]).id)" "$file")"
+                  [ -n "$id" ] && publish_workflow "$id"
+                done < "$file_list"
+              }
               for attempt in $(seq 1 60); do
-                if workflow_files | while read -r file; do
-                  import_workflow "$file"
-                done; then
-                  workflow_files | while read -r file; do
-                    id="$(node -e "console.log(require(process.argv[1]).id)" "$file")"
-                    [ -n "$id" ] && publish_workflow "$id"
-                  done
+                import_file_list="/tmp/n8n-workflow-import-files"
+                workflow_files_to_import > "$import_file_list"
+                import_count="$(wc -l < "$import_file_list" | tr -d ' ')"
+                if [ "$import_count" = "0" ]; then
+                  echo "No workflow imports selected; syncing workflow folders only"
+                else
+                  echo "Importing selected workflows: $import_count"
+                fi
+                if import_selected_workflows "$import_file_list"; then
+                  publish_selected_workflows "$import_file_list"
                   (cd /usr/local/lib/node_modules/n8n && node /opt/byte-v-forge/sync-workflow-folders.js /workflows)
                   node <<'NODE'
               const fs = require('fs');

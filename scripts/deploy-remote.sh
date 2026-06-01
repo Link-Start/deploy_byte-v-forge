@@ -50,9 +50,13 @@ IMPORT_HTTP_PORT=${IMPORT_HTTP_PORT:-31888}
 IMPORT_TIMEOUT_SECONDS=${IMPORT_TIMEOUT_SECONDS:-600}
 REMOTE_TAR=${REMOTE_TAR:-/tmp/byte-v-forge-images-${TAG}.tar}
 N8N_WORKFLOW_CHECKSUM_FILE=/tmp/byte-v-forge-n8n-workflows.sha256
+N8N_WORKFLOW_MANIFEST_FILE=/tmp/byte-v-forge-n8n-workflows.manifest
 N8N_WORKFLOW_IMPORT=${N8N_WORKFLOW_IMPORT:-auto}
 N8N_WORKFLOW_IMPORT_ENABLED=false
+N8N_WORKFLOW_IMPORT_FULL=false
+N8N_WORKFLOW_IMPORT_FILES=
 N8N_WORKFLOW_CHECKSUM=
+N8N_WORKFLOW_MANIFEST=
 
 CAMOUFOX_FETCH_PROXY=${CAMOUFOX_FETCH_PROXY:-http://host.docker.internal:10809}
 BROWSER_AUTOMATION_RUNTIME_IMAGE=${BROWSER_AUTOMATION_RUNTIME_IMAGE:-${IMAGE_PREFIX}/browser-automation-runtime:camoufox-0.4.11-playwright-1.59.0-py3.12-bookworm}
@@ -575,10 +579,96 @@ print(digest.hexdigest())
 PY
 }
 
+n8n_workflow_manifest() {
+  local workflow_dir="$DEPLOY_DIR/iac/helm/byte-v-forge/files/n8n-workflows"
+  python3 - "$workflow_dir" <<'PY'
+import hashlib
+import pathlib
+import sys
+
+root = pathlib.Path(sys.argv[1])
+if not root.exists():
+    raise SystemExit(0)
+
+for path in sorted(p for p in root.rglob("*.workflow.json") if p.is_file()):
+    rel = path.relative_to(root).as_posix()
+    digest = hashlib.sha256(path.read_bytes()).hexdigest()
+    print(f"{digest}\t{rel}")
+PY
+}
+
+n8n_workflow_all_manifest_paths() {
+  CURRENT_MANIFEST="$N8N_WORKFLOW_MANIFEST" python3 - <<'PY'
+import os
+
+for line in os.environ.get("CURRENT_MANIFEST", "").splitlines():
+    if not line.strip():
+        continue
+    _, path = line.split("\t", 1)
+    print(path)
+PY
+}
+
+n8n_workflow_changed_paths() {
+  local previous_manifest=$1
+  PREVIOUS_MANIFEST="$previous_manifest" CURRENT_MANIFEST="$N8N_WORKFLOW_MANIFEST" python3 - <<'PY'
+import os
+
+
+def parse_manifest(value):
+    result = {}
+    for line in value.splitlines():
+        if not line.strip():
+            continue
+        digest, path = line.split("\t", 1)
+        result[path] = digest
+    return result
+
+
+previous = parse_manifest(os.environ.get("PREVIOUS_MANIFEST", ""))
+current = parse_manifest(os.environ.get("CURRENT_MANIFEST", ""))
+for path in sorted(current):
+    if previous.get(path) != current[path]:
+        print(path)
+PY
+}
+
+n8n_workflow_deleted_count() {
+  local previous_manifest=$1
+  PREVIOUS_MANIFEST="$previous_manifest" CURRENT_MANIFEST="$N8N_WORKFLOW_MANIFEST" python3 - <<'PY'
+import os
+
+
+def parse_manifest(value):
+    result = {}
+    for line in value.splitlines():
+        if not line.strip():
+            continue
+        digest, path = line.split("\t", 1)
+        result[path] = digest
+    return result
+
+
+previous = parse_manifest(os.environ.get("PREVIOUS_MANIFEST", ""))
+current = parse_manifest(os.environ.get("CURRENT_MANIFEST", ""))
+print(sum(1 for path in previous if path not in current))
+PY
+}
+
+non_empty_line_count() {
+  python3 - <<'PY'
+import sys
+
+print(sum(1 for line in sys.stdin if line.strip()))
+PY
+}
+
 n8n_workflow_import_required() {
   case "$N8N_WORKFLOW_IMPORT" in
     skip)
       N8N_WORKFLOW_IMPORT_ENABLED=false
+      N8N_WORKFLOW_IMPORT_FULL=false
+      N8N_WORKFLOW_IMPORT_FILES=
       log "n8n workflow import skipped by N8N_WORKFLOW_IMPORT=skip"
       return 1
       ;;
@@ -591,13 +681,38 @@ n8n_workflow_import_required() {
 
   if ! n8n_workflow_service_selected; then
     N8N_WORKFLOW_IMPORT_ENABLED=false
+    N8N_WORKFLOW_IMPORT_FULL=false
+    N8N_WORKFLOW_IMPORT_FILES=
     return 1
   fi
 
   N8N_WORKFLOW_CHECKSUM=$(n8n_workflow_checksum)
+  N8N_WORKFLOW_MANIFEST=$(n8n_workflow_manifest)
   if [[ "$N8N_WORKFLOW_IMPORT" == "force" ]]; then
     N8N_WORKFLOW_IMPORT_ENABLED=true
+    N8N_WORKFLOW_IMPORT_FULL=true
+    N8N_WORKFLOW_IMPORT_FILES=$(n8n_workflow_all_manifest_paths)
     log "n8n workflow import forced"
+    return 0
+  fi
+
+  local previous_manifest changed_count deleted_count
+  previous_manifest=$(remote "cat $(shell_quote "$N8N_WORKFLOW_MANIFEST_FILE") 2>/dev/null || true")
+  previous_manifest=${previous_manifest//$'\r'/}
+  if [[ -n "$previous_manifest" ]]; then
+    N8N_WORKFLOW_IMPORT_FILES=$(n8n_workflow_changed_paths "$previous_manifest")
+    changed_count=$(printf '%s\n' "$N8N_WORKFLOW_IMPORT_FILES" | non_empty_line_count)
+    deleted_count=$(n8n_workflow_deleted_count "$previous_manifest")
+    if [[ "$changed_count" == "0" && "$deleted_count" == "0" ]]; then
+      N8N_WORKFLOW_IMPORT_ENABLED=false
+      N8N_WORKFLOW_IMPORT_FULL=false
+      log "n8n workflows unchanged; skip import"
+      return 1
+    fi
+
+    N8N_WORKFLOW_IMPORT_ENABLED=true
+    N8N_WORKFLOW_IMPORT_FULL=false
+    log "n8n workflows changed; import changed=$changed_count deleted=$deleted_count"
     return 0
   fi
 
@@ -607,25 +722,32 @@ n8n_workflow_import_required() {
   previous=${previous//$'\n'/}
   if [[ -n "$previous" && "$previous" == "$N8N_WORKFLOW_CHECKSUM" ]]; then
     N8N_WORKFLOW_IMPORT_ENABLED=false
+    N8N_WORKFLOW_IMPORT_FULL=false
+    N8N_WORKFLOW_IMPORT_FILES=
     log "n8n workflows unchanged; skip import"
     return 1
   fi
 
   N8N_WORKFLOW_IMPORT_ENABLED=true
+  N8N_WORKFLOW_IMPORT_FULL=true
+  N8N_WORKFLOW_IMPORT_FILES=$(n8n_workflow_all_manifest_paths)
   if [[ -z "$previous" ]]; then
     log "n8n workflows not initialized; enable import"
   else
-    log "n8n workflows changed; enable import"
+    log "n8n workflows changed without manifest; enable full import"
   fi
   return 0
 }
 
-persist_n8n_workflow_checksum() {
-  if [[ "$SKIP_HELM" == "true" || "$N8N_WORKFLOW_IMPORT_ENABLED" != "true" || -z "$N8N_WORKFLOW_CHECKSUM" ]]; then
+persist_n8n_workflow_state() {
+  if [[ "$SKIP_HELM" == "true" || -z "$N8N_WORKFLOW_CHECKSUM" ]]; then
     return
   fi
-  log "persist n8n workflow checksum"
+  log "persist n8n workflow manifest"
   remote "printf '%s\n' $(shell_quote "$N8N_WORKFLOW_CHECKSUM") > $(shell_quote "$N8N_WORKFLOW_CHECKSUM_FILE")"
+  ssh -o ConnectTimeout=5 "$REMOTE_HOST" "cat > $(shell_quote "$N8N_WORKFLOW_MANIFEST_FILE")" <<EOF
+$N8N_WORKFLOW_MANIFEST
+EOF
 }
 
 gpt_private_plugins_enabled() {
@@ -1128,6 +1250,20 @@ write_overlay() {
     else
       printf '    enabled: false\n'
     fi
+    if [[ "$N8N_WORKFLOW_IMPORT_FULL" == "true" ]]; then
+      printf '    full: true\n'
+    else
+      printf '    full: false\n'
+    fi
+    if [[ -n "$N8N_WORKFLOW_IMPORT_FILES" ]]; then
+      printf '    workflowFiles:\n'
+      while IFS= read -r workflow_file; do
+        [[ -n "$workflow_file" ]] || continue
+        printf '      - %s\n' "$workflow_file"
+      done <<<"$N8N_WORKFLOW_IMPORT_FILES"
+    else
+      printf '    workflowFiles: []\n'
+    fi
     printf 'gptPrivate:\n'
     if gpt_private_source_required; then
       printf '  enabled: true\n'
@@ -1350,7 +1486,7 @@ main() {
   validate_chart
   helm_upgrade
   verify_rollout
-  persist_n8n_workflow_checksum
+  persist_n8n_workflow_state
   persist_live_values
   cleanup_remote_tar
   cleanup_deploy_registry
