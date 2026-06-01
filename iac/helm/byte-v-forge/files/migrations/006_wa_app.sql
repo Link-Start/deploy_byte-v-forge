@@ -52,6 +52,14 @@ CREATE TABLE IF NOT EXISTS wa_client_profiles (
   updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
+CREATE TABLE IF NOT EXISTS wa_client_profile_states (
+  client_profile_id TEXT PRIMARY KEY REFERENCES wa_client_profiles(client_profile_id) ON DELETE CASCADE,
+  workspace_id TEXT NOT NULL,
+  state_json JSONB NOT NULL,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
 CREATE TABLE IF NOT EXISTS wa_account_probes (
   account_probe_id TEXT PRIMARY KEY,
   workspace_id TEXT NOT NULL,
@@ -176,6 +184,24 @@ CREATE TABLE IF NOT EXISTS wa_extracted_candidates (
   extracted_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
+CREATE TABLE IF NOT EXISTS wa_otp_messages (
+  otp_message_id TEXT PRIMARY KEY,
+  workspace_id TEXT NOT NULL,
+  wa_account_id TEXT NOT NULL REFERENCES wa_accounts(wa_account_id),
+  client_profile_id TEXT NOT NULL DEFAULT '',
+  registered_identity_id TEXT NOT NULL DEFAULT '',
+  message_id TEXT NOT NULL DEFAULT '',
+  candidate_id TEXT NOT NULL DEFAULT '',
+  source TEXT NOT NULL,
+  source_party TEXT NOT NULL DEFAULT '',
+  otp_value TEXT NOT NULL,
+  otp_redacted TEXT NOT NULL DEFAULT '',
+  otp_secret_ref TEXT NOT NULL DEFAULT '',
+  received_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
 DO $$
 DECLARE
   wa_table_name TEXT;
@@ -221,7 +247,8 @@ BEGIN
       'wa_verification_requests',
       'wa_registrations',
       'wa_login_states',
-      'wa_message_sessions'
+      'wa_message_sessions',
+      'wa_otp_messages'
     ])
   LOOP
     IF EXISTS (
@@ -269,7 +296,8 @@ BEGIN
       'wa_verification_requests',
       'wa_registrations',
       'wa_login_states',
-      'wa_message_sessions'
+      'wa_message_sessions',
+      'wa_otp_messages'
     ])
   LOOP
     IF EXISTS (
