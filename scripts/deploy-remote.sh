@@ -55,6 +55,7 @@ N8N_WORKFLOW_IMPORT=${N8N_WORKFLOW_IMPORT:-auto}
 N8N_WORKFLOW_IMPORT_ENABLED=false
 N8N_WORKFLOW_IMPORT_FULL=false
 N8N_WORKFLOW_IMPORT_FILES=
+N8N_WORKFLOW_STATE_SEED=false
 N8N_WORKFLOW_CHECKSUM=
 N8N_WORKFLOW_MANIFEST=
 
@@ -656,11 +657,7 @@ PY
 }
 
 non_empty_line_count() {
-  python3 - <<'PY'
-import sys
-
-print(sum(1 for line in sys.stdin if line.strip()))
-PY
+  awk 'NF { count++ } END { print count + 0 }'
 }
 
 n8n_workflow_import_required() {
@@ -669,6 +666,7 @@ n8n_workflow_import_required() {
       N8N_WORKFLOW_IMPORT_ENABLED=false
       N8N_WORKFLOW_IMPORT_FULL=false
       N8N_WORKFLOW_IMPORT_FILES=
+      N8N_WORKFLOW_STATE_SEED=false
       log "n8n workflow import skipped by N8N_WORKFLOW_IMPORT=skip"
       return 1
       ;;
@@ -683,6 +681,7 @@ n8n_workflow_import_required() {
     N8N_WORKFLOW_IMPORT_ENABLED=false
     N8N_WORKFLOW_IMPORT_FULL=false
     N8N_WORKFLOW_IMPORT_FILES=
+    N8N_WORKFLOW_STATE_SEED=false
     return 1
   fi
 
@@ -692,6 +691,7 @@ n8n_workflow_import_required() {
     N8N_WORKFLOW_IMPORT_ENABLED=true
     N8N_WORKFLOW_IMPORT_FULL=true
     N8N_WORKFLOW_IMPORT_FILES=$(n8n_workflow_all_manifest_paths)
+    N8N_WORKFLOW_STATE_SEED=false
     log "n8n workflow import forced"
     return 0
   fi
@@ -706,12 +706,14 @@ n8n_workflow_import_required() {
     if [[ "$changed_count" == "0" && "$deleted_count" == "0" ]]; then
       N8N_WORKFLOW_IMPORT_ENABLED=false
       N8N_WORKFLOW_IMPORT_FULL=false
+      N8N_WORKFLOW_STATE_SEED=false
       log "n8n workflows unchanged; skip import"
       return 1
     fi
 
     N8N_WORKFLOW_IMPORT_ENABLED=true
     N8N_WORKFLOW_IMPORT_FULL=false
+    N8N_WORKFLOW_STATE_SEED=false
     log "n8n workflows changed; import changed=$changed_count deleted=$deleted_count"
     return 0
   fi
@@ -724,13 +726,15 @@ n8n_workflow_import_required() {
     N8N_WORKFLOW_IMPORT_ENABLED=false
     N8N_WORKFLOW_IMPORT_FULL=false
     N8N_WORKFLOW_IMPORT_FILES=
-    log "n8n workflows unchanged; skip import"
+    N8N_WORKFLOW_STATE_SEED=true
+    log "n8n workflows unchanged; seed workflow manifest"
     return 1
   fi
 
   N8N_WORKFLOW_IMPORT_ENABLED=true
   N8N_WORKFLOW_IMPORT_FULL=true
   N8N_WORKFLOW_IMPORT_FILES=$(n8n_workflow_all_manifest_paths)
+  N8N_WORKFLOW_STATE_SEED=false
   if [[ -z "$previous" ]]; then
     log "n8n workflows not initialized; enable import"
   else
@@ -741,6 +745,9 @@ n8n_workflow_import_required() {
 
 persist_n8n_workflow_state() {
   if [[ "$SKIP_HELM" == "true" || -z "$N8N_WORKFLOW_CHECKSUM" ]]; then
+    return
+  fi
+  if [[ "$N8N_WORKFLOW_IMPORT_ENABLED" != "true" && "$N8N_WORKFLOW_STATE_SEED" != "true" ]]; then
     return
   fi
   log "persist n8n workflow manifest"
