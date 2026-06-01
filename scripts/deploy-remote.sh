@@ -29,6 +29,7 @@ SOURCE_REVISION=${SOURCE_REVISION:-}
 HELM_TIMEOUT=${HELM_TIMEOUT:-10m}
 HELM_HISTORY_MAX=${HELM_HISTORY_MAX:-0}
 ROLLOUT_TIMEOUT=${ROLLOUT_TIMEOUT:-5m}
+IMAGE_TAGS_RETAIN=${IMAGE_TAGS_RETAIN:-2}
 TRAEFIK_ENABLED=${TRAEFIK_ENABLED:-false}
 TRAEFIK_RELEASE=${TRAEFIK_RELEASE:-byte-v-forge-traefik}
 TRAEFIK_NAMESPACE=${TRAEFIK_NAMESPACE:-traefik}
@@ -49,6 +50,7 @@ IMPORT_HTTP_PORT=${IMPORT_HTTP_PORT:-31888}
 IMPORT_TIMEOUT_SECONDS=${IMPORT_TIMEOUT_SECONDS:-600}
 REMOTE_TAR=${REMOTE_TAR:-/tmp/byte-v-forge-images-${TAG}.tar}
 N8N_WORKFLOW_CHECKSUM_FILE=/tmp/byte-v-forge-n8n-workflows.sha256
+N8N_WORKFLOW_IMPORT=${N8N_WORKFLOW_IMPORT:-auto}
 N8N_WORKFLOW_IMPORT_ENABLED=false
 N8N_WORKFLOW_CHECKSUM=
 
@@ -67,6 +69,7 @@ fi
 DEPLOY_REGISTRY_CONTAINER=${DEPLOY_REGISTRY_CONTAINER:-byte-v-forge-deploy-registry}
 DEPLOY_REGISTRY_PUSH_ADDR=${DEPLOY_REGISTRY_PUSH_ADDR:-127.0.0.1:5050}
 DEPLOY_REGISTRY_PULL_ADDR=${DEPLOY_REGISTRY_PULL_ADDR:-${IMPORT_HOST_IP}:30500}
+CLEANUP_DEPLOY_REGISTRY=${CLEANUP_DEPLOY_REGISTRY:-true}
 SKIP_SYNC=${SKIP_SYNC:-false}
 SKIP_BUILD=${SKIP_BUILD:-false}
 SKIP_IMPORT=${SKIP_IMPORT:-false}
@@ -151,7 +154,7 @@ Options:
 Environment overrides:
   REMOTE_KUBECONFIG, REMOTE_HELM, IMAGE_PREFIX, IMPORT_METHOD, VM_NAME,
   IMPORT_HOST_IP, IMPORT_HTTP_BIND, IMPORT_HTTP_PORT, HELM_TIMEOUT,
-  HELM_HISTORY_MAX, ROLLOUT_TIMEOUT, KEEP_REMOTE_TAR, SOURCE_ROOT, CAMOUFOX_FETCH_PROXY,
+  HELM_HISTORY_MAX, ROLLOUT_TIMEOUT, IMAGE_TAGS_RETAIN, KEEP_REMOTE_TAR, SOURCE_ROOT, CAMOUFOX_FETCH_PROXY,
   VALUES_FILE, BROWSER_AUTOMATION_RUNTIME_IMAGE, REBUILD_BROWSER_AUTOMATION_RUNTIME,
   DEPLOY_REGISTRY_PUSH_ADDR, DEPLOY_REGISTRY_PULL_ADDR, TRAEFIK_ENABLED,
   TRAEFIK_RELEASE, TRAEFIK_NAMESPACE, TRAEFIK_CHART, TRAEFIK_CHART_VERSION,
@@ -397,6 +400,12 @@ parse_args() {
     *) die "DOCKER_BUILD_NO_CACHE must be true or false" ;;
   esac
 
+  case "$IMAGE_TAGS_RETAIN" in
+    ""|*[!0-9]*)
+      die "IMAGE_TAGS_RETAIN must be a non-negative integer"
+      ;;
+  esac
+
   if [[ ${#SERVICES[@]} -eq 0 ]]; then
     usage
     die "service list is required; use all to deploy every workload"
@@ -538,7 +547,7 @@ n8n_workflow_service_selected() {
   local service
   for service in "${SERVICES[@]}"; do
     case "$service" in
-      gpt-service|workflow-runtime|n8n-main|n8n-webhook|n8n-worker)
+      gpt-service|gopay-app|wa-app-service|workflow-runtime|n8n-main|n8n-webhook|n8n-worker)
         return 0
         ;;
     esac
@@ -567,12 +576,31 @@ PY
 }
 
 n8n_workflow_import_required() {
+  case "$N8N_WORKFLOW_IMPORT" in
+    skip)
+      N8N_WORKFLOW_IMPORT_ENABLED=false
+      log "n8n workflow import skipped by N8N_WORKFLOW_IMPORT=skip"
+      return 1
+      ;;
+    auto|force)
+      ;;
+    *)
+      die "N8N_WORKFLOW_IMPORT must be auto, force, or skip"
+      ;;
+  esac
+
   if ! n8n_workflow_service_selected; then
     N8N_WORKFLOW_IMPORT_ENABLED=false
     return 1
   fi
 
   N8N_WORKFLOW_CHECKSUM=$(n8n_workflow_checksum)
+  if [[ "$N8N_WORKFLOW_IMPORT" == "force" ]]; then
+    N8N_WORKFLOW_IMPORT_ENABLED=true
+    log "n8n workflow import forced"
+    return 0
+  fi
+
   local previous
   previous=$(remote "cat $(shell_quote "$N8N_WORKFLOW_CHECKSUM_FILE") 2>/dev/null || true")
   previous=${previous//$'\r'/}
@@ -1242,6 +1270,62 @@ cleanup_remote_tar() {
   remote "rm -f $(shell_quote "$REMOTE_TAR")" || true
 }
 
+cleanup_deploy_registry() {
+  if [[ "$CLEANUP_DEPLOY_REGISTRY" != "true" || "$SKIP_IMPORT" == "true" ]]; then
+    return
+  fi
+  log "cleanup deploy registry container"
+  remote "docker rm -f $(shell_quote "$DEPLOY_REGISTRY_CONTAINER") >/dev/null 2>&1 || true"
+}
+
+prune_remote_image_tags() {
+  if [[ "$IMAGE_TAGS_RETAIN" == "0" || "$SKIP_BUILD" == "true" ]]; then
+    return
+  fi
+
+  local services_csv
+  services_csv=$(catalog_service_names | paste -sd, -)
+  log "prune remote image tags keep=$IMAGE_TAGS_RETAIN"
+  remote "IMAGE_PREFIX=$(shell_quote "$IMAGE_PREFIX") IMAGE_TAGS_RETAIN=$(shell_quote "$IMAGE_TAGS_RETAIN") DEPLOY_SERVICES=$(shell_quote "$services_csv") VM_NAME=$(shell_quote "$VM_NAME") bash -s" <<'REMOTE_SCRIPT'
+set -Eeuo pipefail
+
+keep=${IMAGE_TAGS_RETAIN:-2}
+IFS=, read -r -a services <<<"${DEPLOY_SERVICES:-}"
+
+prune_host_docker_repo() {
+  local repo=$1
+  mapfile -t tags < <(docker image ls "$repo" --format '{{.Tag}}' | awk 'NF && $1 != "<none>"' | sort -r)
+  ((${#tags[@]} > keep)) || return 0
+
+  local keep_set=" "
+  local tag
+  mapfile -t deploy_tags < <(printf '%s\n' "${tags[@]}" | awk '/^deploy-[0-9]{14}$/ {print}' | sort -r)
+  if ((${#deploy_tags[@]} > 0)); then
+    for tag in "${deploy_tags[@]:0:keep}"; do
+      keep_set+="$tag "
+    done
+  else
+    for tag in "${tags[@]:0:keep}"; do
+      keep_set+="$tag "
+    done
+  fi
+
+  for tag in "${tags[@]}"; do
+    case "$keep_set" in
+      *" $tag "*) continue ;;
+    esac
+    docker image rm "$repo:$tag" >/dev/null 2>&1 || true
+  done
+}
+
+for service in "${services[@]}"; do
+  [[ -n "$service" ]] || continue
+  prune_host_docker_repo "${IMAGE_PREFIX%/}/$service"
+done
+
+REMOTE_SCRIPT
+}
+
 main() {
   parse_args "$@"
   init_deploy_metadata
@@ -1269,6 +1353,8 @@ main() {
   persist_n8n_workflow_checksum
   persist_live_values
   cleanup_remote_tar
+  cleanup_deploy_registry
+  prune_remote_image_tags
   log "done"
 }
 

@@ -33,7 +33,7 @@
       "enabled": true,
       "navKey": "gopay",
       "navLabel": "GoPay",
-      "navIcon": "gopay-app",
+      "navIcon": "wallet-cards",
       "navSection": "main",
       "navOrder": 16,
       "requiredServices": [
@@ -53,7 +53,7 @@
       "enabled": true,
       "navKey": "wa",
       "navLabel": "WA 管理",
-      "navIcon": "wa-app",
+      "navIcon": "message-circle",
       "navSection": "main",
       "navOrder": 18,
       "requiredServices": [
