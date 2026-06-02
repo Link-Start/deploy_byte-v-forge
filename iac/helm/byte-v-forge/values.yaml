@@ -32,6 +32,7 @@ configEnv:
   WA_API_BASE_URL: 'http://{{ include "byte-v-forge.componentFullname" (dict "root" . "component" "wa-app-service") }}:8080/api/wa'
   SMS_API_BASE_URL: 'http://{{ include "byte-v-forge.componentFullname" (dict "root" . "component" "sms-service") }}:8080/api/sms'
   PROXY_RUNTIME_API_BASE_URL: 'http://{{ include "byte-v-forge.componentFullname" (dict "root" . "component" "proxy-runtime") }}:8080/api/proxy-runtime'
+  WORKFLOW_RUNTIME_API_BASE_URL: 'http://{{ include "byte-v-forge.componentFullname" (dict "root" . "component" "workflow-runtime") }}:8080/api/workflow-runtime'
   MAILBOX_WEBHOOK_HTTP_ADDR: ":8082"
   MAILBOX_DASHBOARD_HTTP_ADDR: ":8080"
   GPT_DASHBOARD_HTTP_ADDR: ":8080"
@@ -192,6 +193,7 @@ secrets:
     GOTO_SSO_CLIENT_SECRET: ""
     PROXY_RUNTIME_STATIC_CHAIN: ""
     PROXY_RUNTIME_ENCRYPTION_KEY: byte_v_forge_proxy_runtime_encryption_key_change_me_32
+    WORKFLOW_RUNTIME_STEP_UPDATE_TOKEN: byte_v_forge_workflow_runtime_step_update_token_change_me_32
 
 postgres:
   enabled: true
@@ -389,6 +391,7 @@ workloads:
       WA_API_BASE_URL: '{{ tpl .Values.configEnv.WA_API_BASE_URL . }}'
       SMS_API_BASE_URL: '{{ tpl .Values.configEnv.SMS_API_BASE_URL . }}'
       PROXY_RUNTIME_API_BASE_URL: '{{ tpl .Values.configEnv.PROXY_RUNTIME_API_BASE_URL . }}'
+      WORKFLOW_RUNTIME_API_BASE_URL: '{{ tpl .Values.configEnv.WORKFLOW_RUNTIME_API_BASE_URL . }}'
     secretEnv:
       - name: DB_POSTGRESDB_PASSWORD
         key: N8N_POSTGRES_PASSWORD
@@ -398,6 +401,8 @@ workloads:
         key: N8N_RUNNERS_AUTH_TOKEN
       - name: N8N_INSTANCE_OWNER_PASSWORD_HASH
         key: N8N_INSTANCE_OWNER_PASSWORD_HASH
+      - name: WORKFLOW_RUNTIME_STEP_UPDATE_TOKEN
+        key: WORKFLOW_RUNTIME_STEP_UPDATE_TOKEN
     ports:
       - name: http
         containerPort: 5678
@@ -451,6 +456,7 @@ workloads:
       WA_API_BASE_URL: '{{ tpl .Values.configEnv.WA_API_BASE_URL . }}'
       SMS_API_BASE_URL: '{{ tpl .Values.configEnv.SMS_API_BASE_URL . }}'
       PROXY_RUNTIME_API_BASE_URL: '{{ tpl .Values.configEnv.PROXY_RUNTIME_API_BASE_URL . }}'
+      WORKFLOW_RUNTIME_API_BASE_URL: '{{ tpl .Values.configEnv.WORKFLOW_RUNTIME_API_BASE_URL . }}'
     secretEnv:
       - name: DB_POSTGRESDB_PASSWORD
         key: N8N_POSTGRES_PASSWORD
@@ -458,6 +464,8 @@ workloads:
         key: N8N_ENCRYPTION_KEY
       - name: N8N_RUNNERS_AUTH_TOKEN
         key: N8N_RUNNERS_AUTH_TOKEN
+      - name: WORKFLOW_RUNTIME_STEP_UPDATE_TOKEN
+        key: WORKFLOW_RUNTIME_STEP_UPDATE_TOKEN
     ports:
       - name: http
         containerPort: 5678
@@ -499,6 +507,13 @@ workloads:
             value: '{{ tpl .Values.configEnv.SMS_API_BASE_URL . }}'
           - name: PROXY_RUNTIME_API_BASE_URL
             value: '{{ tpl .Values.configEnv.PROXY_RUNTIME_API_BASE_URL . }}'
+          - name: WORKFLOW_RUNTIME_API_BASE_URL
+            value: '{{ tpl .Values.configEnv.WORKFLOW_RUNTIME_API_BASE_URL . }}'
+          - name: WORKFLOW_RUNTIME_STEP_UPDATE_TOKEN
+            valueFrom:
+              secretKeyRef:
+                name: '{{ include "byte-v-forge.appSecretName" . }}'
+                key: WORKFLOW_RUNTIME_STEP_UPDATE_TOKEN
         ports:
           - name: runner-health
             containerPort: 5680
@@ -550,11 +565,14 @@ workloads:
       WA_API_BASE_URL: '{{ tpl .Values.configEnv.WA_API_BASE_URL . }}'
       SMS_API_BASE_URL: '{{ tpl .Values.configEnv.SMS_API_BASE_URL . }}'
       PROXY_RUNTIME_API_BASE_URL: '{{ tpl .Values.configEnv.PROXY_RUNTIME_API_BASE_URL . }}'
+      WORKFLOW_RUNTIME_API_BASE_URL: '{{ tpl .Values.configEnv.WORKFLOW_RUNTIME_API_BASE_URL . }}'
     secretEnv:
       - name: DB_POSTGRESDB_PASSWORD
         key: N8N_POSTGRES_PASSWORD
       - name: N8N_ENCRYPTION_KEY
         key: N8N_ENCRYPTION_KEY
+      - name: WORKFLOW_RUNTIME_STEP_UPDATE_TOKEN
+        key: WORKFLOW_RUNTIME_STEP_UPDATE_TOKEN
     ports:
       - name: http
         containerPort: 5678
@@ -956,14 +974,18 @@ workloads:
     image:
       repository: byte-v-forge/workflow-runtime
       tag: latest
+    postgresEnv: true
     env:
       WORKFLOW_RUNTIME_HTTP_ADDR: ":8080"
       WORKFLOW_RUNTIME_DASHBOARD_STATIC_DIR: /app/dashboard/workflow-runtime
+      WORKFLOW_RUNTIME_DATABASE_URL: '{{ include "byte-v-forge.pgDsn" . }}'
       N8N_INTERNAL_URL: 'http://{{ include "byte-v-forge.componentFullname" (dict "root" . "component" "n8n-main") }}:5678'
       N8N_PUBLIC_URL: '{{ .Values.configEnv.N8N_PUBLIC_URL }}'
     secretEnv:
       - name: N8N_API_KEY
         key: N8N_API_KEY
+      - name: WORKFLOW_RUNTIME_STEP_UPDATE_TOKEN
+        key: WORKFLOW_RUNTIME_STEP_UPDATE_TOKEN
     ports:
       - name: http
         containerPort: 8080

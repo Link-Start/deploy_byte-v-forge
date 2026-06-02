@@ -19,6 +19,7 @@ configEnv:
   WA_ACTION_API_BASE_URL: 'http://{{ include "byte-v-forge.componentFullname" (dict "root" . "component" "wa-app-service") }}:8080/api/wa/actions'
   WA_API_BASE_URL: 'http://{{ include "byte-v-forge.componentFullname" (dict "root" . "component" "wa-app-service") }}:8080/api/wa'
   SMS_API_BASE_URL: 'http://{{ include "byte-v-forge.componentFullname" (dict "root" . "component" "sms-service") }}:8080/api/sms'
+  WORKFLOW_RUNTIME_API_BASE_URL: 'http://{{ include "byte-v-forge.componentFullname" (dict "root" . "component" "workflow-runtime") }}:8080/api/workflow-runtime'
   MAILBOX_CLOUDFLARE_MAX_MESSAGES_PER_DOMAIN: "500"
   MAILBOX_OUTLOOK_MAX_MESSAGES_PER_MAILBOX: "100"
 
@@ -88,3 +89,4 @@ secrets:
     GOTO_SSO_CLIENT_SECRET: ""
     PROXY_RUNTIME_STATIC_CHAIN: ""
     PROXY_RUNTIME_ENCRYPTION_KEY: change-me-at-least-32-characters
+    WORKFLOW_RUNTIME_STEP_UPDATE_TOKEN: change-me-at-least-32-characters

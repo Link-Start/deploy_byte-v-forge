@@ -21,7 +21,7 @@ iac/
 - `dashboardRoutes`：WebUI、各 dashboard remote/API、n8n editor/webhook 和 mailbox webhook 的 Traefik `IngressRoute` 声明；Kubernetes 不再渲染标准 `Ingress`。
 - `traefikStatus`：WebUI 读取 Traefik API 和内部状态路由的配置；服务发现/状态不再使用手写探测清单。
 - `workloads.n8n-main`、`workloads.n8n-worker`、`workloads.n8n-webhook`、`workloads.n8n-postgres`、`workloads.n8n-redis`：n8n queue mode；独立 Postgres 持久化，独立 Redis 承载队列；workflow 编排使用 n8n editor。
-- `workloads.workflow-runtime`：Workflow 原生 dashboard remote 和 `/api/workflow-runtime/*` API；对接 n8n public API，n8n editor 不内嵌到业务前端。
+- `workloads.workflow-runtime`：Workflow 原生 dashboard remote 和 `/api/workflow-runtime/*` API；对接 n8n public API，使用平台 Postgres 持久化 run/step 投影；n8n editor 不内嵌到业务前端。
 - `workloads.platform-redis`：业务短生命周期 cache/relay/临时 secret、GoPay app runtime state，以及 mailbox 近期验证码热读和分布式抓取锁；与 `n8n-redis` 隔离，不作为领域状态真源。
 - `workloads.platform-nats`：NATS JetStream 平台事件总线，承载跨服务持久事件、mailbox 公共邮件事件、mailbox 注册/OAuth、入站邮件 poll/fetch、SMS activation 轮询/取消、GPT OTP 投影消费和异步工作唤醒；`PLATFORM_EVENT_STREAM_*` 配置事件流名称、subject 和保留时间；业务数据库仍是状态真源。
 - `workloads.cloudflare-tunnel`：Cloudflare Tunnel 连接器；公网 webhook 入口使用 `CLOUDFLARE_TUNNEL_TOKEN` 连接到 Cloudflare。
