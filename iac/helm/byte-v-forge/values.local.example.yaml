@@ -3,9 +3,6 @@ global:
   imagePullPolicy: IfNotPresent
   imagePullSecrets: []
 
-gptPrivate:
-  enabled: false
-
 configEnv:
   PLATFORM_NATS_URL: 'nats://{{ include "byte-v-forge.componentFullname" (dict "root" . "component" "platform-nats") }}:4222'
   PLATFORM_EVENT_STREAM_NAME: BYTE_V_FORGE_EVENTS

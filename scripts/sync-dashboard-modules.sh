@@ -4,16 +4,16 @@ set -Eeuo pipefail
 SCRIPT_DIR=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)
 DEPLOY_DIR=$(cd -- "$SCRIPT_DIR/.." && pwd)
 SOURCE_ROOT=${SOURCE_ROOT:-$(cd -- "$DEPLOY_DIR/.." && pwd)}
-FRONTEND_MODULES_CONFIG=${FRONTEND_MODULES_CONFIG:-$DEPLOY_DIR/frontend-modules.json}
+DASHBOARD_CATALOG_CONFIG=${DASHBOARD_CATALOG_CONFIG:-$DEPLOY_DIR/dashboard-catalog.json}
 TARGET_FILE=${TARGET_FILE:-$SOURCE_ROOT/webui/src/dashboard/generated-module-registry.ts}
 DECLARATION_FILE=${DECLARATION_FILE:-$SOURCE_ROOT/webui/src/dashboard/remote-modules.d.ts}
 
-if [[ ! -f "$FRONTEND_MODULES_CONFIG" ]]; then
-  printf '[sync-dashboard-modules] frontend module config not found: %s\n' "$FRONTEND_MODULES_CONFIG" >&2
+if [[ ! -f "$DASHBOARD_CATALOG_CONFIG" ]]; then
+  printf '[sync-dashboard-modules] dashboard catalog not found: %s\n' "$DASHBOARD_CATALOG_CONFIG" >&2
   exit 1
 fi
 
-python3 - "$FRONTEND_MODULES_CONFIG" "$TARGET_FILE" "$DECLARATION_FILE" <<'PY'
+python3 - "$DASHBOARD_CATALOG_CONFIG" "$TARGET_FILE" "$DECLARATION_FILE" <<'PY'
 import json
 import os
 import re
@@ -22,10 +22,19 @@ import sys
 config_path, target_file, declaration_file = sys.argv[1:4]
 
 with open(config_path, "r", encoding="utf-8") as handle:
-    modules = (json.load(handle).get("modules") or [])
+    catalog = json.load(handle)
+
+modules = (catalog.get("modules") or [])
+service_catalog = {
+    str(value).strip()
+    for value in (catalog.get("services") or [])
+    if str(value).strip()
+}
 
 if not modules:
-    raise SystemExit(f"frontend module config has no modules: {config_path}")
+    raise SystemExit(f"dashboard catalog has no modules: {config_path}")
+if not service_catalog:
+    raise SystemExit(f"dashboard catalog has no services: {config_path}")
 
 seen_remotes: set[str] = set()
 imports: list[dict[str, str]] = []
@@ -54,8 +63,12 @@ for index, module in enumerate(modules):
     nav_section = str(module.get("navSection") or "main").strip().lower()
     nav_order = int(module.get("navOrder") or index)
     required_services = module.get("requiredServices") or ([module.get("service")] if module.get("service") else [])
+    required_services = [str(value).strip() for value in required_services if str(value).strip()]
     if nav_section not in section_names:
         raise SystemExit(f"invalid navSection for {module_id}: {nav_section}")
+    missing_services = [value for value in required_services if value not in service_catalog]
+    if missing_services:
+        raise SystemExit(f"module {module_id} references services outside dashboard catalog: {missing_services}")
     seen_remotes.add(remote_name)
     specifier = f"{remote_name}/{exposed[2:]}"
     safe = re.sub(r"[^0-9A-Za-z_$]", "_", remote_name)
@@ -72,7 +85,7 @@ for index, module in enumerate(modules):
         "nav_icon": nav_icon,
         "nav_section": section_names[nav_section],
         "nav_order": nav_order,
-        "required_services": [str(value).strip() for value in required_services if str(value).strip()],
+        "required_services": required_services,
     })
 
 os.makedirs(os.path.dirname(target_file), exist_ok=True)

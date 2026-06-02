@@ -1,4 +1,20 @@
 {
+  "services": [
+    "webui",
+    "traefik",
+    "browser-automation",
+    "proxy-runtime-protocol",
+    "proxy-runtime",
+    "workflow-runtime",
+    "gpt-service",
+    "gpt-checkout",
+    "gopay-app",
+    "sms-service",
+    "wa-app-service",
+    "mailbox",
+    "n8n-main",
+    "n8n-webhook"
+  ],
   "modules": [
     {
       "id": "gpt",

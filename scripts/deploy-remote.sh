@@ -62,15 +62,6 @@ N8N_WORKFLOW_MANIFEST=
 CAMOUFOX_FETCH_PROXY=${CAMOUFOX_FETCH_PROXY:-http://host.docker.internal:10809}
 BROWSER_AUTOMATION_RUNTIME_IMAGE=${BROWSER_AUTOMATION_RUNTIME_IMAGE:-${IMAGE_PREFIX}/browser-automation-runtime:camoufox-0.4.11-playwright-1.59.0-py3.12-bookworm}
 REBUILD_BROWSER_AUTOMATION_RUNTIME=${REBUILD_BROWSER_AUTOMATION_RUNTIME:-false}
-if [[ -d "$SOURCE_ROOT/gpt-private/plugins" && -d "$SOURCE_ROOT/gpt-private/gopay" && -d "$SOURCE_ROOT/gopay-app" ]]; then
-  GPT_PRIVATE_AVAILABLE=true
-  GPT_ORCHESTRATOR_BUILD_TAGS=private_plugins
-  GPT_SERVICE_BUILD_TARGET=gpt_service_private_runtime
-else
-  GPT_PRIVATE_AVAILABLE=false
-  GPT_ORCHESTRATOR_BUILD_TAGS=
-  GPT_SERVICE_BUILD_TARGET=gpt_service_runtime
-fi
 DEPLOY_REGISTRY_CONTAINER=${DEPLOY_REGISTRY_CONTAINER:-byte-v-forge-deploy-registry}
 DEPLOY_REGISTRY_PUSH_ADDR=${DEPLOY_REGISTRY_PUSH_ADDR:-127.0.0.1:5050}
 DEPLOY_REGISTRY_PULL_ADDR=${DEPLOY_REGISTRY_PULL_ADDR:-${IMPORT_HOST_IP}:30500}
@@ -90,6 +81,7 @@ SERVICE_CATALOG=(
   "workflow-runtime|.|workflow-runtime/Dockerfile"
   "webui|.|webui/Dockerfile"
   "gpt-service|.|gpt/gpt-service/Dockerfile"
+  "gpt-checkout|.|gpt-private/gopay/Dockerfile"
   "gopay-app|.|gopay-app/Dockerfile"
   "mailbox|.|mailbox/Dockerfile"
   "sms-service|.|sms/Dockerfile"
@@ -427,6 +419,10 @@ parse_args() {
   for service in "${SERVICES[@]}"; do
     valid_service "$service" || die "unknown service: $service"
   done
+
+  if service_selected "gpt-service" && ! service_selected "gpt-checkout"; then
+    SERVICES+=("gpt-checkout")
+  fi
 }
 
 init_deploy_metadata() {
@@ -470,9 +466,6 @@ preflight() {
     done
     for service in "${SERVICES[@]}"; do
       dockerfile=$(dockerfile_path "$service")
-      if [[ "$service" == "gpt-service" && "$(gpt_service_build_target)" == "gpt_service_private_runtime" ]]; then
-        dockerfile="gpt-private/gpt-service/Dockerfile"
-      fi
       [[ -f "$SOURCE_ROOT/$dockerfile" ]] || die "missing Dockerfile for $service: $SOURCE_ROOT/$dockerfile"
     done
   fi
@@ -757,25 +750,13 @@ $N8N_WORKFLOW_MANIFEST
 EOF
 }
 
-gpt_private_plugins_enabled() {
-  [[ "$GPT_PRIVATE_AVAILABLE" == "true" ]]
-}
-
-gpt_service_build_target() {
-  printf '%s\n' "$GPT_SERVICE_BUILD_TARGET"
-}
-
-gpt_private_source_required() {
-  [[ "$(gpt_service_build_target)" == "gpt_service_private_runtime" ]]
-}
-
 service_source_repos() {
   case "$1" in
     gpt-service)
       printf '%s\n' common-lib gpt mailbox
-      if gpt_private_source_required; then
-        printf '%s\n' gpt-private gopay-app
-      fi
+      ;;
+    gpt-checkout)
+      printf '%s\n' common-lib gpt gpt-private
       ;;
     gopay-app)
       printf '%s\n' common-lib gopay-app
@@ -818,9 +799,6 @@ stage_chart_sources() {
   cp "$SOURCE_ROOT/mailbox/services/mailbox-api/migrations/001_operations_outbox.sql" "$chart_files/migrations/003_mailbox_operations_outbox.sql"
   cp "$SOURCE_ROOT/sms/migrations/001_init.sql" "$chart_files/migrations/004_sms.sql"
   cp "$SOURCE_ROOT/wa-app/migrations/001_init.sql" "$chart_files/migrations/006_wa_app.sql"
-  if gpt_private_source_required && [[ -f "$SOURCE_ROOT/gpt-private/orchestrator/migrations/001_gopay_account_profiles.sql" ]]; then
-    cp "$SOURCE_ROOT/gpt-private/orchestrator/migrations/001_gopay_account_profiles.sql" "$chart_files/migrations/005_gpt_private.sql"
-  fi
   copy_workflow_tree "$SOURCE_ROOT/gpt/workflows/n8n" "$chart_files/n8n-workflows"
   if [ -d "$SOURCE_ROOT/gpt-private/workflows/n8n" ]; then
     copy_workflow_tree "$SOURCE_ROOT/gpt-private/workflows/n8n" "$chart_files/n8n-workflows"
@@ -856,7 +834,7 @@ sync_dashboard_modules() {
     return
   fi
   log "generate dashboard module registry"
-  remote "cd $(shell_quote "$REMOTE_DIR") && SOURCE_ROOT=$(shell_quote "$REMOTE_DIR") FRONTEND_MODULES_CONFIG=$(shell_quote "$REMOTE_DIR/frontend-modules.json") ./scripts/sync-dashboard-modules.sh"
+  remote "cd $(shell_quote "$REMOTE_DIR") && SOURCE_ROOT=$(shell_quote "$REMOTE_DIR") DASHBOARD_CATALOG_CONFIG=$(shell_quote "$REMOTE_DIR/dashboard-catalog.json") ./scripts/sync-dashboard-modules.sh"
 }
 
 ensure_browser_automation_runtime_image() {
@@ -883,9 +861,7 @@ build_image() {
   context=$(docker_context "$service")
   dockerfile=$(dockerfile_path "$service")
   dockerfile_arg=$dockerfile
-  if [[ "$service" == "gpt-service" && "$(gpt_service_build_target)" == "gpt_service_private_runtime" ]]; then
-    dockerfile_arg="gpt-private/gpt-service/Dockerfile"
-  elif [[ "$context" != "." && "$dockerfile" != /* ]]; then
+  if [[ "$context" != "." && "$dockerfile" != /* ]]; then
     dockerfile_arg=$context/$dockerfile
   fi
   image=$(image_ref "$service")
@@ -904,7 +880,7 @@ build_image() {
     ensure_browser_automation_runtime_image
     build_flags="$build_flags --build-arg BROWSER_AUTOMATION_RUNTIME_IMAGE=$(shell_quote "$BROWSER_AUTOMATION_RUNTIME_IMAGE")"
   elif [[ "$service" == "gpt-service" ]]; then
-    build_flags="$build_flags --target $(shell_quote "$(gpt_service_build_target)") --build-arg GPT_ORCHESTRATOR_BUILD_TAGS=$(shell_quote "$GPT_ORCHESTRATOR_BUILD_TAGS")"
+    build_flags="$build_flags --target $(shell_quote "gpt_service_runtime")"
   fi
   log "build $image"
   remote "cd $(shell_quote "$REMOTE_DIR") && DOCKER_BUILDKIT=$(shell_quote "$DOCKER_BUILDKIT") BUILDKIT_PROGRESS=$(shell_quote "$BUILDKIT_PROGRESS") docker build $build_flags -t $(shell_quote "$image") -f $(shell_quote "$dockerfile_arg") $(shell_quote "$context")"
@@ -1270,12 +1246,6 @@ write_overlay() {
       done <<<"$N8N_WORKFLOW_IMPORT_FILES"
     else
       printf '    workflowFiles: []\n'
-    fi
-    printf 'gptPrivate:\n'
-    if gpt_private_source_required; then
-      printf '  enabled: true\n'
-    else
-      printf '  enabled: false\n'
     fi
     printf 'workloads:\n'
     local service

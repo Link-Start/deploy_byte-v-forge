@@ -15,9 +15,6 @@ serviceAccount:
 podAnnotations: {}
 podLabels: {}
 
-gptPrivate:
-  enabled: false
-
 configEnv:
   BROWSER_AUTOMATION_APPLY_MIGRATIONS: "true"
   BROWSER_AUTOMATION_RUNTIME: camoufox
@@ -771,7 +768,7 @@ workloads:
       GPT_DASHBOARD_HTTP_ADDR: '{{ .Values.configEnv.GPT_DASHBOARD_HTTP_ADDR }}'
       GPT_N8N_WEBHOOK_BASE_URL: '{{ tpl .Values.configEnv.GPT_N8N_WEBHOOK_BASE_URL . }}'
       GPT_ACCOUNT_INTERNAL_ADDR: "127.0.0.1:50052"
-      GPT_PAYMENT_INTERNAL_ADDR: "127.0.0.1:50054"
+      GPT_PAYMENT_INTERNAL_ADDR: '{{ include "byte-v-forge.componentFullname" (dict "root" . "component" "gpt-checkout") }}:50054'
       GPT_PRIVATE_APP_INTERNAL_ADDR: '{{ include "byte-v-forge.componentFullname" (dict "root" . "component" "gopay-app") }}:50051'
       GPT_SERVICE_PG_DSN: '{{ include "byte-v-forge.pgDsn" . }}'
       GPT_RUNTIME_SECRET_REDIS_URL: '{{ tpl .Values.configEnv.PLATFORM_REDIS_URL . }}'
@@ -783,29 +780,6 @@ workloads:
       BROWSER_AUTOMATION_ADDR: '{{ include "byte-v-forge.componentFullname" (dict "root" . "component" "browser-automation") }}:50051'
       SMS_ADDR: '{{ include "byte-v-forge.componentFullname" (dict "root" . "component" "sms-service") }}:50051'
       PROXY_RUNTIME_HTTP_ADDR: 'http://{{ include "byte-v-forge.componentFullname" (dict "root" . "component" "proxy-runtime") }}:8080'
-    extraContainers:
-      - name: gopay-payment
-        image: '{{ include "byte-v-forge.image" (dict "root" . "image" (index .Values.workloads "gpt-service").image) }}'
-        imagePullPolicy: '{{ .Values.global.imagePullPolicy }}'
-        command: ["/app/gopay-sidecar/gopay-payment.sh"]
-        env:
-          - name: GOPAY_PAYMENT_LISTEN_ADDR
-            value: ":50054"
-          - name: GOPAY_CHECKOUT_PROFILE_JSON
-            valueFrom:
-              secretKeyRef:
-                name: '{{ include "byte-v-forge.appSecretName" . }}'
-                key: GOPAY_CHECKOUT_PROFILE_JSON
-          - name: GOPAY_PAYMENT_PROFILE_JSON
-            valueFrom:
-              secretKeyRef:
-                name: '{{ include "byte-v-forge.appSecretName" . }}'
-                key: GOPAY_PAYMENT_PROFILE_JSON
-        ports:
-          - name: payment-grpc
-            containerPort: 50054
-            protocol: TCP
-        resources: {}
     ports:
       - name: grpc
         containerPort: 50051
@@ -823,15 +797,38 @@ workloads:
         - name: account-grpc
           port: 50052
           targetPort: account-grpc
-        - name: payment-grpc
-          port: 50054
-          targetPort: payment-grpc
         - name: http-dashboard
           port: 8080
           targetPort: http-dashboard
     probes:
       grpc:
         port: 50051
+    resources: {}
+
+  gpt-checkout:
+    enabled: true
+    replicas: 1
+    image:
+      repository: byte-v-forge/gpt-checkout
+      tag: latest
+    env:
+      GOPAY_PAYMENT_LISTEN_ADDR: ":50054"
+    secretEnv:
+      - name: GOPAY_CHECKOUT_PROFILE_JSON
+      - name: GOPAY_PAYMENT_PROFILE_JSON
+    ports:
+      - name: grpc
+        containerPort: 50054
+    service:
+      enabled: true
+      type: ClusterIP
+      ports:
+        - name: grpc
+          port: 50054
+          targetPort: grpc
+    probes:
+      grpc:
+        port: 50054
     resources: {}
 
   gopay-app:
