@@ -831,6 +831,7 @@ workloads:
       tag: latest
     env:
       GOPAY_PAYMENT_LISTEN_ADDR: ":50054"
+      GOPAY_ALLOW_NONZERO_EXPECTED_AMOUNT: "true"
     secretEnv:
       - name: GOPAY_CHECKOUT_PROFILE_JSON
       - name: GOPAY_PAYMENT_PROFILE_JSON
