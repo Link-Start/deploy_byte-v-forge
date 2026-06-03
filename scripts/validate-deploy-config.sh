@@ -47,6 +47,21 @@ python3 scripts/stage-chart-sources.py \
   --chart-files-dir iac/helm/byte-v-forge/files \
   --validate-only
 
+log 'dashboard catalog'
+python3 scripts/validate-dashboard-catalog.py \
+  --catalog dashboard-catalog.json \
+  --source-root "$SOURCE_ROOT"
+
+log 'event topology'
+python3 scripts/validate-event-topology.py \
+  --manifest event-topology.json \
+  --source-root "$SOURCE_ROOT"
+
+log 'runtime adapter catalog'
+python3 scripts/validate-runtime-adapters.py \
+  --catalog runtime-adapter-catalog.json \
+  --source-root "$SOURCE_ROOT"
+
 if [[ -n "$RELEASE_MANIFEST" ]]; then
   release_manifest_args=(
     --manifest "$RELEASE_MANIFEST"

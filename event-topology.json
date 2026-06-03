@@ -1,0 +1,162 @@
+{
+  "version": 1,
+  "channels": [
+    {
+      "id": "platform-events",
+      "transport": "nats_jetstream",
+      "stream_name": "BYTE_V_FORGE_EVENTS",
+      "subjects": ["byte.v.forge.>"],
+      "delivery_semantics": "at_least_once",
+      "ack_policy": "explicit",
+      "idempotency_required": true,
+      "retention_days": 7,
+      "dead_letter_subject": "byte.v.forge.platform.dead_letter"
+    },
+    {
+      "id": "hotstream",
+      "transport": "nats_core",
+      "subjects": ["byte.v.forge.hotstream.>"],
+      "delivery_semantics": "best_effort",
+      "ack_policy": "none",
+      "idempotency_required": false,
+      "retention_days": 0
+    }
+  ],
+  "outboxes": [
+    {
+      "owner_repo": "sms",
+      "table": "sms_event_outbox",
+      "source_file": "sms/internal/app/order_records.go",
+      "worker_file": "sms/cmd/sms-service/main.go",
+      "channel": "platform-events",
+      "publishes": [
+        "sms.order.acquire_requested",
+        "sms.order.poll_requested",
+        "sms.order.cancel_requested",
+        "sms.order.acquired",
+        "sms.code.received",
+        "sms.order.status_changed"
+      ]
+    },
+    {
+      "owner_repo": "mailbox",
+      "table": "mailbox_event_outbox",
+      "source_file": "mailbox/services/mailbox-api/mailbox_platform_events.go",
+      "worker_file": "mailbox/services/mailbox-api/mailbox_platform_event_outbox.go",
+      "channel": "platform-events",
+      "publishes": [
+        "mailbox.email.received",
+        "mailbox.email.signal.received"
+      ]
+    },
+    {
+      "owner_repo": "gpt",
+      "table": "orchestrator_job_outbox",
+      "source_file": "gpt/orchestrator/internal/jobqueue/outbox.go",
+      "worker_file": "gpt/orchestrator/internal/app/run.go",
+      "channel": "platform-events",
+      "publishes": [
+        "mailbox.email.poll_requested"
+      ]
+    }
+  ],
+  "consumers": [
+    {
+      "owner_repo": "sms",
+      "durable": "sms-order-acquire",
+      "channel": "platform-events",
+      "source_file": "sms/cmd/sms-service/main.go",
+      "catalog_file": "sms/internal/eventcatalog/catalog.go",
+      "events": ["sms.order.acquire_requested"]
+    },
+    {
+      "owner_repo": "sms",
+      "durable": "sms-order-poll",
+      "channel": "platform-events",
+      "source_file": "sms/cmd/sms-service/main.go",
+      "catalog_file": "sms/internal/eventcatalog/catalog.go",
+      "events": ["sms.order.poll_requested"]
+    },
+    {
+      "owner_repo": "sms",
+      "durable": "sms-order-cancel",
+      "channel": "platform-events",
+      "source_file": "sms/cmd/sms-service/main.go",
+      "catalog_file": "sms/internal/eventcatalog/catalog.go",
+      "events": ["sms.order.cancel_requested"]
+    },
+    {
+      "owner_repo": "mailbox",
+      "durable": "mailbox-email-poll",
+      "channel": "platform-events",
+      "source_file": "mailbox/services/mailbox-api/main.go",
+      "events": ["mailbox.email.poll_requested"]
+    },
+    {
+      "owner_repo": "mailbox",
+      "durable": "mailbox-inbox-fetch",
+      "channel": "platform-events",
+      "source_file": "mailbox/services/mailbox-api/main.go",
+      "catalog_file": "mailbox/services/mailbox-api/mailbox_event_catalog.go",
+      "events": ["mailbox.inbox.fetch_requested"]
+    },
+    {
+      "owner_repo": "mailbox",
+      "durable": "mailbox-registration",
+      "channel": "platform-events",
+      "source_file": "mailbox/services/mailbox-api/main.go",
+      "catalog_file": "mailbox/services/mailbox-api/mailbox_event_catalog.go",
+      "events": ["mailbox.registration.requested"]
+    },
+    {
+      "owner_repo": "mailbox",
+      "durable": "mailbox-oauth",
+      "channel": "platform-events",
+      "source_file": "mailbox/services/mailbox-api/main.go",
+      "catalog_file": "mailbox/services/mailbox-api/mailbox_event_catalog.go",
+      "events": ["mailbox.oauth.requested"]
+    },
+    {
+      "owner_repo": "gpt",
+      "durable": "gpt-otp-sms-code",
+      "channel": "platform-events",
+      "source_file": "gpt/orchestrator/internal/otpprojection/consumer.go",
+      "events": ["sms.code.received"]
+    },
+    {
+      "owner_repo": "gpt",
+      "durable": "gpt-otp-mailbox-email",
+      "channel": "platform-events",
+      "source_file": "gpt/orchestrator/internal/otpprojection/consumer.go",
+      "events": ["mailbox.email.received"]
+    },
+    {
+      "owner_repo": "gpt",
+      "durable": "gpt-otp-wa-otp",
+      "channel": "platform-events",
+      "source_file": "gpt/orchestrator/internal/otpprojection/consumer.go",
+      "events": ["wa.otp.received"]
+    },
+    {
+      "owner_repo": "gpt",
+      "durable": "gpt-email-otp-resume",
+      "channel": "platform-events",
+      "source_file": "gpt/orchestrator/internal/api/n8n_otp_resume_worker.go",
+      "events": ["mailbox.email.received"]
+    },
+    {
+      "owner_repo": "gpt",
+      "durable": "gpt-sms-otp-resume",
+      "channel": "platform-events",
+      "source_file": "gpt/orchestrator/internal/api/n8n_otp_resume_worker.go",
+      "events": ["sms.code.received"]
+    },
+    {
+      "owner_repo": "gpt",
+      "durable": "gpt-wa-otp-resume",
+      "channel": "platform-events",
+      "source_file": "gpt/orchestrator/internal/api/n8n_otp_resume_worker.go",
+      "events": ["wa.otp.received"]
+    }
+  ]
+}

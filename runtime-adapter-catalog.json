@@ -1,0 +1,167 @@
+{
+  "version": 1,
+  "domains": [
+    {
+      "id": "sms-provider",
+      "owner_repo": "sms",
+      "status": "spi",
+      "spi": "sms/internal/providers/spi/registry.go",
+      "registry": "sms/cmd/sms-service/provider_registry.go",
+      "adapters": [
+        {
+          "id": "5sim",
+          "source": "sms/internal/providers/fivesim/plugin.go",
+          "symbol": "Plugin",
+          "registry_ref": "fivesim.Plugin()"
+        },
+        {
+          "id": "herosms",
+          "source": "sms/internal/providers/herosms/plugin.go",
+          "symbol": "Plugin",
+          "registry_ref": "herosms.Plugin()"
+        },
+        {
+          "id": "smsbower",
+          "source": "sms/internal/providers/smsbower/plugin.go",
+          "symbol": "Plugin",
+          "registry_ref": "smsbower.Plugin()"
+        }
+      ]
+    },
+    {
+      "id": "browser-runtime",
+      "owner_repo": "browser-automation",
+      "status": "spi",
+      "spi": "browser-automation/internal/adapters/runtime/runtimeplugin/registry.go",
+      "registry": "browser-automation/cmd/browser-automation-service/runtime_plugin.go",
+      "adapters": [
+        {
+          "id": "camoufox",
+          "source": "browser-automation/internal/adapters/runtime/camoufox/plugin.go",
+          "symbol": "Plugin",
+          "registry_ref": "camoufox.Plugin("
+        }
+      ]
+    },
+    {
+      "id": "proxy-account-provider",
+      "owner_repo": "proxy-runtime",
+      "status": "spi",
+      "spi": "proxy-runtime/internal/provider/accountproxy/plugin.go",
+      "registry": "proxy-runtime/internal/provider/accountproxy/registry.go",
+      "adapters": [
+        {
+          "id": "1024proxy",
+          "source": "proxy-runtime/internal/provider/accountproxy/ten24.go",
+          "symbol": "Ten24Plugin",
+          "registry_ref": "Ten24Plugin()"
+        },
+        {
+          "id": "b2proxy",
+          "source": "proxy-runtime/internal/provider/accountproxy/b2proxy.go",
+          "symbol": "B2ProxyPlugin",
+          "registry_ref": "B2ProxyPlugin()"
+        },
+        {
+          "id": "cliproxy",
+          "source": "proxy-runtime/internal/provider/accountproxy/cliproxy.go",
+          "symbol": "CliproxyPlugin",
+          "registry_ref": "CliproxyPlugin()"
+        }
+      ]
+    },
+    {
+      "id": "proxy-ip-fraud-provider",
+      "owner_repo": "proxy-runtime",
+      "status": "spi",
+      "spi": "proxy-runtime/internal/ipfraud/types.go",
+      "registry": "proxy-runtime/internal/ipfraud/registry.go",
+      "adapters": [
+        {
+          "id": "ipqualityscore",
+          "source": "proxy-runtime/internal/ipfraud/ipqualityscore.go",
+          "symbol": "ipQualityScorePlugin",
+          "registry_ref": "ipQualityScorePlugin{}"
+        },
+        {
+          "id": "ipapi",
+          "source": "proxy-runtime/internal/ipfraud/ipapi.go",
+          "symbol": "ipapiPlugin",
+          "registry_ref": "ipapiPlugin{}"
+        },
+        {
+          "id": "ipinfo",
+          "source": "proxy-runtime/internal/ipfraud/ipinfo.go",
+          "symbol": "ipinfoPlugin",
+          "registry_ref": "ipinfoPlugin{}"
+        },
+        {
+          "id": "abuseipdb",
+          "source": "proxy-runtime/internal/ipfraud/abuseipdb.go",
+          "symbol": "abuseIPDBPlugin",
+          "registry_ref": "abuseIPDBPlugin{}"
+        },
+        {
+          "id": "ip2location",
+          "source": "proxy-runtime/internal/ipfraud/ip2location.go",
+          "symbol": "ip2LocationPlugin",
+          "registry_ref": "ip2LocationPlugin{}"
+        },
+        {
+          "id": "ip-api-com",
+          "source": "proxy-runtime/internal/ipfraud/ipapi_com.go",
+          "symbol": "ipAPIComPlugin",
+          "registry_ref": "ipAPIComPlugin{}"
+        }
+      ]
+    },
+    {
+      "id": "proxy-egress-provider",
+      "owner_repo": "proxy-runtime",
+      "status": "spi",
+      "spi": "proxy-runtime/internal/provider/registry/registry.go",
+      "registry": "proxy-runtime/internal/provider/registry/registry.go",
+      "adapters": [
+        {
+          "id": "none",
+          "source": "proxy-runtime/internal/provider/provider.go",
+          "symbol": "Empty",
+          "registry_ref": "config.ProviderNone"
+        },
+        {
+          "id": "static",
+          "source": "proxy-runtime/internal/provider/static.go",
+          "symbol": "NewStatic",
+          "registry_ref": "config.ProviderStatic"
+        },
+        {
+          "id": "1024proxy",
+          "source": "proxy-runtime/internal/provider/ten24/client.go",
+          "symbol": "New",
+          "registry_ref": "config.ProviderTen24"
+        }
+      ]
+    },
+    {
+      "id": "mailbox-provider",
+      "owner_repo": "mailbox",
+      "status": "spi",
+      "spi": "mailbox/services/mailbox-api/internal/mailboxprovider/plugin.go",
+      "registry": "mailbox/services/mailbox-api/mailbox_provider_catalog.go",
+      "adapters": [
+        {
+          "id": "outlook",
+          "source": "mailbox/services/mailbox-api/mailbox_provider_outlook.go",
+          "symbol": "outlookMailboxProvider",
+          "registry_ref": "outlookMailboxProvider()"
+        },
+        {
+          "id": "cloudflare",
+          "source": "mailbox/services/mailbox-api/mailbox_provider_cloudflare.go",
+          "symbol": "cloudflareMailboxProvider",
+          "registry_ref": "cloudflareMailboxProvider()"
+        }
+      ]
+    }
+  ]
+}
