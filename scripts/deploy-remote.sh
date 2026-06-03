@@ -26,6 +26,8 @@ BUILDKIT_PROGRESS=${BUILDKIT_PROGRESS:-plain}
 DOCKER_BUILD_PULL=${DOCKER_BUILD_PULL:-false}
 DOCKER_BUILD_NO_CACHE=${DOCKER_BUILD_NO_CACHE:-false}
 SOURCE_REVISION=${SOURCE_REVISION:-}
+RELEASE_MANIFEST=${RELEASE_MANIFEST:-}
+ALLOW_DIRTY_SOURCE=${ALLOW_DIRTY_SOURCE:-false}
 HELM_TIMEOUT=${HELM_TIMEOUT:-10m}
 HELM_HISTORY_MAX=${HELM_HISTORY_MAX:-0}
 ROLLOUT_TIMEOUT=${ROLLOUT_TIMEOUT:-5m}
@@ -156,7 +158,8 @@ Environment overrides:
   DEPLOY_REGISTRY_PUSH_ADDR, DEPLOY_REGISTRY_PULL_ADDR, TRAEFIK_ENABLED,
   TRAEFIK_RELEASE, TRAEFIK_NAMESPACE, TRAEFIK_CHART, TRAEFIK_CHART_VERSION,
   TRAEFIK_VALUES_FILE, BUILD_PARALLELISM, DOCKER_BUILDKIT, BUILDKIT_PROGRESS,
-  DOCKER_BUILD_PULL, DOCKER_BUILD_NO_CACHE, SOURCE_REVISION. CAMOUFOX_FETCH_PROXY defaults to
+  DOCKER_BUILD_PULL, DOCKER_BUILD_NO_CACHE, SOURCE_REVISION, RELEASE_MANIFEST,
+  ALLOW_DIRTY_SOURCE. CAMOUFOX_FETCH_PROXY defaults to
   http://host.docker.internal:10809 for browser-automation runtime builds.
 EOF
 }
@@ -172,6 +175,20 @@ die() {
 
 shell_quote() {
   printf '%q' "$1"
+}
+
+source_dirty_allowed() {
+  case "$ALLOW_DIRTY_SOURCE" in
+    true|1)
+      return 0
+      ;;
+    false|0)
+      return 1
+      ;;
+    *)
+      die "ALLOW_DIRTY_SOURCE must be true, false, 1, or 0"
+      ;;
+  esac
 }
 
 remote() {
@@ -397,6 +414,11 @@ parse_args() {
     *) die "DOCKER_BUILD_NO_CACHE must be true or false" ;;
   esac
 
+  case "$ALLOW_DIRTY_SOURCE" in
+    true|false|1|0) ;;
+    *) die "ALLOW_DIRTY_SOURCE must be true, false, 1, or 0" ;;
+  esac
+
   case "$IMAGE_TAGS_RETAIN" in
     ""|*[!0-9]*)
       die "IMAGE_TAGS_RETAIN must be a non-negative integer"
@@ -430,6 +452,23 @@ init_deploy_metadata() {
     return
   fi
 
+  if [[ -n "$RELEASE_MANIFEST" ]]; then
+    local selected_csv manifest_args
+    selected_csv=$(selected_source_repos_csv)
+    manifest_args=(
+      --manifest "$RELEASE_MANIFEST"
+      --source-root "$SOURCE_ROOT"
+      --selected-repos "$selected_csv"
+      --print-source-revision
+    )
+    if source_dirty_allowed; then
+      manifest_args+=(--allow-dirty)
+    fi
+    SOURCE_REVISION=$(python3 "$DEPLOY_DIR/scripts/validate-release-manifest.py" "${manifest_args[@]}") || die "release manifest validation failed"
+    SOURCE_REVISION=${SOURCE_REVISION:-unknown}
+    return
+  fi
+
   local repo revision dirty selected
   selected=$(selected_source_repos)
   SOURCE_REVISION=""
@@ -449,6 +488,64 @@ init_deploy_metadata() {
   SOURCE_REVISION=${SOURCE_REVISION:-unknown}
 }
 
+selected_source_repos_csv() {
+  local first repo
+  first=true
+  for repo in $(selected_source_repos); do
+    if [[ "$first" == "true" ]]; then
+      first=false
+    else
+      printf ','
+    fi
+    printf '%s' "$repo"
+  done
+}
+
+validate_source_release_manifest() {
+  if [[ -z "$RELEASE_MANIFEST" ]]; then
+    return
+  fi
+
+  local selected_csv manifest_args
+  selected_csv=$(selected_source_repos_csv)
+  manifest_args=(
+    --manifest "$RELEASE_MANIFEST"
+    --source-root "$SOURCE_ROOT"
+    --selected-repos "$selected_csv"
+  )
+  if source_dirty_allowed; then
+    manifest_args+=(--allow-dirty)
+  fi
+  python3 "$DEPLOY_DIR/scripts/validate-release-manifest.py" "${manifest_args[@]}" >/dev/null
+}
+
+ensure_clean_selected_sources() {
+  if source_dirty_allowed; then
+    log "dirty selected source repos allowed by ALLOW_DIRTY_SOURCE"
+    return
+  fi
+
+  local repo dirty_repos
+  dirty_repos=""
+  for repo in $(selected_source_repos); do
+    [[ -d "$SOURCE_ROOT/$repo/.git" ]] || continue
+    if [[ -n "$(git -C "$SOURCE_ROOT/$repo" status --porcelain 2>/dev/null)" ]]; then
+      dirty_repos="$dirty_repos $repo"
+    fi
+  done
+  if [[ -n "$dirty_repos" ]]; then
+    die "selected source repos have uncommitted changes:$dirty_repos; commit/stash them or set ALLOW_DIRTY_SOURCE=1"
+  fi
+}
+
+validate_chart_source_manifest() {
+  python3 "$DEPLOY_DIR/scripts/stage-chart-sources.py" \
+    --manifest "$DEPLOY_DIR/chart-source-manifest.json" \
+    --source-root "$SOURCE_ROOT" \
+    --chart-files-dir "$DEPLOY_DIR/iac/helm/byte-v-forge/files" \
+    --validate-only >/dev/null
+}
+
 preflight() {
   if [[ "$SKIP_PREFLIGHT" == "true" ]]; then
     log "skip preflight"
@@ -456,7 +553,7 @@ preflight() {
   fi
 
   local command_name repo service dockerfile remote_checks
-  for command_name in ssh rsync git; do
+  for command_name in ssh rsync git python3; do
     command -v "$command_name" >/dev/null 2>&1 || die "$command_name is required locally"
   done
 
@@ -468,6 +565,12 @@ preflight() {
       dockerfile=$(dockerfile_path "$service")
       [[ -f "$SOURCE_ROOT/$dockerfile" ]] || die "missing Dockerfile for $service: $SOURCE_ROOT/$dockerfile"
     done
+    if [[ -n "$RELEASE_MANIFEST" ]]; then
+      validate_source_release_manifest || die "release manifest validation failed"
+    else
+      ensure_clean_selected_sources
+    fi
+    validate_chart_source_manifest || die "chart source manifest validation failed"
   fi
 
   remote_checks="command -v python3 >/dev/null"
@@ -789,36 +892,10 @@ service_source_repos() {
 }
 
 stage_chart_sources() {
-  local chart_files="$DEPLOY_DIR/iac/helm/byte-v-forge/files"
-  mkdir -p "$chart_files/migrations"
-  rm -rf "$chart_files/n8n-workflows"
-  mkdir -p "$chart_files/n8n-workflows"
-  rm -f "$chart_files/migrations/"*.sql
-  cp "$SOURCE_ROOT/gpt/gpt-account/migrations/001_init.sql" "$chart_files/migrations/001_gpt_account.sql"
-  cp "$SOURCE_ROOT/gpt/orchestrator/migrations/001_init.sql" "$chart_files/migrations/002_gpt_orchestrator.sql"
-  cp "$SOURCE_ROOT/mailbox/services/mailbox-api/migrations/001_operations_outbox.sql" "$chart_files/migrations/003_mailbox_operations_outbox.sql"
-  cp "$SOURCE_ROOT/sms/migrations/001_init.sql" "$chart_files/migrations/004_sms.sql"
-  cp "$SOURCE_ROOT/wa-app/migrations/001_init.sql" "$chart_files/migrations/006_wa_app.sql"
-  copy_workflow_tree "$SOURCE_ROOT/gpt/workflows/n8n" "$chart_files/n8n-workflows"
-  if [ -d "$SOURCE_ROOT/gpt-private/workflows/n8n" ]; then
-    copy_workflow_tree "$SOURCE_ROOT/gpt-private/workflows/n8n" "$chart_files/n8n-workflows"
-  fi
-  copy_workflow_tree "$SOURCE_ROOT/gopay-app/workflows/n8n" "$chart_files/n8n-workflows"
-  copy_workflow_tree "$SOURCE_ROOT/wa-app/workflows/n8n" "$chart_files/n8n-workflows"
-}
-
-copy_workflow_tree() {
-  local source_dir=$1
-  local target_dir=$2
-  [ -d "$source_dir" ] || return 0
-  mkdir -p "$target_dir"
-  (
-    cd "$source_dir"
-    find . -type f -name '*.workflow.json' -print | while IFS= read -r file; do
-      mkdir -p "$target_dir/$(dirname "$file")"
-      cp "$file" "$target_dir/$file"
-    done
-  )
+  python3 "$DEPLOY_DIR/scripts/stage-chart-sources.py" \
+    --manifest "$DEPLOY_DIR/chart-source-manifest.json" \
+    --source-root "$SOURCE_ROOT" \
+    --chart-files-dir "$DEPLOY_DIR/iac/helm/byte-v-forge/files"
 }
 
 sync_dashboard_modules() {
@@ -1441,8 +1518,8 @@ REMOTE_SCRIPT
 
 main() {
   parse_args "$@"
-  init_deploy_metadata
   preflight
+  init_deploy_metadata
 
   log "services: ${SERVICES[*]}"
   log "tag: $TAG"

@@ -1,0 +1,52 @@
+{
+  "version": 1,
+  "migrations": [
+    {
+      "owner": "gpt",
+      "source": "gpt/gpt-account/migrations/001_init.sql",
+      "target": "001_gpt_account.sql"
+    },
+    {
+      "owner": "gpt",
+      "source": "gpt/orchestrator/migrations/001_init.sql",
+      "target": "002_gpt_orchestrator.sql"
+    },
+    {
+      "owner": "mailbox",
+      "source": "mailbox/services/mailbox-api/migrations/001_operations_outbox.sql",
+      "target": "003_mailbox_operations_outbox.sql"
+    },
+    {
+      "owner": "sms",
+      "source": "sms/migrations/001_init.sql",
+      "target": "004_sms.sql"
+    },
+    {
+      "owner": "wa-app",
+      "source": "wa-app/migrations/001_init.sql",
+      "target": "006_wa_app.sql"
+    }
+  ],
+  "n8n_workflows": [
+    {
+      "owner": "gpt",
+      "source": "gpt/workflows/n8n",
+      "required": false
+    },
+    {
+      "owner": "gpt-private",
+      "source": "gpt-private/workflows/n8n",
+      "required": false
+    },
+    {
+      "owner": "gopay-app",
+      "source": "gopay-app/workflows/n8n",
+      "required": false
+    },
+    {
+      "owner": "wa-app",
+      "source": "wa-app/workflows/n8n",
+      "required": false
+    }
+  ]
+}

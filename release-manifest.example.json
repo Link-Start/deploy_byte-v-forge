@@ -1,0 +1,52 @@
+{
+  "version": 1,
+  "description": "Copy this file and replace revisions with immutable git SHAs or refs before release validation.",
+  "contract_migration": false,
+  "allow_dirty": false,
+  "repos": [
+    {
+      "name": "common-lib",
+      "revision": "replace-with-git-sha"
+    },
+    {
+      "name": "gpt",
+      "revision": "replace-with-git-sha"
+    },
+    {
+      "name": "gpt-private",
+      "revision": "replace-with-git-sha"
+    },
+    {
+      "name": "gopay-app",
+      "revision": "replace-with-git-sha"
+    },
+    {
+      "name": "mailbox",
+      "revision": "replace-with-git-sha"
+    },
+    {
+      "name": "webui",
+      "revision": "replace-with-git-sha"
+    },
+    {
+      "name": "sms",
+      "revision": "replace-with-git-sha"
+    },
+    {
+      "name": "browser-automation",
+      "revision": "replace-with-git-sha"
+    },
+    {
+      "name": "proxy-runtime",
+      "revision": "replace-with-git-sha"
+    },
+    {
+      "name": "workflow-runtime",
+      "revision": "replace-with-git-sha"
+    },
+    {
+      "name": "wa-app",
+      "revision": "replace-with-git-sha"
+    }
+  ]
+}
