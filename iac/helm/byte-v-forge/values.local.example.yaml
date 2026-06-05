@@ -19,6 +19,8 @@ configEnv:
   WA_ACTION_API_BASE_URL: 'http://{{ include "byte-v-forge.componentFullname" (dict "root" . "component" "wa-app-service") }}:8080/api/wa/actions'
   WA_API_BASE_URL: 'http://{{ include "byte-v-forge.componentFullname" (dict "root" . "component" "wa-app-service") }}:8080/api/wa'
   SMS_API_BASE_URL: 'http://{{ include "byte-v-forge.componentFullname" (dict "root" . "component" "sms-service") }}:8080/api/sms'
+  PROXY_RUNTIME_API_BASE_URL: 'http://{{ include "byte-v-forge.componentFullname" (dict "root" . "component" "proxy-runtime") }}:8080/api/proxy-runtime'
+  WA_LONG_CONNECTION_PROXY_USERNAME: whatsapp
   WORKFLOW_RUNTIME_API_BASE_URL: 'http://{{ include "byte-v-forge.componentFullname" (dict "root" . "component" "workflow-runtime") }}:8080/api/workflow-runtime'
   MAILBOX_CLOUDFLARE_MAX_MESSAGES_PER_DOMAIN: "500"
   MAILBOX_OUTLOOK_MAX_MESSAGES_PER_MAILBOX: "100"
@@ -83,10 +85,9 @@ secrets:
     MAILBOX_CLOUDFLARE_API_TOKEN: change-me
     CLOUDFLARE_TUNNEL_TOKEN: change-me
     GOPAY_CHECKOUT_PROFILE_JSON: >-
-          {"name":"checkout","proxy_url":"socks5://{{ include "byte-v-forge.componentFullname" (dict "root" . "component" "proxy-runtime") }}:10812","tls_profile":"chrome_146","user_agent":"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36","sec_ch_ua":"\"Google Chrome\";v=\"147\", \"Not.A/Brand\";v=\"8\", \"Chromium\";v=\"147\"","sec_ch_ua_platform":"\"Windows\"","locale":"en-US","platform":"Windows","pin_locale":"id"}
+          {"name":"checkout","proxy_url":"socks5://{{ include "byte-v-forge.componentFullname" (dict "root" . "component" "proxy-runtime") }}:10810","tls_profile":"chrome_146","user_agent":"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36","sec_ch_ua":"\"Google Chrome\";v=\"147\", \"Not.A/Brand\";v=\"8\", \"Chromium\";v=\"147\"","sec_ch_ua_platform":"\"Windows\"","locale":"en-US","platform":"Windows","pin_locale":"id"}
     GOPAY_PAYMENT_PROFILE_JSON: >-
           {"name":"payment","proxy_url":"socks5://{{ include "byte-v-forge.componentFullname" (dict "root" . "component" "proxy-runtime") }}:10810","tls_profile":"chrome_146","user_agent":"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36","sec_ch_ua":"\"Google Chrome\";v=\"147\", \"Not.A/Brand\";v=\"8\", \"Chromium\";v=\"147\"","sec_ch_ua_platform":"\"Windows\"","locale":"zh-CN","platform":"Windows","pin_locale":"id"}
     GOTO_SSO_CLIENT_SECRET: ""
-    PROXY_RUNTIME_STATIC_CHAIN: ""
     PROXY_RUNTIME_ENCRYPTION_KEY: change-me-at-least-32-characters
     WORKFLOW_RUNTIME_STEP_UPDATE_TOKEN: change-me-at-least-32-characters

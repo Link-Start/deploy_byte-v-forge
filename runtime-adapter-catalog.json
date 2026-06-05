@@ -48,7 +48,7 @@
       "owner_repo": "proxy-runtime",
       "status": "spi",
       "spi": "proxy-runtime/internal/provider/accountproxy/plugin.go",
-      "registry": "proxy-runtime/internal/provider/accountproxy/registry.go",
+      "registry": "proxy-runtime/internal/provider/registry/registry.go",
       "adapters": [
         {
           "id": "1024proxy",

@@ -132,29 +132,6 @@
       ]
     },
     {
-      "id": "proxy-runtime",
-      "name": "Proxy Runtime",
-      "remoteName": "proxy_runtime",
-      "remoteEntry": "/mf/proxy-runtime/remoteEntry.js",
-      "exposedModule": "./dashboardModule",
-      "apiBase": "/api/proxy-runtime",
-      "service": "proxy-runtime",
-      "ownerRepo": "proxy-runtime",
-      "sourceDir": "proxy-runtime/webui",
-      "sourceManifest": "proxy-runtime/webui/src/dashboard/manifest.tsx",
-      "mfPrefix": "/mf/proxy-runtime",
-      "apiPrefix": "/api/proxy-runtime",
-      "enabled": true,
-      "navKey": "proxy-runtime",
-      "navLabel": "出口网关",
-      "navIcon": "proxy-runtime",
-      "navSection": "infrastructure",
-      "navOrder": 28,
-      "requiredServices": [
-        "proxy-runtime"
-      ]
-    },
-    {
       "id": "workflow-runtime",
       "name": "Workflow Runtime",
       "remoteName": "workflow_runtime",

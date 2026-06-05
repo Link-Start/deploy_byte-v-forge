@@ -32,6 +32,7 @@ configEnv:
   WA_API_BASE_URL: 'http://{{ include "byte-v-forge.componentFullname" (dict "root" . "component" "wa-app-service") }}:8080/api/wa'
   SMS_API_BASE_URL: 'http://{{ include "byte-v-forge.componentFullname" (dict "root" . "component" "sms-service") }}:8080/api/sms'
   PROXY_RUNTIME_API_BASE_URL: 'http://{{ include "byte-v-forge.componentFullname" (dict "root" . "component" "proxy-runtime") }}:8080/api/proxy-runtime'
+  WA_LONG_CONNECTION_PROXY_USERNAME: whatsapp
   WORKFLOW_RUNTIME_API_BASE_URL: 'http://{{ include "byte-v-forge.componentFullname" (dict "root" . "component" "workflow-runtime") }}:8080/api/workflow-runtime'
   MAILBOX_WEBHOOK_HTTP_ADDR: ":8082"
   MAILBOX_DASHBOARD_HTTP_ADDR: ":8080"
@@ -117,7 +118,7 @@ dashboardRoutes:
       portName: http
       prefixes:
         - /api/proxy-runtime
-        - /mf/proxy-runtime
+        - /proxy-runtime
       priority: 100
     - name: workflow-runtime
       component: workflow-runtime
@@ -187,11 +188,10 @@ secrets:
     MAILBOX_CLOUDFLARE_API_TOKEN: ""
     CLOUDFLARE_TUNNEL_TOKEN: ""
     GOPAY_CHECKOUT_PROFILE_JSON: >-
-          {"name":"checkout","proxy_url":"socks5://{{ include "byte-v-forge.componentFullname" (dict "root" . "component" "proxy-runtime") }}:10812","tls_profile":"chrome_146","user_agent":"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36","sec_ch_ua":"\"Google Chrome\";v=\"147\", \"Not.A/Brand\";v=\"8\", \"Chromium\";v=\"147\"","sec_ch_ua_platform":"\"Windows\"","locale":"en-US","platform":"Windows","pin_locale":"id"}
+          {"name":"checkout","proxy_url":"socks5://{{ include "byte-v-forge.componentFullname" (dict "root" . "component" "proxy-runtime") }}:10810","tls_profile":"chrome_146","user_agent":"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36","sec_ch_ua":"\"Google Chrome\";v=\"147\", \"Not.A/Brand\";v=\"8\", \"Chromium\";v=\"147\"","sec_ch_ua_platform":"\"Windows\"","locale":"en-US","platform":"Windows","pin_locale":"id"}
     GOPAY_PAYMENT_PROFILE_JSON: >-
           {"name":"payment","proxy_url":"socks5://{{ include "byte-v-forge.componentFullname" (dict "root" . "component" "proxy-runtime") }}:10810","tls_profile":"chrome_146","user_agent":"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36","sec_ch_ua":"\"Google Chrome\";v=\"147\", \"Not.A/Brand\";v=\"8\", \"Chromium\";v=\"147\"","sec_ch_ua_platform":"\"Windows\"","locale":"zh-CN","platform":"Windows","pin_locale":"id"}
     GOTO_SSO_CLIENT_SECRET: ""
-    PROXY_RUNTIME_STATIC_CHAIN: ""
     PROXY_RUNTIME_ENCRYPTION_KEY: byte_v_forge_proxy_runtime_encryption_key_change_me_32
     WORKFLOW_RUNTIME_STEP_UPDATE_TOKEN: byte_v_forge_workflow_runtime_step_update_token_change_me_32
 
@@ -600,22 +600,12 @@ workloads:
     env:
       PROXY_RUNTIME_ADDR: ":8080"
       PROXY_RUNTIME_POSTGRES_DSN: '{{ include "byte-v-forge.pgDsn" . }}'
-      PROXY_RUNTIME_APPLY_MIGRATIONS: "true"
-      PROXY_RUNTIME_ROUTE_RUNTIME: gost
-      PROXY_RUNTIME_SOURCE_RUNTIME: mihomo
-      PROXY_RUNTIME_MIHOMO_MIXED_ADDR: 127.0.0.1:18900
       PROXY_RUNTIME_MIHOMO_API_ADDR: 127.0.0.1:18901
-      PROXY_RUNTIME_LISTENERS_JSON: '[{"id":"direct-egress","addr":":10810","protocol":"socks5","route":"upstream","upstream":"tcp://192.168.122.1:10810"},{"id":"dynamic-provider","addr":":10811","protocol":"socks5","route":"provider"},{"id":"checkout-egress","addr":":10812","protocol":"socks5","route":"upstream","upstream":"tcp://192.168.122.1:10813"}]'
+      PROXY_RUNTIME_LOCAL_ADDR: ":10810"
       PROXY_RUNTIME_LOCAL_PROTOCOL: socks5
-      PROXY_RUNTIME_SESSION_LISTEN_HOST: 0.0.0.0
       PROXY_RUNTIME_SESSION_ADVERTISED_HOST: '{{ include "byte-v-forge.componentFullname" (dict "root" . "component" "proxy-runtime") }}'
-      PROXY_RUNTIME_SESSION_PORT_START: "19080"
-      PROXY_RUNTIME_SESSION_PORT_END: "19099"
-      PROXY_RUNTIME_DASHBOARD_STATIC_DIR: /app/dashboard/proxy-runtime
       PLATFORM_REDIS_URL: '{{ tpl .Values.configEnv.PLATFORM_REDIS_URL . }}'
     secretEnv:
-      - name: PROXY_RUNTIME_STATIC_CHAIN
-        key: PROXY_RUNTIME_STATIC_CHAIN
       - name: PROXY_RUNTIME_ENCRYPTION_KEY
         key: PROXY_RUNTIME_ENCRYPTION_KEY
     ports:
@@ -623,14 +613,6 @@ workloads:
         containerPort: 8080
       - name: common-socks
         containerPort: 10810
-      - name: dynamic-socks
-        containerPort: 10811
-      - name: checkout-socks
-        containerPort: 10812
-    portRanges:
-      - namePrefix: src-socks
-        containerPortStart: 19080
-        containerPortEnd: 19099
     volumeMounts:
       - name: mihomo-state
         mountPath: /var/lib/byte-v-forge/proxy-runtime/mihomo
@@ -652,16 +634,6 @@ workloads:
         - name: common-socks
           port: 10810
           targetPort: common-socks
-        - name: dynamic-socks
-          port: 10811
-          targetPort: dynamic-socks
-        - name: checkout-socks
-          port: 10812
-          targetPort: checkout-socks
-      portRanges:
-        - namePrefix: src-socks
-          portStart: 19080
-          portEnd: 19099
     probes:
       httpGet:
         path: /healthz
@@ -949,6 +921,7 @@ workloads:
       PLATFORM_REDIS_URL: '{{ tpl .Values.configEnv.PLATFORM_REDIS_URL . }}'
       PLATFORM_NATS_URL: '{{ tpl .Values.configEnv.PLATFORM_NATS_URL . }}'
       PROXY_RUNTIME_API_BASE_URL: '{{ tpl .Values.configEnv.PROXY_RUNTIME_API_BASE_URL . }}'
+      WA_LONG_CONNECTION_PROXY_USERNAME: '{{ .Values.configEnv.WA_LONG_CONNECTION_PROXY_USERNAME }}'
     ports:
       - name: grpc
         containerPort: 50051
