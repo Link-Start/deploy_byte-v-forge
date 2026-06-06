@@ -611,6 +611,7 @@ services:
       - WA_APP_LISTEN_ADDR=:50051
       - WA_APP_DASHBOARD_HTTP_ADDR=:8080
       - WA_APP_DASHBOARD_STATIC_DIR=/app/dashboard/wa
+      - WA_APP_DATA_DIR=${WA_APP_DATA_DIR:-/var/lib/wa-app}
       - WA_N8N_WEBHOOK_BASE_URL=${WA_N8N_WEBHOOK_BASE_URL:-http://n8n-webhook:5678/webhook}
       - WA_APP_PG_DSN=host=postgres user=${POSTGRES_USER:-byte_v_forge} password=${POSTGRES_PASSWORD:-byte_v_forge} dbname=${POSTGRES_DB:-byte_v_forge} port=5432 sslmode=disable
       - PLATFORM_REDIS_URL=${PLATFORM_REDIS_URL:-redis://platform-redis:6379/0}
@@ -638,14 +639,10 @@ services:
       - "traefik.http.services.wa-app-service.loadbalancer.server.port=50051"
       - "traefik.http.services.wa-app-service.loadbalancer.server.scheme=h2c"
       - "traefik.http.services.wa-app-service.loadbalancer.healthcheck.mode=grpc"
-      - "traefik.http.routers.wa-api.rule=PathPrefix(`/api/wa`)"
-      - "traefik.http.routers.wa-api.entrypoints=web"
-      - "traefik.http.routers.wa-api.priority=100"
-      - "traefik.http.routers.wa-api.service=wa-app-dashboard"
-      - "traefik.http.routers.wa-mf.rule=PathPrefix(`/mf/wa`)"
-      - "traefik.http.routers.wa-mf.entrypoints=web"
-      - "traefik.http.routers.wa-mf.priority=100"
-      - "traefik.http.routers.wa-mf.service=wa-app-dashboard"
+      - "traefik.http.routers.wa-app.rule=Host(`wa.byte-v-forge.localhost`)"
+      - "traefik.http.routers.wa-app.entrypoints=web"
+      - "traefik.http.routers.wa-app.priority=500"
+      - "traefik.http.routers.wa-app.service=wa-app-dashboard"
       - "traefik.http.services.wa-app-dashboard.loadbalancer.server.port=8080"
       - "traefik.http.services.wa-app-dashboard.loadbalancer.healthcheck.path=/healthz"
     restart: always
