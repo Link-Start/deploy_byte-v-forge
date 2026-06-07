@@ -287,7 +287,7 @@ services:
       dockerfile: proxy-runtime/Dockerfile
     ports:
       - "127.0.0.1:${PROXY_RUNTIME_HTTP_PORT:-8083}:8080"
-      - "${PROXY_RUNTIME_GATEWAY_PORT:-31081}:10810"
+      - "${PROXY_RUNTIME_GATEWAY_PORT:-30081}:10810"
     environment:
       - PROXY_RUNTIME_ADDR=:8080
       - PROXY_RUNTIME_POSTGRES_DSN=host=postgres user=${POSTGRES_USER:-byte_v_forge} password=${POSTGRES_PASSWORD:-byte_v_forge} dbname=${POSTGRES_DB:-byte_v_forge} port=5432 sslmode=disable

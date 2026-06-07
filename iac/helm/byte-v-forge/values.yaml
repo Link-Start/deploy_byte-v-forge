@@ -648,7 +648,7 @@ workloads:
           - name: common-socks
             port: 10810
             targetPort: common-socks
-            nodePort: 31081
+            nodePort: 30081
     probes:
       httpGet:
         path: /healthz
