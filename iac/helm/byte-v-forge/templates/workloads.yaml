@@ -260,5 +260,31 @@ spec:
   selector:
     {{- include "byte-v-forge.selectorLabels" (dict "root" $ "component" $component) | nindent 4 }}
 {{- end }}
+{{- range $service := $workload.extraServices }}
+{{- if $service.enabled }}
+{{- $suffix := required (printf "workloads.%s.extraServices[].nameSuffix is required" $component) $service.nameSuffix }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "byte-v-forge.componentFullname" (dict "root" $ "component" $component) }}-{{ $suffix }}
+  labels:
+    {{- include "byte-v-forge.componentLabels" (dict "root" $ "component" $component) | nindent 4 }}
+spec:
+  type: {{ default "ClusterIP" $service.type }}
+  ports:
+    {{- range $service.ports }}
+    - name: {{ .name }}
+      port: {{ .port }}
+      targetPort: {{ .targetPort }}
+      protocol: {{ default "TCP" .protocol }}
+      {{- if .nodePort }}
+      nodePort: {{ .nodePort }}
+      {{- end }}
+    {{- end }}
+  selector:
+    {{- include "byte-v-forge.selectorLabels" (dict "root" $ "component" $component) | nindent 4 }}
+{{- end }}
+{{- end }}
 {{- end }}
 {{- end }}

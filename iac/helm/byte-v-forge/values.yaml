@@ -33,6 +33,10 @@ configEnv:
   SMS_API_BASE_URL: 'http://{{ include "byte-v-forge.componentFullname" (dict "root" . "component" "sms-service") }}:8080/api/sms'
   PROXY_RUNTIME_API_BASE_URL: 'http://{{ include "byte-v-forge.componentFullname" (dict "root" . "component" "proxy-runtime") }}:8080/api/proxy-runtime'
   WA_LONG_CONNECTION_PROXY_USERNAME: whatsapp
+  WA_NUMBER_PROBE_PROXY_USERNAME: whatsapp-probe
+  WA_REGISTRATION_PROXY_USERNAME: whatsapp-reg
+  WA_ACCOUNT_SETTINGS_PROXY_USERNAME: whatsapp-reg
+  WA_LOGIN_STATE_CHECK_PROXY_USERNAME: whatsapp-reg
   WORKFLOW_RUNTIME_API_BASE_URL: 'http://{{ include "byte-v-forge.componentFullname" (dict "root" . "component" "workflow-runtime") }}:8080/api/workflow-runtime'
   MAILBOX_WEBHOOK_HTTP_ADDR: ":8082"
   MAILBOX_DASHBOARD_HTTP_ADDR: ":8080"
@@ -601,11 +605,12 @@ workloads:
     env:
       PROXY_RUNTIME_ADDR: ":8080"
       PROXY_RUNTIME_POSTGRES_DSN: '{{ include "byte-v-forge.pgDsn" . }}'
+      PROXY_RUNTIME_DATA_DIR: /var/lib/byte-v-forge/proxy-runtime
       PROXY_RUNTIME_MIHOMO_API_ADDR: 127.0.0.1:18901
       PROXY_RUNTIME_LOCAL_ADDR: ":10810"
       PROXY_RUNTIME_LOCAL_PROTOCOL: socks5
       PROXY_RUNTIME_SESSION_ADVERTISED_HOST: '{{ include "byte-v-forge.componentFullname" (dict "root" . "component" "proxy-runtime") }}'
-      PLATFORM_REDIS_URL: '{{ tpl .Values.configEnv.PLATFORM_REDIS_URL . }}'
+      PROXY_RUNTIME_REDIS_URL: '{{ tpl .Values.configEnv.PLATFORM_REDIS_URL . }}'
     secretEnv:
       - name: PROXY_RUNTIME_ENCRYPTION_KEY
         key: PROXY_RUNTIME_ENCRYPTION_KEY
@@ -615,13 +620,13 @@ workloads:
       - name: common-socks
         containerPort: 10810
     volumeMounts:
-      - name: mihomo-state
-        mountPath: /var/lib/byte-v-forge/proxy-runtime/mihomo
+      - name: runtime-state
+        mountPath: /var/lib/byte-v-forge/proxy-runtime
     volumes:
-      - name: mihomo-state
+      - name: runtime-state
         type: persistentVolumeClaim
         create: true
-        claimName: '{{ include "byte-v-forge.componentFullname" (dict "root" . "component" "proxy-runtime") }}-mihomo'
+        claimName: '{{ include "byte-v-forge.componentFullname" (dict "root" . "component" "proxy-runtime") }}-data'
         accessModes:
           - ReadWriteOnce
         size: 1Gi
@@ -635,6 +640,15 @@ workloads:
         - name: common-socks
           port: 10810
           targetPort: common-socks
+    extraServices:
+      - nameSuffix: gateway
+        enabled: true
+        type: NodePort
+        ports:
+          - name: common-socks
+            port: 10810
+            targetPort: common-socks
+            nodePort: 31081
     probes:
       httpGet:
         path: /healthz
@@ -924,6 +938,10 @@ workloads:
       PLATFORM_NATS_URL: '{{ tpl .Values.configEnv.PLATFORM_NATS_URL . }}'
       PROXY_RUNTIME_API_BASE_URL: '{{ tpl .Values.configEnv.PROXY_RUNTIME_API_BASE_URL . }}'
       WA_LONG_CONNECTION_PROXY_USERNAME: '{{ .Values.configEnv.WA_LONG_CONNECTION_PROXY_USERNAME }}'
+      WA_NUMBER_PROBE_PROXY_USERNAME: '{{ .Values.configEnv.WA_NUMBER_PROBE_PROXY_USERNAME }}'
+      WA_REGISTRATION_PROXY_USERNAME: '{{ .Values.configEnv.WA_REGISTRATION_PROXY_USERNAME }}'
+      WA_ACCOUNT_SETTINGS_PROXY_USERNAME: '{{ .Values.configEnv.WA_ACCOUNT_SETTINGS_PROXY_USERNAME }}'
+      WA_LOGIN_STATE_CHECK_PROXY_USERNAME: '{{ .Values.configEnv.WA_LOGIN_STATE_CHECK_PROXY_USERNAME }}'
     ports:
       - name: grpc
         containerPort: 50051

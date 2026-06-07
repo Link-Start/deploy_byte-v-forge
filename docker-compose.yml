@@ -287,20 +287,21 @@ services:
       dockerfile: proxy-runtime/Dockerfile
     ports:
       - "127.0.0.1:${PROXY_RUNTIME_HTTP_PORT:-8083}:8080"
-      - "${PROXY_RUNTIME_COMMON_EGRESS_PORT:-10810}:10810"
+      - "${PROXY_RUNTIME_GATEWAY_PORT:-31081}:10810"
     environment:
       - PROXY_RUNTIME_ADDR=:8080
       - PROXY_RUNTIME_POSTGRES_DSN=host=postgres user=${POSTGRES_USER:-byte_v_forge} password=${POSTGRES_PASSWORD:-byte_v_forge} dbname=${POSTGRES_DB:-byte_v_forge} port=5432 sslmode=disable
+      - PROXY_RUNTIME_DATA_DIR=/var/lib/byte-v-forge/proxy-runtime
       - PROXY_RUNTIME_MIHOMO_API_ADDR=${PROXY_RUNTIME_MIHOMO_API_ADDR:-127.0.0.1:18901}
       - PROXY_RUNTIME_ENCRYPTION_KEY=${PROXY_RUNTIME_ENCRYPTION_KEY:-byte_v_forge_proxy_runtime_encryption_key_change_me_32}
       - PROXY_RUNTIME_LOCAL_ADDR=:10810
       - PROXY_RUNTIME_LOCAL_PROTOCOL=${PROXY_RUNTIME_LOCAL_PROTOCOL:-socks5}
       - PROXY_RUNTIME_SESSION_ADVERTISED_HOST=${PROXY_RUNTIME_SESSION_ADVERTISED_HOST:-proxy-runtime}
-      - PLATFORM_REDIS_URL=${PLATFORM_REDIS_URL:-redis://platform-redis:6379/0}
+      - PROXY_RUNTIME_REDIS_URL=${PROXY_RUNTIME_REDIS_URL:-redis://platform-redis:6379/0}
     extra_hosts:
       - "host.docker.internal:host-gateway"
     volumes:
-      - proxy_runtime_mihomo:/var/lib/byte-v-forge/proxy-runtime/mihomo
+      - proxy_runtime_data:/var/lib/byte-v-forge/proxy-runtime
     depends_on:
       - postgres
       - platform-redis
@@ -617,7 +618,12 @@ services:
       - PLATFORM_REDIS_URL=${PLATFORM_REDIS_URL:-redis://platform-redis:6379/0}
       - PLATFORM_NATS_URL=${PLATFORM_NATS_URL:-nats://platform-nats:4222}
       - PROXY_RUNTIME_API_BASE_URL=${PROXY_RUNTIME_API_BASE_URL:-http://proxy-runtime:8080/api/proxy-runtime}
+      - PROXY_RUNTIME_LOCAL_PROTOCOL=${PROXY_RUNTIME_LOCAL_PROTOCOL:-socks5}
       - WA_LONG_CONNECTION_PROXY_USERNAME=${WA_LONG_CONNECTION_PROXY_USERNAME:-whatsapp}
+      - WA_NUMBER_PROBE_PROXY_USERNAME=${WA_NUMBER_PROBE_PROXY_USERNAME:-whatsapp-probe}
+      - WA_REGISTRATION_PROXY_USERNAME=${WA_REGISTRATION_PROXY_USERNAME:-whatsapp-reg}
+      - WA_ACCOUNT_SETTINGS_PROXY_USERNAME=${WA_ACCOUNT_SETTINGS_PROXY_USERNAME:-whatsapp-reg}
+      - WA_LOGIN_STATE_CHECK_PROXY_USERNAME=${WA_LOGIN_STATE_CHECK_PROXY_USERNAME:-whatsapp-reg}
     depends_on:
       postgres:
         condition: service_started
@@ -702,4 +708,4 @@ volumes:
   n8n_pgdata:
   n8n_data:
   nats_data:
-  proxy_runtime_mihomo:
+  proxy_runtime_data:
