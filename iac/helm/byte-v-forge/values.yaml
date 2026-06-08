@@ -23,7 +23,6 @@ configEnv:
   PLATFORM_REDIS_URL: 'redis://{{ include "byte-v-forge.componentFullname" (dict "root" . "component" "platform-redis") }}:6379/0'
   N8N_PUBLIC_URL: http://n8n.byte-v-forge.192.168.0.126.nip.io:30080
   GPT_N8N_WEBHOOK_BASE_URL: 'http://{{ include "byte-v-forge.componentFullname" (dict "root" . "component" "n8n-webhook") }}:5678/webhook'
-  WA_N8N_WEBHOOK_BASE_URL: 'http://{{ include "byte-v-forge.componentFullname" (dict "root" . "component" "n8n-webhook") }}:5678/webhook'
   GOPAY_N8N_WEBHOOK_BASE_URL: 'http://{{ include "byte-v-forge.componentFullname" (dict "root" . "component" "n8n-webhook") }}:5678/webhook'
   GPT_ACTION_API_BASE_URL: 'http://{{ include "byte-v-forge.componentFullname" (dict "root" . "component" "gpt-service") }}:8080/api/gpt/actions'
   GOPAY_ACTION_API_BASE_URL: 'http://{{ include "byte-v-forge.componentFullname" (dict "root" . "component" "gopay-app") }}:8080/api/gopay/actions'
@@ -31,10 +30,10 @@ configEnv:
   WA_ACTION_API_BASE_URL: 'http://{{ include "byte-v-forge.componentFullname" (dict "root" . "component" "wa-app-service") }}:8080/api/wa/actions'
   WA_API_BASE_URL: 'http://{{ include "byte-v-forge.componentFullname" (dict "root" . "component" "wa-app-service") }}:8080/api/wa'
   SMS_API_BASE_URL: 'http://{{ include "byte-v-forge.componentFullname" (dict "root" . "component" "sms-service") }}:8080/api/sms'
-  SMS_PG_DSN: ""
-  SMS_REDIS_URL: ""
-  SMS_NATS_URL: ""
-  SMS_EVENT_STREAM_NAME: BYTE_V_FORGE_EVENTS
+  SMS_PG_DSN: '{{ include "byte-v-forge.pgDsn" . }}'
+  SMS_REDIS_URL: '{{ tpl .Values.configEnv.PLATFORM_REDIS_URL . }}'
+  SMS_NATS_URL: '{{ tpl .Values.configEnv.PLATFORM_NATS_URL . }}'
+  SMS_EVENT_STREAM_NAME: '{{ .Values.configEnv.PLATFORM_EVENT_STREAM_NAME }}'
   PROXY_RUNTIME_API_BASE_URL: 'http://{{ include "byte-v-forge.componentFullname" (dict "root" . "component" "proxy-runtime") }}:8080/api'
   WA_LONG_CONNECTION_PROXY_USERNAME: whatsapp
   WA_NUMBER_PROBE_PROXY_USERNAME: whatsapp-probe
@@ -48,15 +47,19 @@ configEnv:
   SMS_DASHBOARD_HTTP_ADDR: ":8080"
   WA_APP_DASHBOARD_HTTP_ADDR: ":8080"
   WA_APP_DATA_DIR: /var/lib/wa-app
+  WA_APP_PG_DSN: '{{ include "byte-v-forge.pgDsn" . }}'
+  WA_APP_REDIS_URL: '{{ tpl .Values.configEnv.PLATFORM_REDIS_URL . }}'
+  WA_APP_PROXY_RUNTIME_API_BASE_URL: '{{ tpl .Values.configEnv.PROXY_RUNTIME_API_BASE_URL . }}'
+  WA_APP_PROXY_RUNTIME_LOCAL_PROTOCOL: socks5
   GOPAY_HTTP_LISTEN_ADDR: ":8080"
   GOPAY_DASHBOARD_STATIC_DIR: /app/dashboard/gopay
   MAILBOX_CLOUDFLARE_MAX_MESSAGES_PER_DOMAIN: "500"
   MAILBOX_OUTLOOK_MAX_MESSAGES_PER_MAILBOX: "100"
-  MAILBOX_PG_DSN: ""
-  MAILBOX_COORDINATION_REDIS_URL: ""
-  MAILBOX_RECENT_EMAIL_REDIS_URL: ""
-  MAILBOX_NATS_URL: ""
-  MAILBOX_EVENT_STREAM_NAME: MAILBOX_EVENTS
+  MAILBOX_PG_DSN: '{{ include "byte-v-forge.pgDsn" . }}'
+  MAILBOX_COORDINATION_REDIS_URL: '{{ tpl .Values.configEnv.PLATFORM_REDIS_URL . }}'
+  MAILBOX_RECENT_EMAIL_REDIS_URL: '{{ tpl .Values.configEnv.PLATFORM_REDIS_URL . }}'
+  MAILBOX_NATS_URL: '{{ tpl .Values.configEnv.PLATFORM_NATS_URL . }}'
+  MAILBOX_EVENT_STREAM_NAME: BYTE_V_FORGE_EVENTS
   MAILBOX_BROWSER_AUTOMATION_ADDR: ""
 
 traefikStatus:
@@ -731,6 +734,7 @@ workloads:
     image:
       repository: byte-v-forge/mailbox
       tag: latest
+    postgresEnv: true
     env:
       MAILBOX_LISTEN_ADDR: ":50051"
       MAILBOX_WEBHOOK_HTTP_ADDR: '{{ .Values.configEnv.MAILBOX_WEBHOOK_HTTP_ADDR }}'
@@ -743,10 +747,13 @@ workloads:
       MAILBOX_RECENT_EMAIL_REDIS_URL: '{{ tpl .Values.configEnv.MAILBOX_RECENT_EMAIL_REDIS_URL . }}'
       MAILBOX_NATS_URL: '{{ tpl .Values.configEnv.MAILBOX_NATS_URL . }}'
       MAILBOX_EVENT_STREAM_NAME: '{{ .Values.configEnv.MAILBOX_EVENT_STREAM_NAME }}'
-      MAILBOX_RECENT_EMAIL_CACHE_KEY_PREFIX: mailbox:recent-email
+      PLATFORM_REDIS_URL: '{{ tpl .Values.configEnv.PLATFORM_REDIS_URL . }}'
+      PLATFORM_NATS_URL: '{{ tpl .Values.configEnv.PLATFORM_NATS_URL . }}'
+      PLATFORM_EVENT_STREAM_NAME: '{{ .Values.configEnv.PLATFORM_EVENT_STREAM_NAME }}'
+      MAILBOX_RECENT_EMAIL_CACHE_KEY_PREFIX: byte-v-forge:mailbox:recent-email
       MAILBOX_RECENT_EMAIL_CACHE_TTL_SECONDS: "3600"
       MAILBOX_RECENT_EMAIL_CACHE_MAX_MESSAGES: "20"
-      MAILBOX_INBOX_LOCK_KEY_PREFIX: mailbox:locks
+      MAILBOX_INBOX_LOCK_KEY_PREFIX: byte-v-forge:mailbox:locks
       MAILBOX_INBOX_LOCK_TTL_SECONDS: "600"
       MAILBOX_INBOX_LOCK_RETRY_SECONDS: "1"
       MAILBOX_PG_DSN: '{{ tpl .Values.configEnv.MAILBOX_PG_DSN . }}'
@@ -918,6 +925,7 @@ workloads:
     image:
       repository: byte-v-forge/sms-service
       tag: latest
+    postgresEnv: true
     env:
       SMS_LISTEN_ADDR: ":50051"
       SMS_DASHBOARD_HTTP_ADDR: '{{ .Values.configEnv.SMS_DASHBOARD_HTTP_ADDR }}'
@@ -926,6 +934,9 @@ workloads:
       SMS_REDIS_URL: '{{ tpl .Values.configEnv.SMS_REDIS_URL . }}'
       SMS_NATS_URL: '{{ tpl .Values.configEnv.SMS_NATS_URL . }}'
       SMS_EVENT_STREAM_NAME: '{{ .Values.configEnv.SMS_EVENT_STREAM_NAME }}'
+      PLATFORM_REDIS_URL: '{{ tpl .Values.configEnv.PLATFORM_REDIS_URL . }}'
+      PLATFORM_NATS_URL: '{{ tpl .Values.configEnv.PLATFORM_NATS_URL . }}'
+      PLATFORM_EVENT_STREAM_NAME: '{{ .Values.configEnv.PLATFORM_EVENT_STREAM_NAME }}'
       SMS_PROVIDER_HTTP_PROXY: 'socks5://{{ include "byte-v-forge.componentFullname" (dict "root" . "component" "proxy-runtime") }}:10810'
     ports:
       - name: grpc
@@ -959,16 +970,26 @@ workloads:
       WA_APP_DASHBOARD_HTTP_ADDR: '{{ .Values.configEnv.WA_APP_DASHBOARD_HTTP_ADDR }}'
       WA_APP_DASHBOARD_STATIC_DIR: /app/dashboard/wa
       WA_APP_DATA_DIR: '{{ .Values.configEnv.WA_APP_DATA_DIR }}'
-      WA_N8N_WEBHOOK_BASE_URL: '{{ tpl .Values.configEnv.WA_N8N_WEBHOOK_BASE_URL . }}'
-      WA_APP_PG_DSN: '{{ include "byte-v-forge.pgDsn" . }}'
-      PLATFORM_REDIS_URL: '{{ tpl .Values.configEnv.PLATFORM_REDIS_URL . }}'
-      PLATFORM_NATS_URL: '{{ tpl .Values.configEnv.PLATFORM_NATS_URL . }}'
-      PROXY_RUNTIME_API_BASE_URL: '{{ tpl .Values.configEnv.PROXY_RUNTIME_API_BASE_URL . }}'
+      WA_APP_PG_DSN: '{{ tpl .Values.configEnv.WA_APP_PG_DSN . }}'
+      WA_APP_REDIS_URL: '{{ tpl .Values.configEnv.WA_APP_REDIS_URL . }}'
+      WA_APP_PROXY_RUNTIME_API_BASE_URL: '{{ tpl .Values.configEnv.WA_APP_PROXY_RUNTIME_API_BASE_URL . }}'
+      WA_APP_PROXY_RUNTIME_LOCAL_PROTOCOL: '{{ .Values.configEnv.WA_APP_PROXY_RUNTIME_LOCAL_PROTOCOL }}'
       WA_LONG_CONNECTION_PROXY_USERNAME: '{{ .Values.configEnv.WA_LONG_CONNECTION_PROXY_USERNAME }}'
       WA_NUMBER_PROBE_PROXY_USERNAME: '{{ .Values.configEnv.WA_NUMBER_PROBE_PROXY_USERNAME }}'
       WA_REGISTRATION_PROXY_USERNAME: '{{ .Values.configEnv.WA_REGISTRATION_PROXY_USERNAME }}'
       WA_ACCOUNT_SETTINGS_PROXY_USERNAME: '{{ .Values.configEnv.WA_ACCOUNT_SETTINGS_PROXY_USERNAME }}'
       WA_LOGIN_STATE_CHECK_PROXY_USERNAME: '{{ .Values.configEnv.WA_LOGIN_STATE_CHECK_PROXY_USERNAME }}'
+    volumeMounts:
+      - name: wa-app-data
+        mountPath: /var/lib/wa-app
+    volumes:
+      - name: wa-app-data
+        type: persistentVolumeClaim
+        create: true
+        claimName: '{{ include "byte-v-forge.componentFullname" (dict "root" . "component" "wa-app-service") }}-data'
+        accessModes:
+          - ReadWriteOnce
+        size: 1Gi
     ports:
       - name: grpc
         containerPort: 50051

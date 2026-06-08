@@ -25,6 +25,11 @@ ALTER TABLE mailbox_operations ADD COLUMN IF NOT EXISTS "limit" integer NOT NULL
 ALTER TABLE mailbox_operations ADD COLUMN IF NOT EXISTS claim_owner text NOT NULL DEFAULT '';
 ALTER TABLE mailbox_operations ADD COLUMN IF NOT EXISTS claim_until bigint NOT NULL DEFAULT 0;
 ALTER TABLE mailbox_operations ADD COLUMN IF NOT EXISTS attempt_count integer NOT NULL DEFAULT 0;
+ALTER TABLE mailbox_operations ADD COLUMN IF NOT EXISTS exit_code integer NOT NULL DEFAULT 0;
+ALTER TABLE mailbox_operations ADD COLUMN IF NOT EXISTS mailbox_count integer NOT NULL DEFAULT 0;
+ALTER TABLE mailbox_operations ADD COLUMN IF NOT EXISTS fetched_count integer NOT NULL DEFAULT 0;
+ALTER TABLE mailbox_operations ADD COLUMN IF NOT EXISTS failed_count integer NOT NULL DEFAULT 0;
+ALTER TABLE mailbox_operations ADD COLUMN IF NOT EXISTS message_count integer NOT NULL DEFAULT 0;
 CREATE INDEX IF NOT EXISTS idx_mailbox_operations_action ON mailbox_operations(action);
 CREATE INDEX IF NOT EXISTS idx_mailbox_operations_status ON mailbox_operations(status);
 CREATE INDEX IF NOT EXISTS idx_mailbox_operations_email_address ON mailbox_operations(email_address);

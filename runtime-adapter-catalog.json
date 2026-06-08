@@ -96,28 +96,10 @@
           "registry_ref": "ipapiPlugin{}"
         },
         {
-          "id": "ipinfo",
-          "source": "proxy-runtime/internal/ipfraud/ipinfo.go",
-          "symbol": "ipinfoPlugin",
-          "registry_ref": "ipinfoPlugin{}"
-        },
-        {
           "id": "abuseipdb",
           "source": "proxy-runtime/internal/ipfraud/abuseipdb.go",
           "symbol": "abuseIPDBPlugin",
           "registry_ref": "abuseIPDBPlugin{}"
-        },
-        {
-          "id": "ip2location",
-          "source": "proxy-runtime/internal/ipfraud/ip2location.go",
-          "symbol": "ip2LocationPlugin",
-          "registry_ref": "ip2LocationPlugin{}"
-        },
-        {
-          "id": "ip-api-com",
-          "source": "proxy-runtime/internal/ipfraud/ipapi_com.go",
-          "symbol": "ipAPIComPlugin",
-          "registry_ref": "ipAPIComPlugin{}"
         }
       ]
     },
@@ -133,12 +115,6 @@
           "source": "proxy-runtime/internal/provider/provider.go",
           "symbol": "Empty",
           "registry_ref": "config.ProviderNone"
-        },
-        {
-          "id": "static",
-          "source": "proxy-runtime/internal/provider/static.go",
-          "symbol": "NewStatic",
-          "registry_ref": "config.ProviderStatic"
         },
         {
           "id": "1024proxy",
@@ -159,13 +135,13 @@
           "id": "outlook",
           "source": "mailbox/services/mailbox-api/mailbox_provider_outlook.go",
           "symbol": "outlookMailboxProvider",
-          "registry_ref": "outlookMailboxProvider()"
+          "registry_ref": "outlookMailboxProvider("
         },
         {
           "id": "cloudflare",
           "source": "mailbox/services/mailbox-api/mailbox_provider_cloudflare.go",
           "symbol": "cloudflareMailboxProvider",
-          "registry_ref": "cloudflareMailboxProvider()"
+          "registry_ref": "cloudflareMailboxProvider("
         }
       ]
     }

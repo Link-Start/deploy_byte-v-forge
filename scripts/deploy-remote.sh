@@ -87,7 +87,7 @@ SERVICE_CATALOG=(
   "gopay-app|.|gopay-app/Dockerfile"
   "mailbox|mailbox|Dockerfile"
   "sms-service|.|sms/Dockerfile"
-  "wa-app-service|.|wa-app/Dockerfile"
+  "wa-app-service|wa-app|Dockerfile"
 )
 
 SOURCE_REPOS=(
@@ -660,7 +660,7 @@ n8n_workflow_service_selected() {
   local service
   for service in "${SERVICES[@]}"; do
     case "$service" in
-      gpt-service|gopay-app|wa-app-service|workflow-runtime|n8n-main|n8n-webhook|n8n-worker)
+      gpt-service|gopay-app|workflow-runtime|n8n-main|n8n-webhook|n8n-worker)
         return 0
         ;;
     esac
@@ -877,7 +877,7 @@ service_source_repos() {
       printf '%s\n' common-lib gopay-app
       ;;
     webui)
-      printf '%s\n' common-lib webui gpt mailbox sms wa-app gopay-app workflow-runtime
+      printf '%s\n' common-lib webui gpt mailbox sms gopay-app workflow-runtime
       ;;
     mailbox)
       printf '%s\n' mailbox
@@ -886,7 +886,7 @@ service_source_repos() {
       printf '%s\n' common-lib sms
       ;;
     wa-app-service)
-      printf '%s\n' common-lib wa-app
+      printf '%s\n' wa-app
       ;;
     browser-automation)
       printf '%s\n' browser-automation

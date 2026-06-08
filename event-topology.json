@@ -143,13 +143,6 @@
     },
     {
       "owner_repo": "gpt",
-      "durable": "gpt-otp-wa-otp",
-      "channel": "platform-events",
-      "source_file": "gpt/orchestrator/internal/otpprojection/consumer.go",
-      "events": ["wa.otp.received"]
-    },
-    {
-      "owner_repo": "gpt",
       "durable": "gpt-email-otp-resume",
       "channel": "platform-events",
       "source_file": "gpt/orchestrator/internal/api/n8n_otp_resume_worker.go",
@@ -161,13 +154,6 @@
       "channel": "platform-events",
       "source_file": "gpt/orchestrator/internal/api/n8n_otp_resume_worker.go",
       "events": ["sms.code.received"]
-    },
-    {
-      "owner_repo": "gpt",
-      "durable": "gpt-wa-otp-resume",
-      "channel": "platform-events",
-      "source_file": "gpt/orchestrator/internal/api/n8n_otp_resume_worker.go",
-      "events": ["wa.otp.received"]
     }
   ]
 }

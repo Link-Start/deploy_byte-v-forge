@@ -9,7 +9,6 @@ configEnv:
   PLATFORM_REDIS_URL: 'redis://{{ include "byte-v-forge.componentFullname" (dict "root" . "component" "platform-redis") }}:6379/0'
   N8N_PUBLIC_URL: http://n8n.byte-v-forge.example.internal
   GPT_N8N_WEBHOOK_BASE_URL: 'http://{{ include "byte-v-forge.componentFullname" (dict "root" . "component" "n8n-webhook") }}:5678/webhook'
-  WA_N8N_WEBHOOK_BASE_URL: 'http://{{ include "byte-v-forge.componentFullname" (dict "root" . "component" "n8n-webhook") }}:5678/webhook'
   GOPAY_N8N_WEBHOOK_BASE_URL: 'http://{{ include "byte-v-forge.componentFullname" (dict "root" . "component" "n8n-webhook") }}:5678/webhook'
   GPT_ACTION_API_BASE_URL: 'http://{{ include "byte-v-forge.componentFullname" (dict "root" . "component" "gpt-service") }}:8080/api/gpt/actions'
   GOPAY_HTTP_LISTEN_ADDR: ":8080"
@@ -18,6 +17,10 @@ configEnv:
   GOPAY_API_BASE_URL: 'http://{{ include "byte-v-forge.componentFullname" (dict "root" . "component" "gopay-app") }}:8080/api/gopay'
   WA_ACTION_API_BASE_URL: 'http://{{ include "byte-v-forge.componentFullname" (dict "root" . "component" "wa-app-service") }}:8080/api/wa/actions'
   WA_APP_DATA_DIR: /var/lib/wa-app
+  WA_APP_PG_DSN: '{{ include "byte-v-forge.pgDsn" . }}'
+  WA_APP_REDIS_URL: '{{ tpl .Values.configEnv.PLATFORM_REDIS_URL . }}'
+  WA_APP_PROXY_RUNTIME_API_BASE_URL: '{{ tpl .Values.configEnv.PROXY_RUNTIME_API_BASE_URL . }}'
+  WA_APP_PROXY_RUNTIME_LOCAL_PROTOCOL: socks5
   WA_API_BASE_URL: 'http://{{ include "byte-v-forge.componentFullname" (dict "root" . "component" "wa-app-service") }}:8080/api/wa'
   SMS_API_BASE_URL: 'http://{{ include "byte-v-forge.componentFullname" (dict "root" . "component" "sms-service") }}:8080/api/sms'
   SMS_PG_DSN: '{{ include "byte-v-forge.pgDsn" . }}'
@@ -30,10 +33,10 @@ configEnv:
   MAILBOX_CLOUDFLARE_MAX_MESSAGES_PER_DOMAIN: "500"
   MAILBOX_OUTLOOK_MAX_MESSAGES_PER_MAILBOX: "100"
   MAILBOX_PG_DSN: ""
-  MAILBOX_COORDINATION_REDIS_URL: ""
-  MAILBOX_RECENT_EMAIL_REDIS_URL: ""
-  MAILBOX_NATS_URL: ""
-  MAILBOX_EVENT_STREAM_NAME: MAILBOX_EVENTS
+  MAILBOX_COORDINATION_REDIS_URL: '{{ tpl .Values.configEnv.PLATFORM_REDIS_URL . }}'
+  MAILBOX_RECENT_EMAIL_REDIS_URL: '{{ tpl .Values.configEnv.PLATFORM_REDIS_URL . }}'
+  MAILBOX_NATS_URL: '{{ tpl .Values.configEnv.PLATFORM_NATS_URL . }}'
+  MAILBOX_EVENT_STREAM_NAME: BYTE_V_FORGE_EVENTS
   MAILBOX_BROWSER_AUTOMATION_ADDR: ""
 
 cloudflareEmail:

@@ -12,8 +12,8 @@ try {
 
 const workflowRoot = path.resolve(process.argv[2] || process.env.N8N_WORKFLOW_DIR || '/workflows');
 const tablePrefix = process.env.DB_TABLE_PREFIX || 'n8n_';
-const managedWorkflowIdSQL = "(id like 'gpt-%' or id like 'gopay-%' or id like 'wa-%')";
-const managedFolderRoots = ['gpt', 'gopay-app', 'wa'];
+const managedWorkflowIdSQL = "(id like 'gpt-%' or id like 'gopay-%')";
+const managedFolderRoots = ['gpt', 'gopay-app'];
 
 function fail(message) {
   console.error(`[n8n-folder-sync] ${message}`);

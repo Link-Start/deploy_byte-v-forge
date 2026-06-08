@@ -222,7 +222,6 @@ services:
       - ../gpt/workflows/n8n:/workflow-sources/public:ro
       - ../gpt-private/workflows/n8n:/workflow-sources/private:ro
       - ../gopay-app/workflows/n8n:/workflow-sources/gopay:ro
-      - ../wa-app/workflows/n8n:/workflow-sources/wa:ro
       - ./iac/helm/byte-v-forge/files/n8n-sync-workflow-folders.js:/opt/byte-v-forge/sync-workflow-folders.js:ro
     command:
       - sh
@@ -230,7 +229,7 @@ services:
       - |
         rm -rf /tmp/n8n-workflows
         mkdir -p /tmp/n8n-workflows
-        for source in /workflow-sources/public /workflow-sources/private /workflow-sources/gopay /workflow-sources/wa; do
+        for source in /workflow-sources/public /workflow-sources/private /workflow-sources/gopay; do
           [ -d "$$source" ] && cp -R "$$source"/. /tmp/n8n-workflows/
         done
         workflow_files() {
@@ -378,17 +377,20 @@ services:
       - MAILBOX_CLOUDFLARE_API_TOKEN=${MAILBOX_CLOUDFLARE_API_TOKEN:-}
       - MAILBOX_CLOUDFLARE_MAX_MESSAGES_PER_DOMAIN=${MAILBOX_CLOUDFLARE_MAX_MESSAGES_PER_DOMAIN:-500}
       - MAILBOX_OUTLOOK_MAX_MESSAGES_PER_MAILBOX=${MAILBOX_OUTLOOK_MAX_MESSAGES_PER_MAILBOX:-100}
-      - MAILBOX_COORDINATION_REDIS_URL=${MAILBOX_COORDINATION_REDIS_URL:-}
-      - MAILBOX_RECENT_EMAIL_REDIS_URL=${MAILBOX_RECENT_EMAIL_REDIS_URL:-}
-      - MAILBOX_NATS_URL=${MAILBOX_NATS_URL:-}
-      - MAILBOX_EVENT_STREAM_NAME=${MAILBOX_EVENT_STREAM_NAME:-MAILBOX_EVENTS}
-      - MAILBOX_RECENT_EMAIL_CACHE_KEY_PREFIX=${MAILBOX_RECENT_EMAIL_CACHE_KEY_PREFIX:-mailbox:recent-email}
+      - MAILBOX_COORDINATION_REDIS_URL=${MAILBOX_COORDINATION_REDIS_URL:-redis://platform-redis:6379/0}
+      - MAILBOX_RECENT_EMAIL_REDIS_URL=${MAILBOX_RECENT_EMAIL_REDIS_URL:-redis://platform-redis:6379/0}
+      - MAILBOX_NATS_URL=${MAILBOX_NATS_URL:-nats://platform-nats:4222}
+      - MAILBOX_EVENT_STREAM_NAME=${MAILBOX_EVENT_STREAM_NAME:-BYTE_V_FORGE_EVENTS}
+      - PLATFORM_REDIS_URL=${PLATFORM_REDIS_URL:-redis://platform-redis:6379/0}
+      - PLATFORM_NATS_URL=${PLATFORM_NATS_URL:-nats://platform-nats:4222}
+      - PLATFORM_EVENT_STREAM_NAME=${PLATFORM_EVENT_STREAM_NAME:-BYTE_V_FORGE_EVENTS}
+      - MAILBOX_RECENT_EMAIL_CACHE_KEY_PREFIX=${MAILBOX_RECENT_EMAIL_CACHE_KEY_PREFIX:-byte-v-forge:mailbox:recent-email}
       - MAILBOX_RECENT_EMAIL_CACHE_TTL_SECONDS=${MAILBOX_RECENT_EMAIL_CACHE_TTL_SECONDS:-3600}
       - MAILBOX_RECENT_EMAIL_CACHE_MAX_MESSAGES=${MAILBOX_RECENT_EMAIL_CACHE_MAX_MESSAGES:-20}
-      - MAILBOX_INBOX_LOCK_KEY_PREFIX=${MAILBOX_INBOX_LOCK_KEY_PREFIX:-mailbox:locks}
+      - MAILBOX_INBOX_LOCK_KEY_PREFIX=${MAILBOX_INBOX_LOCK_KEY_PREFIX:-byte-v-forge:mailbox:locks}
       - MAILBOX_INBOX_LOCK_TTL_SECONDS=${MAILBOX_INBOX_LOCK_TTL_SECONDS:-600}
       - MAILBOX_INBOX_LOCK_RETRY_SECONDS=${MAILBOX_INBOX_LOCK_RETRY_SECONDS:-1}
-      - MAILBOX_PG_DSN=${MAILBOX_PG_DSN:-}
+      - MAILBOX_PG_DSN=${MAILBOX_PG_DSN:-host=postgres user=byte_v_forge password=byte_v_forge dbname=byte_v_forge port=5432 sslmode=disable}
       - MAILBOX_BROWSER_AUTOMATION_ADDR=${MAILBOX_BROWSER_AUTOMATION_ADDR:-}
     volumes:
       - ./mailbox/cloudflare-email.compose.json:/etc/mailbox/cloudflare-email/cloudflare-email.json:ro
@@ -557,10 +559,13 @@ services:
       - SMS_LISTEN_ADDR=:50051
       - SMS_DASHBOARD_HTTP_ADDR=:8080
       - SMS_DASHBOARD_STATIC_DIR=/app/dashboard/sms
-      - SMS_PG_DSN=${SMS_PG_DSN:-}
-      - SMS_REDIS_URL=${SMS_REDIS_URL:-}
-      - SMS_NATS_URL=${SMS_NATS_URL:-}
+      - SMS_PG_DSN=${SMS_PG_DSN:-host=postgres user=byte_v_forge password=byte_v_forge dbname=byte_v_forge port=5432 sslmode=disable}
+      - SMS_REDIS_URL=${SMS_REDIS_URL:-redis://platform-redis:6379/0}
+      - SMS_NATS_URL=${SMS_NATS_URL:-nats://platform-nats:4222}
       - SMS_EVENT_STREAM_NAME=${SMS_EVENT_STREAM_NAME:-BYTE_V_FORGE_EVENTS}
+      - PLATFORM_REDIS_URL=${PLATFORM_REDIS_URL:-redis://platform-redis:6379/0}
+      - PLATFORM_NATS_URL=${PLATFORM_NATS_URL:-nats://platform-nats:4222}
+      - PLATFORM_EVENT_STREAM_NAME=${PLATFORM_EVENT_STREAM_NAME:-BYTE_V_FORGE_EVENTS}
       - SMS_PROVIDER_HTTP_PROXY=${SMS_PROVIDER_HTTP_PROXY:-socks5://proxy-runtime:10810}
     extra_hosts:
       - "host.docker.internal:host-gateway"
@@ -586,8 +591,8 @@ services:
 
   wa-app-service:
     build:
-      context: ..
-      dockerfile: wa-app/Dockerfile
+      context: ../wa-app
+      dockerfile: Dockerfile
     ports:
       - "127.0.0.1:${WA_APP_GRPC_PORT:-50091}:50051"
     environment:
@@ -595,30 +600,17 @@ services:
       - WA_APP_DASHBOARD_HTTP_ADDR=:8080
       - WA_APP_DASHBOARD_STATIC_DIR=/app/dashboard/wa
       - WA_APP_DATA_DIR=${WA_APP_DATA_DIR:-/var/lib/wa-app}
-      - WA_N8N_WEBHOOK_BASE_URL=${WA_N8N_WEBHOOK_BASE_URL:-http://n8n-webhook:5678/webhook}
-      - WA_APP_PG_DSN=host=postgres user=${POSTGRES_USER:-byte_v_forge} password=${POSTGRES_PASSWORD:-byte_v_forge} dbname=${POSTGRES_DB:-byte_v_forge} port=5432 sslmode=disable
-      - PLATFORM_REDIS_URL=${PLATFORM_REDIS_URL:-redis://platform-redis:6379/0}
-      - PLATFORM_NATS_URL=${PLATFORM_NATS_URL:-nats://platform-nats:4222}
-      - PROXY_RUNTIME_API_BASE_URL=${PROXY_RUNTIME_API_BASE_URL:-http://proxy-runtime:8080/api}
-      - PROXY_RUNTIME_LOCAL_PROTOCOL=${PROXY_RUNTIME_LOCAL_PROTOCOL:-socks5}
+      - WA_APP_PG_DSN=${WA_APP_PG_DSN:-}
+      - WA_APP_REDIS_URL=${WA_APP_REDIS_URL:-redis://platform-redis:6379/0}
+      - WA_APP_PROXY_RUNTIME_API_BASE_URL=${WA_APP_PROXY_RUNTIME_API_BASE_URL:-http://proxy-runtime:8080/api}
+      - WA_APP_PROXY_RUNTIME_LOCAL_PROTOCOL=${WA_APP_PROXY_RUNTIME_LOCAL_PROTOCOL:-socks5}
       - WA_LONG_CONNECTION_PROXY_USERNAME=${WA_LONG_CONNECTION_PROXY_USERNAME:-whatsapp}
       - WA_NUMBER_PROBE_PROXY_USERNAME=${WA_NUMBER_PROBE_PROXY_USERNAME:-whatsapp-probe}
       - WA_REGISTRATION_PROXY_USERNAME=${WA_REGISTRATION_PROXY_USERNAME:-whatsapp-reg}
       - WA_ACCOUNT_SETTINGS_PROXY_USERNAME=${WA_ACCOUNT_SETTINGS_PROXY_USERNAME:-whatsapp-reg}
       - WA_LOGIN_STATE_CHECK_PROXY_USERNAME=${WA_LOGIN_STATE_CHECK_PROXY_USERNAME:-whatsapp-reg}
-    depends_on:
-      postgres:
-        condition: service_started
-      platform-db-migrations:
-        condition: service_completed_successfully
-      platform-nats:
-        condition: service_started
-      platform-nats-init:
-        condition: service_completed_successfully
-      platform-redis:
-        condition: service_started
-      n8n-webhook:
-        condition: service_started
+    volumes:
+      - wa_app_data:/var/lib/wa-app
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.wa-app-service-status.rule=Host(`wa-app-service.byte-v-forge.internal`)"
@@ -691,3 +683,4 @@ volumes:
   n8n_data:
   nats_data:
   proxy_runtime_data:
+  wa_app_data:
