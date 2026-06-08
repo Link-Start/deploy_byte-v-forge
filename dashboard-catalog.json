@@ -63,29 +63,6 @@
       ]
     },
     {
-      "id": "mailbox",
-      "name": "Mailbox",
-      "remoteName": "mailbox",
-      "remoteEntry": "/mf/mailbox/remoteEntry.js",
-      "exposedModule": "./dashboardModule",
-      "apiBase": "/api/mailbox",
-      "service": "mailbox",
-      "ownerRepo": "mailbox",
-      "sourceDir": "mailbox/webui",
-      "sourceManifest": "mailbox/webui/src/dashboard/manifest.tsx",
-      "mfPrefix": "/mf/mailbox",
-      "apiPrefix": "/api/mailbox",
-      "enabled": true,
-      "navKey": "mailboxes",
-      "navLabel": "邮箱管理",
-      "navIcon": "mailbox",
-      "navSection": "infrastructure",
-      "navOrder": 20,
-      "requiredServices": [
-        "mailbox"
-      ]
-    },
-    {
       "id": "workflow-runtime",
       "name": "Workflow Runtime",
       "remoteName": "workflow_runtime",
@@ -110,6 +87,18 @@
     }
   ],
   "externalApps": [
+    {
+      "id": "mailbox",
+      "label": "邮箱管理",
+      "href": "/dashboard/mailbox/",
+      "icon": "mailbox",
+      "description": "打开独立 Mailbox 管理入口",
+      "requiredServices": [
+        "mailbox"
+      ],
+      "order": 20,
+      "enabled": true
+    },
     {
       "id": "wa-app",
       "label": "WA 管理",

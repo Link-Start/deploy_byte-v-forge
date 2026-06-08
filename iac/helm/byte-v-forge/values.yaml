@@ -76,7 +76,7 @@ dashboardRoutes:
       portName: http-dashboard
       prefixes:
         - /api/mailbox
-        - /mf/mailbox
+        - /dashboard/mailbox
       priority: 100
     - name: mailbox-webhook
       component: mailbox
