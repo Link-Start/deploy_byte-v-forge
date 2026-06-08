@@ -385,12 +385,9 @@ services:
       - MAILBOX_INBOX_LOCK_TTL_SECONDS=${MAILBOX_INBOX_LOCK_TTL_SECONDS:-600}
       - MAILBOX_INBOX_LOCK_RETRY_SECONDS=${MAILBOX_INBOX_LOCK_RETRY_SECONDS:-1}
       - MAILBOX_PG_DSN=${MAILBOX_PG_DSN:-}
-      - BROWSER_AUTOMATION_ADDR=browser-automation:50051
+      - MAILBOX_BROWSER_AUTOMATION_ADDR=${MAILBOX_BROWSER_AUTOMATION_ADDR:-}
     volumes:
       - ./mailbox/cloudflare-email.compose.json:/etc/mailbox/cloudflare-email/cloudflare-email.json:ro
-    depends_on:
-      browser-automation:
-        condition: service_started
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.mailbox-webhook.rule=PathPrefix(`/webhooks/email`)"
