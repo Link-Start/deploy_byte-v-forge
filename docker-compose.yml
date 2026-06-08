@@ -359,8 +359,8 @@ services:
 
   mailbox:
     build:
-      context: ..
-      dockerfile: mailbox/Dockerfile
+      context: ../mailbox
+      dockerfile: Dockerfile
     init: true
     ports:
       - "${MAILBOX_GRPC_PORT:-50058}:50051"

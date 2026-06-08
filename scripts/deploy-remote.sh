@@ -85,7 +85,7 @@ SERVICE_CATALOG=(
   "gpt-service|.|gpt/gpt-service/Dockerfile"
   "gpt-checkout|.|gpt-private/gopay/Dockerfile"
   "gopay-app|.|gopay-app/Dockerfile"
-  "mailbox|.|mailbox/Dockerfile"
+  "mailbox|mailbox|Dockerfile"
   "sms-service|.|sms/Dockerfile"
   "wa-app-service|.|wa-app/Dockerfile"
 )
@@ -880,7 +880,7 @@ service_source_repos() {
       printf '%s\n' common-lib webui gpt mailbox sms wa-app gopay-app browser-automation workflow-runtime
       ;;
     mailbox)
-      printf '%s\n' common-lib mailbox
+      printf '%s\n' mailbox
       ;;
     sms-service)
       printf '%s\n' common-lib sms
