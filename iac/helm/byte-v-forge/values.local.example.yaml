@@ -20,6 +20,10 @@ configEnv:
   WA_APP_DATA_DIR: /var/lib/wa-app
   WA_API_BASE_URL: 'http://{{ include "byte-v-forge.componentFullname" (dict "root" . "component" "wa-app-service") }}:8080/api/wa'
   SMS_API_BASE_URL: 'http://{{ include "byte-v-forge.componentFullname" (dict "root" . "component" "sms-service") }}:8080/api/sms'
+  SMS_PG_DSN: '{{ include "byte-v-forge.pgDsn" . }}'
+  SMS_REDIS_URL: '{{ tpl .Values.configEnv.PLATFORM_REDIS_URL . }}'
+  SMS_NATS_URL: '{{ tpl .Values.configEnv.PLATFORM_NATS_URL . }}'
+  SMS_EVENT_STREAM_NAME: '{{ .Values.configEnv.PLATFORM_EVENT_STREAM_NAME }}'
   PROXY_RUNTIME_API_BASE_URL: 'http://{{ include "byte-v-forge.componentFullname" (dict "root" . "component" "proxy-runtime") }}:8080/api'
   WA_LONG_CONNECTION_PROXY_USERNAME: whatsapp
   WORKFLOW_RUNTIME_API_BASE_URL: 'http://{{ include "byte-v-forge.componentFullname" (dict "root" . "component" "workflow-runtime") }}:8080/api/workflow-runtime'

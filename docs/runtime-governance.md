@@ -13,13 +13,15 @@ Every durable consumer must declare an owner repository, source file, durable na
 
 ## Dashboard Modules
 
-`dashboard-catalog.json` is the final dashboard composition source. Each enabled module must declare:
+`dashboard-catalog.json` is the final dashboard composition source. Each enabled Module Federation module must declare:
 
 - owner repository and source webui directory
 - service-owned `sourceManifest`
 - module federation entrypoint
 - API prefix and required services
 - navigation key, section, icon and order
+
+Standalone service UIs are declared in `externalApps` with an entry URL and required services instead of a Module Federation entrypoint.
 
 `webui` remains the shell/module host and must not become the owner of business modules.
 

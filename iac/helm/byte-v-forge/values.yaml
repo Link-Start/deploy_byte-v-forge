@@ -31,6 +31,10 @@ configEnv:
   WA_ACTION_API_BASE_URL: 'http://{{ include "byte-v-forge.componentFullname" (dict "root" . "component" "wa-app-service") }}:8080/api/wa/actions'
   WA_API_BASE_URL: 'http://{{ include "byte-v-forge.componentFullname" (dict "root" . "component" "wa-app-service") }}:8080/api/wa'
   SMS_API_BASE_URL: 'http://{{ include "byte-v-forge.componentFullname" (dict "root" . "component" "sms-service") }}:8080/api/sms'
+  SMS_PG_DSN: ""
+  SMS_REDIS_URL: ""
+  SMS_NATS_URL: ""
+  SMS_EVENT_STREAM_NAME: BYTE_V_FORGE_EVENTS
   PROXY_RUNTIME_API_BASE_URL: 'http://{{ include "byte-v-forge.componentFullname" (dict "root" . "component" "proxy-runtime") }}:8080/api'
   WA_LONG_CONNECTION_PROXY_USERNAME: whatsapp
   WA_NUMBER_PROBE_PROXY_USERNAME: whatsapp-probe
@@ -104,13 +108,19 @@ dashboardRoutes:
         - /local
         - /tg
       priority: 300
-    - name: sms
+    - name: sms-api
       component: sms-service
       portName: http-dashboard
       prefixes:
         - /api/sms
-        - /mf/sms
       priority: 100
+    - name: sms-app
+      component: sms-service
+      portName: http-dashboard
+      host: sms.byte-v-forge.192.168.0.126.nip.io
+      prefixes:
+        - /
+      priority: 500
     - name: wa-app
       component: wa-app-service
       portName: http-dashboard
@@ -890,15 +900,14 @@ workloads:
     image:
       repository: byte-v-forge/sms-service
       tag: latest
-    postgresEnv: true
     env:
       SMS_LISTEN_ADDR: ":50051"
       SMS_DASHBOARD_HTTP_ADDR: '{{ .Values.configEnv.SMS_DASHBOARD_HTTP_ADDR }}'
       SMS_DASHBOARD_STATIC_DIR: /app/dashboard/sms
-      SMS_PG_DSN: '{{ include "byte-v-forge.pgDsn" . }}'
-      PLATFORM_REDIS_URL: '{{ tpl .Values.configEnv.PLATFORM_REDIS_URL . }}'
-      PLATFORM_NATS_URL: '{{ tpl .Values.configEnv.PLATFORM_NATS_URL . }}'
-      PLATFORM_EVENT_STREAM_NAME: '{{ .Values.configEnv.PLATFORM_EVENT_STREAM_NAME }}'
+      SMS_PG_DSN: '{{ tpl .Values.configEnv.SMS_PG_DSN . }}'
+      SMS_REDIS_URL: '{{ tpl .Values.configEnv.SMS_REDIS_URL . }}'
+      SMS_NATS_URL: '{{ tpl .Values.configEnv.SMS_NATS_URL . }}'
+      SMS_EVENT_STREAM_NAME: '{{ .Values.configEnv.SMS_EVENT_STREAM_NAME }}'
       SMS_PROVIDER_HTTP_PROXY: 'socks5://{{ include "byte-v-forge.componentFullname" (dict "root" . "component" "proxy-runtime") }}:10810'
     ports:
       - name: grpc
