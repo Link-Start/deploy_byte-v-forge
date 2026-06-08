@@ -681,6 +681,7 @@ workloads:
     postgresEnv: true
     env:
       BROWSER_AUTOMATION_LISTEN_ADDR: ":50051"
+      BROWSER_AUTOMATION_HTTP_LISTEN_ADDR: ":8080"
       BROWSER_AUTOMATION_POSTGRES_DSN: '{{ include "byte-v-forge.pgDsn" . }}'
       BROWSER_AUTOMATION_APPLY_MIGRATIONS: '{{ .Values.configEnv.BROWSER_AUTOMATION_APPLY_MIGRATIONS }}'
       BROWSER_AUTOMATION_RUNTIME: '{{ .Values.configEnv.BROWSER_AUTOMATION_RUNTIME }}'
@@ -690,6 +691,8 @@ workloads:
     ports:
       - name: grpc
         containerPort: 50051
+      - name: http-dashboard
+        containerPort: 8080
     service:
       enabled: true
       type: ClusterIP
@@ -697,6 +700,9 @@ workloads:
         - name: grpc
           port: 50051
           targetPort: grpc
+        - name: http-dashboard
+          port: 8080
+          targetPort: http-dashboard
     probes:
       grpc:
         port: 50051

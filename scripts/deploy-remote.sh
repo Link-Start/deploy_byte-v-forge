@@ -61,8 +61,8 @@ N8N_WORKFLOW_STATE_SEED=false
 N8N_WORKFLOW_CHECKSUM=
 N8N_WORKFLOW_MANIFEST=
 
-CAMOUFOX_FETCH_PROXY=${CAMOUFOX_FETCH_PROXY:-http://host.docker.internal:10809}
-BROWSER_AUTOMATION_RUNTIME_IMAGE=${BROWSER_AUTOMATION_RUNTIME_IMAGE:-${IMAGE_PREFIX}/browser-automation-runtime:camoufox-0.4.11-playwright-1.59.0-py3.12-bookworm}
+BROWSER_FETCH_PROXY=${BROWSER_FETCH_PROXY:-http://host.docker.internal:10809}
+BROWSER_AUTOMATION_RUNTIME_IMAGE=${BROWSER_AUTOMATION_RUNTIME_IMAGE:-${IMAGE_PREFIX}/browser-automation-runtime:camoufox-cloakbrowser-py3.12-bookworm}
 REBUILD_BROWSER_AUTOMATION_RUNTIME=${REBUILD_BROWSER_AUTOMATION_RUNTIME:-false}
 DEPLOY_REGISTRY_CONTAINER=${DEPLOY_REGISTRY_CONTAINER:-byte-v-forge-deploy-registry}
 DEPLOY_REGISTRY_PUSH_ADDR=${DEPLOY_REGISTRY_PUSH_ADDR:-127.0.0.1:5050}
@@ -78,7 +78,7 @@ VALIDATE_ONLY=${VALIDATE_ONLY:-false}
 KEEP_REMOTE_TAR=${KEEP_REMOTE_TAR:-false}
 
 SERVICE_CATALOG=(
-  "browser-automation|.|browser-automation/Dockerfile"
+  "browser-automation|browser-automation|Dockerfile"
   "proxy-runtime|proxy-runtime|Dockerfile"
   "workflow-runtime|.|workflow-runtime/Dockerfile"
   "webui|.|webui/Dockerfile"
@@ -153,13 +153,13 @@ Options:
 Environment overrides:
   REMOTE_KUBECONFIG, REMOTE_HELM, IMAGE_PREFIX, IMPORT_METHOD, VM_NAME,
   IMPORT_HOST_IP, IMPORT_HTTP_BIND, IMPORT_HTTP_PORT, HELM_TIMEOUT,
-  HELM_HISTORY_MAX, ROLLOUT_TIMEOUT, IMAGE_TAGS_RETAIN, KEEP_REMOTE_TAR, SOURCE_ROOT, CAMOUFOX_FETCH_PROXY,
+  HELM_HISTORY_MAX, ROLLOUT_TIMEOUT, IMAGE_TAGS_RETAIN, KEEP_REMOTE_TAR, SOURCE_ROOT, BROWSER_FETCH_PROXY,
   VALUES_FILE, BROWSER_AUTOMATION_RUNTIME_IMAGE, REBUILD_BROWSER_AUTOMATION_RUNTIME,
   DEPLOY_REGISTRY_PUSH_ADDR, DEPLOY_REGISTRY_PULL_ADDR, TRAEFIK_ENABLED,
   TRAEFIK_RELEASE, TRAEFIK_NAMESPACE, TRAEFIK_CHART, TRAEFIK_CHART_VERSION,
   TRAEFIK_VALUES_FILE, BUILD_PARALLELISM, DOCKER_BUILDKIT, BUILDKIT_PROGRESS,
   DOCKER_BUILD_PULL, DOCKER_BUILD_NO_CACHE, SOURCE_REVISION, RELEASE_MANIFEST,
-  ALLOW_DIRTY_SOURCE. CAMOUFOX_FETCH_PROXY defaults to
+  ALLOW_DIRTY_SOURCE. BROWSER_FETCH_PROXY defaults to
   http://host.docker.internal:10809 for browser-automation runtime builds.
 EOF
 }
@@ -877,7 +877,7 @@ service_source_repos() {
       printf '%s\n' common-lib gopay-app
       ;;
     webui)
-      printf '%s\n' common-lib webui gpt mailbox sms wa-app gopay-app browser-automation workflow-runtime
+      printf '%s\n' common-lib webui gpt mailbox sms wa-app gopay-app workflow-runtime
       ;;
     mailbox)
       printf '%s\n' mailbox
@@ -889,7 +889,7 @@ service_source_repos() {
       printf '%s\n' common-lib wa-app
       ;;
     browser-automation)
-      printf '%s\n' common-lib browser-automation
+      printf '%s\n' browser-automation
       ;;
     workflow-runtime)
       printf '%s\n' common-lib workflow-runtime
@@ -933,8 +933,8 @@ ensure_browser_automation_runtime_image() {
   fi
 
   local build_flags=""
-  if [[ -n "$CAMOUFOX_FETCH_PROXY" ]]; then
-    build_flags="--add-host=host.docker.internal:host-gateway --build-arg CAMOUFOX_FETCH_PROXY=$(shell_quote "$CAMOUFOX_FETCH_PROXY")"
+  if [[ -n "$BROWSER_FETCH_PROXY" ]]; then
+    build_flags="--add-host=host.docker.internal:host-gateway --build-arg BROWSER_FETCH_PROXY=$(shell_quote "$BROWSER_FETCH_PROXY")"
   fi
   if [[ "$REBUILD_BROWSER_AUTOMATION_RUNTIME" == "true" ]]; then
     build_flags="$build_flags --no-cache"

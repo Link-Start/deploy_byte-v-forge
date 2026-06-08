@@ -324,17 +324,17 @@ services:
 
   browser-automation:
     build:
-      context: ..
-      dockerfile: browser-automation/Dockerfile
+      context: ../browser-automation
+      dockerfile: Dockerfile
       args:
-        CAMOUFOX_FETCH_PROXY: ${CAMOUFOX_FETCH_PROXY:-}
-      extra_hosts:
-        - "host.docker.internal:host-gateway"
+        BROWSER_AUTOMATION_RUNTIME_IMAGE: ${BROWSER_AUTOMATION_RUNTIME_IMAGE:-browser-automation-runtime:camoufox-cloakbrowser-py3.12-bookworm}
     init: true
     ports:
       - "127.0.0.1:${BROWSER_AUTOMATION_GRPC_PORT:-50062}:50051"
+      - "127.0.0.1:${BROWSER_AUTOMATION_HTTP_PORT:-50063}:8080"
     environment:
       - BROWSER_AUTOMATION_LISTEN_ADDR=:50051
+      - BROWSER_AUTOMATION_HTTP_LISTEN_ADDR=:8080
       - BROWSER_AUTOMATION_POSTGRES_DSN=host=postgres user=${POSTGRES_USER:-byte_v_forge} password=${POSTGRES_PASSWORD:-byte_v_forge} dbname=${POSTGRES_DB:-byte_v_forge} port=5432 sslmode=disable
       - BROWSER_AUTOMATION_APPLY_MIGRATIONS=${BROWSER_AUTOMATION_APPLY_MIGRATIONS:-true}
       - BROWSER_AUTOMATION_RUNTIME=${BROWSER_AUTOMATION_RUNTIME:-camoufox}
@@ -355,6 +355,10 @@ services:
       - "traefik.http.services.browser-automation.loadbalancer.server.port=50051"
       - "traefik.http.services.browser-automation.loadbalancer.server.scheme=h2c"
       - "traefik.http.services.browser-automation.loadbalancer.healthcheck.mode=grpc"
+      - "traefik.http.routers.browser-automation-ui.rule=Host(`browser-automation.byte-v-forge.internal`)"
+      - "traefik.http.routers.browser-automation-ui.entrypoints=web"
+      - "traefik.http.routers.browser-automation-ui.service=browser-automation-ui"
+      - "traefik.http.services.browser-automation-ui.loadbalancer.server.port=8080"
     restart: always
 
   mailbox:

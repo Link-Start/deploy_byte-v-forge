@@ -40,6 +40,12 @@
           "source": "browser-automation/internal/adapters/runtime/camoufox/plugin.go",
           "symbol": "Plugin",
           "registry_ref": "camoufox.Plugin("
+        },
+        {
+          "id": "cloakbrowser",
+          "source": "browser-automation/internal/adapters/runtime/cloakbrowser/plugin.go",
+          "symbol": "Plugin",
+          "registry_ref": "cloakbrowser.Plugin("
         }
       ]
     },
