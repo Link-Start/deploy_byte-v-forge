@@ -104,4 +104,4 @@ spec:
             - -ceu
             - |
               nats --server "$PLATFORM_NATS_URL" stream add "$PLATFORM_EVENT_STREAM_NAME" --subjects 'byte.v.forge.>' --storage file --retention limits --dupe-window 10m --defaults \
-                || nats --server "$PLATFORM_NATS_URL" stream edit "$PLATFORM_EVENT_STREAM_NAME" --subjects 'byte.v.forge.>' --storage file --retention limits --dupe-window 10m --defaults
+                || nats --server "$PLATFORM_NATS_URL" stream edit "$PLATFORM_EVENT_STREAM_NAME" --subjects 'byte.v.forge.>' --dupe-window 10m --force
