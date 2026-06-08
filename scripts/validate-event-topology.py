@@ -13,7 +13,7 @@ from typing import Any
 
 
 EVENT_RE = re.compile(r"^[a-z0-9]+(\.[a-z0-9_]+)+$")
-SUBJECT_RE = re.compile(r"^byte\.v\.forge\.[A-Za-z0-9_.>*-]+$")
+SUBJECT_RE = re.compile(r"^(byte\.v\.forge|mailbox)\.[A-Za-z0-9_.>*-]+$")
 TRANSPORTS = {"nats_jetstream", "nats_core"}
 DELIVERY = {"at_least_once", "best_effort"}
 ALLOW_MIGRATION_DEBT = os.environ.get("ALLOW_MIGRATION_DEBT") == "1"
