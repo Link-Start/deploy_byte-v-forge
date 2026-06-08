@@ -86,7 +86,7 @@ SERVICE_CATALOG=(
   "gpt-checkout|.|gpt-private/gopay/Dockerfile"
   "gopay-app|.|gopay-app/Dockerfile"
   "mailbox|mailbox|Dockerfile"
-  "sms-service|.|sms/Dockerfile"
+  "sms-service|sms|Dockerfile"
   "wa-app-service|wa-app|Dockerfile"
 )
 
