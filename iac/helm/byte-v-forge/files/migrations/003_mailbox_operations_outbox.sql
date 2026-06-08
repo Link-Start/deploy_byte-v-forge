@@ -30,5 +30,5 @@ CREATE INDEX IF NOT EXISTS idx_mailbox_operations_status ON mailbox_operations(s
 CREATE INDEX IF NOT EXISTS idx_mailbox_operations_email_address ON mailbox_operations(email_address);
 CREATE INDEX IF NOT EXISTS idx_mailbox_operations_claim_owner ON mailbox_operations(claim_owner);
 CREATE INDEX IF NOT EXISTS idx_mailbox_operations_claim_until ON mailbox_operations(claim_until);
-CREATE TABLE IF NOT EXISTS mailbox_platform_event_outbox (event_id TEXT PRIMARY KEY, subject TEXT NOT NULL, event_name TEXT NOT NULL, idempotency_key TEXT NOT NULL DEFAULT '', envelope BYTEA NOT NULL, status TEXT NOT NULL DEFAULT 'PENDING', attempt_count INT NOT NULL DEFAULT 0, next_attempt_at BIGINT NOT NULL DEFAULT 0, last_error TEXT NOT NULL DEFAULT '', published_at BIGINT NOT NULL DEFAULT 0, created_at BIGINT NOT NULL, updated_at BIGINT NOT NULL);
-CREATE INDEX IF NOT EXISTS idx_mailbox_platform_event_outbox_pending ON mailbox_platform_event_outbox(status, next_attempt_at, created_at);
+CREATE TABLE IF NOT EXISTS mailbox_event_outbox (event_id TEXT PRIMARY KEY, subject TEXT NOT NULL, event_name TEXT NOT NULL, idempotency_key TEXT NOT NULL DEFAULT '', envelope BYTEA NOT NULL, status TEXT NOT NULL DEFAULT 'PENDING', attempt_count INT NOT NULL DEFAULT 0, next_attempt_at BIGINT NOT NULL DEFAULT 0, last_error TEXT NOT NULL DEFAULT '', published_at BIGINT NOT NULL DEFAULT 0, created_at BIGINT NOT NULL, updated_at BIGINT NOT NULL);
+CREATE INDEX IF NOT EXISTS idx_mailbox_event_outbox_pending ON mailbox_event_outbox(status, next_attempt_at, created_at);

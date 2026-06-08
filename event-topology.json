@@ -51,9 +51,9 @@
     },
     {
       "owner_repo": "mailbox",
-      "table": "mailbox_platform_event_outbox",
-      "source_file": "mailbox/services/mailbox-api/mailbox_platform_events.go",
-      "worker_file": "mailbox/services/mailbox-api/mailbox_platform_event_outbox.go",
+      "table": "mailbox_event_outbox",
+      "source_file": "mailbox/services/mailbox-api/mailbox_events.go",
+      "worker_file": "mailbox/services/mailbox-api/mailbox_event_outbox.go",
       "channel": "mailbox-events",
       "publishes": [
         "mailbox.email.received",
