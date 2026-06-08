@@ -355,7 +355,7 @@ services:
       - "traefik.http.services.browser-automation.loadbalancer.server.port=50051"
       - "traefik.http.services.browser-automation.loadbalancer.server.scheme=h2c"
       - "traefik.http.services.browser-automation.loadbalancer.healthcheck.mode=grpc"
-      - "traefik.http.routers.browser-automation-ui.rule=Host(`browser-automation.byte-v-forge.internal`)"
+      - "traefik.http.routers.browser-automation-ui.rule=Host(`browser-automation.byte-v-forge.internal`) || Host(`browser-automation.byte-v-forge.localhost`)"
       - "traefik.http.routers.browser-automation-ui.entrypoints=web"
       - "traefik.http.routers.browser-automation-ui.service=browser-automation-ui"
       - "traefik.http.services.browser-automation-ui.loadbalancer.server.port=8080"

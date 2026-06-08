@@ -134,6 +134,13 @@ dashboardRoutes:
       prefixes:
         - /
       priority: 500
+    - name: browser-automation
+      component: browser-automation
+      portName: http-dashboard
+      host: browser-automation.byte-v-forge.192.168.0.126.nip.io
+      prefixes:
+        - /
+      priority: 500
     - name: proxy-runtime
       component: proxy-runtime
       portName: http
