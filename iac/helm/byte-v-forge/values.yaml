@@ -34,7 +34,7 @@ configEnv:
   SMS_PG_DSN: '{{ include "byte-v-forge.pgDsn" . }}'
   SMS_REDIS_URL: '{{ tpl .Values.configEnv.PLATFORM_REDIS_URL . }}'
   SMS_NATS_URL: '{{ tpl .Values.configEnv.PLATFORM_NATS_URL . }}'
-  SMS_EVENT_STREAM_NAME: '{{ .Values.configEnv.PLATFORM_EVENT_STREAM_NAME }}'
+  SMS_EVENT_STREAM_NAME: BYTE_V_FORGE_EVENTS
   PROXY_RUNTIME_API_BASE_URL: 'http://{{ include "byte-v-forge.componentFullname" (dict "root" . "component" "proxy-runtime") }}:8080/api'
   WA_LONG_CONNECTION_PROXY_USERNAME: whatsapp
   WA_NUMBER_PROBE_PROXY_USERNAME: whatsapp-probe
@@ -935,7 +935,7 @@ workloads:
       SMS_PG_DSN: '{{ tpl .Values.configEnv.SMS_PG_DSN . }}'
       SMS_REDIS_URL: '{{ tpl .Values.configEnv.SMS_REDIS_URL . }}'
       SMS_NATS_URL: '{{ tpl .Values.configEnv.SMS_NATS_URL . }}'
-      SMS_EVENT_STREAM_NAME: '{{ .Values.configEnv.SMS_EVENT_STREAM_NAME }}'
+      SMS_EVENT_STREAM_NAME: '{{ tpl .Values.configEnv.SMS_EVENT_STREAM_NAME . }}'
       PLATFORM_REDIS_URL: '{{ tpl .Values.configEnv.PLATFORM_REDIS_URL . }}'
       PLATFORM_NATS_URL: '{{ tpl .Values.configEnv.PLATFORM_NATS_URL . }}'
       PLATFORM_EVENT_STREAM_NAME: '{{ .Values.configEnv.PLATFORM_EVENT_STREAM_NAME }}'
