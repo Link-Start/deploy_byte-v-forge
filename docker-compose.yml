@@ -374,8 +374,9 @@ services:
       - MAILBOX_CLOUDFLARE_API_TOKEN=${MAILBOX_CLOUDFLARE_API_TOKEN:-}
       - MAILBOX_CLOUDFLARE_MAX_MESSAGES_PER_DOMAIN=${MAILBOX_CLOUDFLARE_MAX_MESSAGES_PER_DOMAIN:-500}
       - MAILBOX_OUTLOOK_MAX_MESSAGES_PER_MAILBOX=${MAILBOX_OUTLOOK_MAX_MESSAGES_PER_MAILBOX:-100}
-      - MAILBOX_COORDINATION_REDIS_URL=${PLATFORM_REDIS_URL:-redis://platform-redis:6379/0}
-      - MAILBOX_RECENT_EMAIL_REDIS_URL=${PLATFORM_REDIS_URL:-redis://platform-redis:6379/0}
+      - MAILBOX_COORDINATION_REDIS_URL=${MAILBOX_COORDINATION_REDIS_URL:-}
+      - MAILBOX_RECENT_EMAIL_REDIS_URL=${MAILBOX_RECENT_EMAIL_REDIS_URL:-}
+      - PLATFORM_NATS_URL=${MAILBOX_NATS_URL:-}
       - PLATFORM_EVENT_STREAM_NAME=${PLATFORM_EVENT_STREAM_NAME:-BYTE_V_FORGE_EVENTS}
       - MAILBOX_RECENT_EMAIL_CACHE_KEY_PREFIX=${MAILBOX_RECENT_EMAIL_CACHE_KEY_PREFIX:-byte-v-forge:mailbox:recent-email}
       - MAILBOX_RECENT_EMAIL_CACHE_TTL_SECONDS=${MAILBOX_RECENT_EMAIL_CACHE_TTL_SECONDS:-3600}
@@ -383,21 +384,11 @@ services:
       - MAILBOX_INBOX_LOCK_KEY_PREFIX=${MAILBOX_INBOX_LOCK_KEY_PREFIX:-byte-v-forge:mailbox:locks}
       - MAILBOX_INBOX_LOCK_TTL_SECONDS=${MAILBOX_INBOX_LOCK_TTL_SECONDS:-600}
       - MAILBOX_INBOX_LOCK_RETRY_SECONDS=${MAILBOX_INBOX_LOCK_RETRY_SECONDS:-1}
-      - MAILBOX_PG_DSN=${MAILBOX_PG_DSN:-host=postgres user=${POSTGRES_USER:-byte_v_forge} password=${POSTGRES_PASSWORD:-byte_v_forge} dbname=${POSTGRES_DB:-byte_v_forge} port=5432 sslmode=disable}
+      - MAILBOX_PG_DSN=${MAILBOX_PG_DSN:-}
       - BROWSER_AUTOMATION_ADDR=browser-automation:50051
     volumes:
       - ./mailbox/cloudflare-email.compose.json:/etc/mailbox/cloudflare-email/cloudflare-email.json:ro
     depends_on:
-      postgres:
-        condition: service_started
-      platform-db-migrations:
-        condition: service_completed_successfully
-      platform-redis:
-        condition: service_started
-      platform-nats:
-        condition: service_started
-      platform-nats-init:
-        condition: service_completed_successfully
       browser-automation:
         condition: service_started
     labels:

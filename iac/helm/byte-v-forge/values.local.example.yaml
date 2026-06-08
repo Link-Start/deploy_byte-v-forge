@@ -29,6 +29,10 @@ configEnv:
   WORKFLOW_RUNTIME_API_BASE_URL: 'http://{{ include "byte-v-forge.componentFullname" (dict "root" . "component" "workflow-runtime") }}:8080/api/workflow-runtime'
   MAILBOX_CLOUDFLARE_MAX_MESSAGES_PER_DOMAIN: "500"
   MAILBOX_OUTLOOK_MAX_MESSAGES_PER_MAILBOX: "100"
+  MAILBOX_PG_DSN: ""
+  MAILBOX_COORDINATION_REDIS_URL: ""
+  MAILBOX_RECENT_EMAIL_REDIS_URL: ""
+  MAILBOX_NATS_URL: ""
 
 cloudflareEmail:
   zones:

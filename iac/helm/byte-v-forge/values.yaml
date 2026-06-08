@@ -52,6 +52,10 @@ configEnv:
   GOPAY_DASHBOARD_STATIC_DIR: /app/dashboard/gopay
   MAILBOX_CLOUDFLARE_MAX_MESSAGES_PER_DOMAIN: "500"
   MAILBOX_OUTLOOK_MAX_MESSAGES_PER_MAILBOX: "100"
+  MAILBOX_PG_DSN: ""
+  MAILBOX_COORDINATION_REDIS_URL: ""
+  MAILBOX_RECENT_EMAIL_REDIS_URL: ""
+  MAILBOX_NATS_URL: ""
 
 traefikStatus:
   enabled: true
@@ -712,7 +716,6 @@ workloads:
     image:
       repository: byte-v-forge/mailbox
       tag: latest
-    postgresEnv: true
     env:
       MAILBOX_LISTEN_ADDR: ":50051"
       MAILBOX_WEBHOOK_HTTP_ADDR: '{{ .Values.configEnv.MAILBOX_WEBHOOK_HTTP_ADDR }}'
@@ -721,9 +724,9 @@ workloads:
       MAILBOX_CLOUDFLARE_EMAIL_CONFIG_FILE: /etc/mailbox/cloudflare-email/cloudflare-email.json
       MAILBOX_CLOUDFLARE_MAX_MESSAGES_PER_DOMAIN: '{{ .Values.configEnv.MAILBOX_CLOUDFLARE_MAX_MESSAGES_PER_DOMAIN }}'
       MAILBOX_OUTLOOK_MAX_MESSAGES_PER_MAILBOX: '{{ .Values.configEnv.MAILBOX_OUTLOOK_MAX_MESSAGES_PER_MAILBOX }}'
-      MAILBOX_COORDINATION_REDIS_URL: '{{ tpl .Values.configEnv.PLATFORM_REDIS_URL . }}'
-      MAILBOX_RECENT_EMAIL_REDIS_URL: '{{ tpl .Values.configEnv.PLATFORM_REDIS_URL . }}'
-      PLATFORM_NATS_URL: '{{ tpl .Values.configEnv.PLATFORM_NATS_URL . }}'
+      MAILBOX_COORDINATION_REDIS_URL: '{{ tpl .Values.configEnv.MAILBOX_COORDINATION_REDIS_URL . }}'
+      MAILBOX_RECENT_EMAIL_REDIS_URL: '{{ tpl .Values.configEnv.MAILBOX_RECENT_EMAIL_REDIS_URL . }}'
+      PLATFORM_NATS_URL: '{{ tpl .Values.configEnv.MAILBOX_NATS_URL . }}'
       PLATFORM_EVENT_STREAM_NAME: '{{ .Values.configEnv.PLATFORM_EVENT_STREAM_NAME }}'
       MAILBOX_RECENT_EMAIL_CACHE_KEY_PREFIX: byte-v-forge:mailbox:recent-email
       MAILBOX_RECENT_EMAIL_CACHE_TTL_SECONDS: "3600"
@@ -731,7 +734,7 @@ workloads:
       MAILBOX_INBOX_LOCK_KEY_PREFIX: byte-v-forge:mailbox:locks
       MAILBOX_INBOX_LOCK_TTL_SECONDS: "600"
       MAILBOX_INBOX_LOCK_RETRY_SECONDS: "1"
-      MAILBOX_PG_DSN: '{{ include "byte-v-forge.pgDsn" . }}'
+      MAILBOX_PG_DSN: '{{ tpl .Values.configEnv.MAILBOX_PG_DSN . }}'
       BROWSER_AUTOMATION_ADDR: '{{ include "byte-v-forge.componentFullname" (dict "root" . "component" "browser-automation") }}:50051'
     secretEnv:
       - name: MAILBOX_WEBHOOK_TOKEN
