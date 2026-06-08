@@ -31,7 +31,7 @@ configEnv:
   WA_ACTION_API_BASE_URL: 'http://{{ include "byte-v-forge.componentFullname" (dict "root" . "component" "wa-app-service") }}:8080/api/wa/actions'
   WA_API_BASE_URL: 'http://{{ include "byte-v-forge.componentFullname" (dict "root" . "component" "wa-app-service") }}:8080/api/wa'
   SMS_API_BASE_URL: 'http://{{ include "byte-v-forge.componentFullname" (dict "root" . "component" "sms-service") }}:8080/api/sms'
-  PROXY_RUNTIME_API_BASE_URL: 'http://{{ include "byte-v-forge.componentFullname" (dict "root" . "component" "proxy-runtime") }}:8080/api/proxy-runtime'
+  PROXY_RUNTIME_API_BASE_URL: 'http://{{ include "byte-v-forge.componentFullname" (dict "root" . "component" "proxy-runtime") }}:8080/api'
   WA_LONG_CONNECTION_PROXY_USERNAME: whatsapp
   WA_NUMBER_PROBE_PROXY_USERNAME: whatsapp-probe
   WA_REGISTRATION_PROXY_USERNAME: whatsapp-reg
@@ -121,10 +121,10 @@ dashboardRoutes:
     - name: proxy-runtime
       component: proxy-runtime
       portName: http
+      host: proxy-runtime.byte-v-forge.192.168.0.126.nip.io
       prefixes:
-        - /api/proxy-runtime
-        - /proxy-runtime
-      priority: 100
+        - /
+      priority: 500
     - name: workflow-runtime
       component: workflow-runtime
       portName: http
@@ -605,7 +605,7 @@ workloads:
     env:
       PROXY_RUNTIME_ADDR: ":8080"
       PROXY_RUNTIME_POSTGRES_DSN: '{{ include "byte-v-forge.pgDsn" . }}'
-      PROXY_RUNTIME_DATA_DIR: /var/lib/byte-v-forge/proxy-runtime
+      PROXY_RUNTIME_DATA_DIR: /var/lib/proxy-runtime
       PROXY_RUNTIME_MIHOMO_API_ADDR: 127.0.0.1:18901
       PROXY_RUNTIME_LOCAL_ADDR: ":10810"
       PROXY_RUNTIME_LOCAL_PROTOCOL: socks5
@@ -621,7 +621,7 @@ workloads:
         containerPort: 10810
     volumeMounts:
       - name: runtime-state
-        mountPath: /var/lib/byte-v-forge/proxy-runtime
+        mountPath: /var/lib/proxy-runtime
     volumes:
       - name: runtime-state
         type: persistentVolumeClaim

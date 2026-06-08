@@ -27,7 +27,7 @@ x-n8n-environment: &n8n-environment
   WA_ACTION_API_BASE_URL: ${WA_ACTION_API_BASE_URL:-http://wa-app-service:8080/api/wa/actions}
   WA_API_BASE_URL: ${WA_API_BASE_URL:-http://wa-app-service:8080/api/wa}
   SMS_API_BASE_URL: ${SMS_API_BASE_URL:-http://sms-service:8080/api/sms}
-  PROXY_RUNTIME_API_BASE_URL: ${PROXY_RUNTIME_API_BASE_URL:-http://proxy-runtime:8080/api/proxy-runtime}
+  PROXY_RUNTIME_API_BASE_URL: ${PROXY_RUNTIME_API_BASE_URL:-http://proxy-runtime:8080/api}
   WORKFLOW_RUNTIME_API_BASE_URL: ${WORKFLOW_RUNTIME_API_BASE_URL:-http://workflow-runtime:8080/api/workflow-runtime}
   WORKFLOW_RUNTIME_STEP_UPDATE_TOKEN: ${WORKFLOW_RUNTIME_STEP_UPDATE_TOKEN:-byte_v_forge_workflow_runtime_step_update_token_change_me_32}
   N8N_INSTANCE_OWNER_MANAGED_BY_ENV: "true"
@@ -55,7 +55,7 @@ x-n8n-task-runner-environment: &n8n-task-runner-environment
   WA_ACTION_API_BASE_URL: ${WA_ACTION_API_BASE_URL:-http://wa-app-service:8080/api/wa/actions}
   WA_API_BASE_URL: ${WA_API_BASE_URL:-http://wa-app-service:8080/api/wa}
   SMS_API_BASE_URL: ${SMS_API_BASE_URL:-http://sms-service:8080/api/sms}
-  PROXY_RUNTIME_API_BASE_URL: ${PROXY_RUNTIME_API_BASE_URL:-http://proxy-runtime:8080/api/proxy-runtime}
+  PROXY_RUNTIME_API_BASE_URL: ${PROXY_RUNTIME_API_BASE_URL:-http://proxy-runtime:8080/api}
   WORKFLOW_RUNTIME_API_BASE_URL: ${WORKFLOW_RUNTIME_API_BASE_URL:-http://workflow-runtime:8080/api/workflow-runtime}
   WORKFLOW_RUNTIME_STEP_UPDATE_TOKEN: ${WORKFLOW_RUNTIME_STEP_UPDATE_TOKEN:-byte_v_forge_workflow_runtime_step_update_token_change_me_32}
 
@@ -283,15 +283,15 @@ services:
 
   proxy-runtime:
     build:
-      context: ..
-      dockerfile: proxy-runtime/Dockerfile
+      context: ../proxy-runtime
+      dockerfile: Dockerfile
     ports:
       - "127.0.0.1:${PROXY_RUNTIME_HTTP_PORT:-8083}:8080"
       - "${PROXY_RUNTIME_GATEWAY_PORT:-30081}:10810"
     environment:
       - PROXY_RUNTIME_ADDR=:8080
       - PROXY_RUNTIME_POSTGRES_DSN=host=postgres user=${POSTGRES_USER:-byte_v_forge} password=${POSTGRES_PASSWORD:-byte_v_forge} dbname=${POSTGRES_DB:-byte_v_forge} port=5432 sslmode=disable
-      - PROXY_RUNTIME_DATA_DIR=/var/lib/byte-v-forge/proxy-runtime
+      - PROXY_RUNTIME_DATA_DIR=/var/lib/proxy-runtime
       - PROXY_RUNTIME_MIHOMO_API_ADDR=${PROXY_RUNTIME_MIHOMO_API_ADDR:-127.0.0.1:18901}
       - PROXY_RUNTIME_ENCRYPTION_KEY=${PROXY_RUNTIME_ENCRYPTION_KEY:-byte_v_forge_proxy_runtime_encryption_key_change_me_32}
       - PROXY_RUNTIME_LOCAL_ADDR=:10810
@@ -301,7 +301,7 @@ services:
     extra_hosts:
       - "host.docker.internal:host-gateway"
     volumes:
-      - proxy_runtime_data:/var/lib/byte-v-forge/proxy-runtime
+      - proxy_runtime_data:/var/lib/proxy-runtime
     depends_on:
       - postgres
       - platform-redis
@@ -312,11 +312,11 @@ services:
       - "traefik.http.routers.proxy-runtime-status.service=proxy-runtime"
       - "traefik.http.services.proxy-runtime.loadbalancer.server.port=8080"
       - "traefik.http.services.proxy-runtime.loadbalancer.healthcheck.path=/healthz"
-      - "traefik.http.routers.proxy-runtime-api.rule=PathPrefix(`/api/proxy-runtime`)"
+      - "traefik.http.routers.proxy-runtime-api.rule=Host(`proxy-runtime.byte-v-forge.internal`) && PathPrefix(`/api`)"
       - "traefik.http.routers.proxy-runtime-api.entrypoints=web"
-      - "traefik.http.routers.proxy-runtime-api.priority=100"
+      - "traefik.http.routers.proxy-runtime-api.priority=200"
       - "traefik.http.routers.proxy-runtime-api.service=proxy-runtime"
-      - "traefik.http.routers.proxy-runtime-ui.rule=PathPrefix(`/proxy-runtime`)"
+      - "traefik.http.routers.proxy-runtime-ui.rule=Host(`proxy-runtime.byte-v-forge.internal`) && PathPrefix(`/`)"
       - "traefik.http.routers.proxy-runtime-ui.entrypoints=web"
       - "traefik.http.routers.proxy-runtime-ui.priority=100"
       - "traefik.http.routers.proxy-runtime-ui.service=proxy-runtime"
@@ -617,7 +617,7 @@ services:
       - WA_APP_PG_DSN=host=postgres user=${POSTGRES_USER:-byte_v_forge} password=${POSTGRES_PASSWORD:-byte_v_forge} dbname=${POSTGRES_DB:-byte_v_forge} port=5432 sslmode=disable
       - PLATFORM_REDIS_URL=${PLATFORM_REDIS_URL:-redis://platform-redis:6379/0}
       - PLATFORM_NATS_URL=${PLATFORM_NATS_URL:-nats://platform-nats:4222}
-      - PROXY_RUNTIME_API_BASE_URL=${PROXY_RUNTIME_API_BASE_URL:-http://proxy-runtime:8080/api/proxy-runtime}
+      - PROXY_RUNTIME_API_BASE_URL=${PROXY_RUNTIME_API_BASE_URL:-http://proxy-runtime:8080/api}
       - PROXY_RUNTIME_LOCAL_PROTOCOL=${PROXY_RUNTIME_LOCAL_PROTOCOL:-socks5}
       - WA_LONG_CONNECTION_PROXY_USERNAME=${WA_LONG_CONNECTION_PROXY_USERNAME:-whatsapp}
       - WA_NUMBER_PROBE_PROXY_USERNAME=${WA_NUMBER_PROBE_PROXY_USERNAME:-whatsapp-probe}

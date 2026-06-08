@@ -79,7 +79,7 @@ KEEP_REMOTE_TAR=${KEEP_REMOTE_TAR:-false}
 
 SERVICE_CATALOG=(
   "browser-automation|.|browser-automation/Dockerfile"
-  "proxy-runtime|.|proxy-runtime/Dockerfile"
+  "proxy-runtime|proxy-runtime|Dockerfile"
   "workflow-runtime|.|workflow-runtime/Dockerfile"
   "webui|.|webui/Dockerfile"
   "gpt-service|.|gpt/gpt-service/Dockerfile"
@@ -205,6 +205,18 @@ docker_context() {
 
 dockerfile_path() {
   service_catalog_field "$1" dockerfile || die "unknown service: $1"
+}
+
+dockerfile_source_path() {
+  local service context dockerfile
+  service=$1
+  context=$(docker_context "$service")
+  dockerfile=$(dockerfile_path "$service")
+  if [[ "$dockerfile" == /* || "$context" == "." ]]; then
+    printf '%s' "$dockerfile"
+  else
+    printf '%s/%s' "$context" "$dockerfile"
+  fi
 }
 
 service_catalog_field() {
@@ -562,7 +574,7 @@ preflight() {
       [[ -d "$SOURCE_ROOT/$repo" ]] || die "missing source repo: $SOURCE_ROOT/$repo"
     done
     for service in "${SERVICES[@]}"; do
-      dockerfile=$(dockerfile_path "$service")
+      dockerfile=$(dockerfile_source_path "$service")
       [[ -f "$SOURCE_ROOT/$dockerfile" ]] || die "missing Dockerfile for $service: $SOURCE_ROOT/$dockerfile"
     done
     if [[ -n "$RELEASE_MANIFEST" ]]; then
@@ -883,7 +895,7 @@ service_source_repos() {
       printf '%s\n' common-lib workflow-runtime
       ;;
     proxy-runtime)
-      printf '%s\n' common-lib proxy-runtime
+      printf '%s\n' proxy-runtime
       ;;
     *)
       printf '%s\n' "${SOURCE_REPOS[@]}"
