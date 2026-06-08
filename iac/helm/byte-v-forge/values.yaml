@@ -18,6 +18,7 @@ podLabels: {}
 configEnv:
   BROWSER_AUTOMATION_APPLY_MIGRATIONS: "true"
   BROWSER_AUTOMATION_RUNTIME: camoufox
+  BROWSER_AUTOMATION_MAX_CONCURRENT_SESSIONS: "0"
   PLATFORM_NATS_URL: 'nats://{{ include "byte-v-forge.componentFullname" (dict "root" . "component" "platform-nats") }}:4222'
   PLATFORM_EVENT_STREAM_NAME: BYTE_V_FORGE_EVENTS
   PLATFORM_REDIS_URL: 'redis://{{ include "byte-v-forge.componentFullname" (dict "root" . "component" "platform-redis") }}:6379/0'
@@ -695,6 +696,7 @@ workloads:
       BROWSER_AUTOMATION_POSTGRES_DSN: '{{ include "byte-v-forge.pgDsn" . }}'
       BROWSER_AUTOMATION_APPLY_MIGRATIONS: '{{ .Values.configEnv.BROWSER_AUTOMATION_APPLY_MIGRATIONS }}'
       BROWSER_AUTOMATION_RUNTIME: '{{ .Values.configEnv.BROWSER_AUTOMATION_RUNTIME }}'
+      BROWSER_AUTOMATION_MAX_CONCURRENT_SESSIONS: '{{ .Values.configEnv.BROWSER_AUTOMATION_MAX_CONCURRENT_SESSIONS }}'
     secretEnv:
       - name: BROWSER_AUTOMATION_PROXY_REFS_JSON
         key: BROWSER_AUTOMATION_PROXY_REFS_JSON
