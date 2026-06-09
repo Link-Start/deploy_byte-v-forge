@@ -28,6 +28,7 @@ configEnv:
   PROXY_RUNTIME_API_BASE_URL: 'http://{{ include "byte-v-forge.componentFullname" (dict "root" . "component" "proxy-runtime") }}:8080/api'
   WORKFLOW_RUNTIME_API_BASE_URL: 'http://{{ include "byte-v-forge.componentFullname" (dict "root" . "component" "workflow-runtime") }}:8080/api/workflow-runtime'
   MAILBOX_CLOUDFLARE_MAX_MESSAGES_PER_DOMAIN: "500"
+  MAILBOX_CLOUDFLARE_RELAY_PULL_URL: https://cloudflare-email-relay.example.invalid
   MAILBOX_OUTLOOK_MAX_MESSAGES_PER_MAILBOX: "100"
   MAILBOX_PG_DSN: ""
   MAILBOX_COORDINATION_REDIS_URL: '{{ tpl .Values.configEnv.PLATFORM_REDIS_URL . }}'
@@ -95,6 +96,7 @@ secrets:
     BROWSER_AUTOMATION_PROXY_REFS_JSON: '{"register":"socks5://proxy.internal:10810","outlook":"socks5://proxy.internal:10810"}'
     MAILBOX_WEBHOOK_TOKEN: change-me
     MAILBOX_CLOUDFLARE_API_TOKEN: change-me
+    MAILBOX_CLOUDFLARE_RELAY_PULL_TOKEN: change-me
     CLOUDFLARE_TUNNEL_TOKEN: change-me
     GOPAY_CHECKOUT_PROFILE_JSON: >-
           {"name":"checkout","proxy_url":"socks5://{{ include "byte-v-forge.componentFullname" (dict "root" . "component" "proxy-runtime") }}:10810","tls_profile":"chrome_146","user_agent":"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36","sec_ch_ua":"\"Google Chrome\";v=\"147\", \"Not.A/Brand\";v=\"8\", \"Chromium\";v=\"147\"","sec_ch_ua_platform":"\"Windows\"","locale":"en-US","platform":"Windows","pin_locale":"id"}

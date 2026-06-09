@@ -52,6 +52,7 @@ configEnv:
   GOPAY_HTTP_LISTEN_ADDR: ":8080"
   GOPAY_DASHBOARD_STATIC_DIR: /app/dashboard/gopay
   MAILBOX_CLOUDFLARE_MAX_MESSAGES_PER_DOMAIN: "500"
+  MAILBOX_CLOUDFLARE_RELAY_PULL_URL: ""
   MAILBOX_OUTLOOK_MAX_MESSAGES_PER_MAILBOX: "100"
   MAILBOX_PG_DSN: '{{ include "byte-v-forge.pgDsn" . }}'
   MAILBOX_COORDINATION_REDIS_URL: '{{ tpl .Values.configEnv.PLATFORM_REDIS_URL . }}'
@@ -216,6 +217,7 @@ secrets:
     BROWSER_AUTOMATION_PROXY_REFS_JSON: '{"register":"socks5://proxy.internal:10810","outlook":"socks5://proxy.internal:10810"}'
     MAILBOX_WEBHOOK_TOKEN: ""
     MAILBOX_CLOUDFLARE_API_TOKEN: ""
+    MAILBOX_CLOUDFLARE_RELAY_PULL_TOKEN: ""
     CLOUDFLARE_TUNNEL_TOKEN: ""
     GOPAY_CHECKOUT_PROFILE_JSON: >-
           {"name":"checkout","proxy_url":"socks5://{{ include "byte-v-forge.componentFullname" (dict "root" . "component" "proxy-runtime") }}:10810","tls_profile":"chrome_146","user_agent":"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36","sec_ch_ua":"\"Google Chrome\";v=\"147\", \"Not.A/Brand\";v=\"8\", \"Chromium\";v=\"147\"","sec_ch_ua_platform":"\"Windows\"","locale":"en-US","platform":"Windows","pin_locale":"id"}
@@ -746,6 +748,7 @@ workloads:
       MAILBOX_DASHBOARD_STATIC_DIR: /app/dashboard/mailbox
       MAILBOX_CLOUDFLARE_EMAIL_CONFIG_FILE: /etc/mailbox/cloudflare-email/cloudflare-email.json
       MAILBOX_CLOUDFLARE_MAX_MESSAGES_PER_DOMAIN: '{{ .Values.configEnv.MAILBOX_CLOUDFLARE_MAX_MESSAGES_PER_DOMAIN }}'
+      MAILBOX_CLOUDFLARE_RELAY_PULL_URL: '{{ .Values.configEnv.MAILBOX_CLOUDFLARE_RELAY_PULL_URL }}'
       MAILBOX_OUTLOOK_MAX_MESSAGES_PER_MAILBOX: '{{ .Values.configEnv.MAILBOX_OUTLOOK_MAX_MESSAGES_PER_MAILBOX }}'
       MAILBOX_COORDINATION_REDIS_URL: '{{ tpl .Values.configEnv.MAILBOX_COORDINATION_REDIS_URL . }}'
       MAILBOX_RECENT_EMAIL_REDIS_URL: '{{ tpl .Values.configEnv.MAILBOX_RECENT_EMAIL_REDIS_URL . }}'
@@ -767,6 +770,8 @@ workloads:
         key: MAILBOX_WEBHOOK_TOKEN
       - name: MAILBOX_CLOUDFLARE_API_TOKEN
         key: MAILBOX_CLOUDFLARE_API_TOKEN
+      - name: MAILBOX_CLOUDFLARE_RELAY_PULL_TOKEN
+        key: MAILBOX_CLOUDFLARE_RELAY_PULL_TOKEN
     volumeMounts:
       - name: cloudflare-email
         mountPath: /etc/mailbox/cloudflare-email
