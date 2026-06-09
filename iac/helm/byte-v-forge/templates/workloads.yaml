@@ -71,6 +71,9 @@ spec:
             {{- range . }}
             - name: {{ .name }}
               containerPort: {{ .containerPort }}
+              {{- if .hostPort }}
+              hostPort: {{ .hostPort }}
+              {{- end }}
               protocol: {{ default "TCP" .protocol }}
             {{- end }}
             {{- range $range := $workload.portRanges }}
