@@ -215,6 +215,7 @@ secrets:
     N8N_POSTGRES_PASSWORD: byte_v_forge_n8n
     N8N_API_KEY: ""
     N8N_INSTANCE_OWNER_PASSWORD_HASH: "$2b$10$j6/JtPvAKtGGGMVOTqIQrOaq3b0.fQyK46ZWQdNN4E4e496n5ToYq"
+    WA_COMMON_PROXY: ""
     BROWSER_AUTOMATION_PROXY_REFS_JSON: '{"register":"socks5://proxy.internal:10810","outlook":"socks5://proxy.internal:10810"}'
     MAILBOX_WEBHOOK_TOKEN: ""
     MAILBOX_CLOUDFLARE_API_TOKEN: ""
@@ -981,6 +982,9 @@ workloads:
       WA_REGISTRATION_PROXY_USERNAME: '{{ .Values.configEnv.WA_REGISTRATION_PROXY_USERNAME }}'
       WA_ACCOUNT_SETTINGS_PROXY_USERNAME: '{{ .Values.configEnv.WA_ACCOUNT_SETTINGS_PROXY_USERNAME }}'
       WA_LOGIN_STATE_CHECK_PROXY_USERNAME: '{{ .Values.configEnv.WA_LOGIN_STATE_CHECK_PROXY_USERNAME }}'
+    secretEnv:
+      - name: WA_COMMON_PROXY
+        key: WA_COMMON_PROXY
     volumeMounts:
       - name: wa-app-data
         mountPath: /var/lib/wa-app
