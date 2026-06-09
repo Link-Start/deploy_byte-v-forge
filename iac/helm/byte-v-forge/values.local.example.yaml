@@ -77,7 +77,7 @@ workloads:
       repository: sms-service
       tag: dev
     env:
-      SMS_PROVIDER_HTTP_PROXY: 'socks5://{{ include "byte-v-forge.componentFullname" (dict "root" . "component" "proxy-runtime") }}:10810'
+      SMS_PROVIDER_HTTP_PROXY: 'socks5://sms:sms@{{ include "byte-v-forge.componentFullname" (dict "root" . "component" "proxy-runtime") }}:10810'
   webui:
     image:
       repository: webui

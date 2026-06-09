@@ -933,7 +933,7 @@ workloads:
       PLATFORM_REDIS_URL: '{{ tpl .Values.configEnv.PLATFORM_REDIS_URL . }}'
       PLATFORM_NATS_URL: '{{ tpl .Values.configEnv.PLATFORM_NATS_URL . }}'
       PLATFORM_EVENT_STREAM_NAME: '{{ .Values.configEnv.PLATFORM_EVENT_STREAM_NAME }}'
-      SMS_PROVIDER_HTTP_PROXY: 'socks5://{{ include "byte-v-forge.componentFullname" (dict "root" . "component" "proxy-runtime") }}:10810'
+      SMS_PROVIDER_HTTP_PROXY: 'socks5://sms:sms@{{ include "byte-v-forge.componentFullname" (dict "root" . "component" "proxy-runtime") }}:10810'
     ports:
       - name: grpc
         containerPort: 50051

@@ -567,7 +567,7 @@ services:
       - PLATFORM_REDIS_URL=${PLATFORM_REDIS_URL:-redis://platform-redis:6379/0}
       - PLATFORM_NATS_URL=${PLATFORM_NATS_URL:-nats://platform-nats:4222}
       - PLATFORM_EVENT_STREAM_NAME=${PLATFORM_EVENT_STREAM_NAME:-BYTE_V_FORGE_EVENTS}
-      - SMS_PROVIDER_HTTP_PROXY=${SMS_PROVIDER_HTTP_PROXY:-socks5://proxy-runtime:10810}
+      - SMS_PROVIDER_HTTP_PROXY=${SMS_PROVIDER_HTTP_PROXY:-socks5://sms:sms@proxy-runtime:10810}
     extra_hosts:
       - "host.docker.internal:host-gateway"
     labels:
