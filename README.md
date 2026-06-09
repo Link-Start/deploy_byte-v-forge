@@ -41,6 +41,7 @@ scripts/deploy-remote.sh --validate-only webui gpt-service
 ```
 
 `--validate-only` 会同步源码、生成 dashboard module registry、写入本次 overlay，并只执行远程 Helm lint/template，不构建镜像、不导入镜像、不升级 release。常规部署会把本次 tag、构建时间和源码 revision 写入所选 workload 的 pod annotations，避免未选 workload 因全局 annotation 变化被动滚动。
+常规部署结束会删除临时镜像 tar 和临时导入 registry，远程 Docker 只保留每个 workload 当前 1 个部署 tag，并把 BuildKit cache 压到 `BUILD_CACHE_MAX_USED_SPACE` 上限内，默认 `20GB`；如需更大增量构建缓存，可按需覆盖该环境变量。
 
 部署脚本默认从本仓父目录读取 sibling 目标仓源码，例如 `common-lib/`、`gpt/`、`gopay-app/`、`mailbox/`、`sms/`、`wa-app/`、`browser-automation/`、`proxy-runtime/`、`workflow-runtime/` 和 `webui/`，并同步到远程构建目录。可通过 `SOURCE_ROOT` 指定源码父目录。未设置 `RELEASE_MANIFEST` 时，脚本会拒绝同步有未提交改动的已选源码仓；只允许临时调试场景显式设置 `ALLOW_DIRTY_SOURCE=1`。
 需要冻结多仓发布批次时，复制 `release-manifest.example.json`，把 `repos[].revision` 改为本次发布允许的 git SHA/ref，然后执行：

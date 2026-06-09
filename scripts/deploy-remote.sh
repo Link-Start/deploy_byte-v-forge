@@ -25,13 +25,14 @@ DOCKER_BUILDKIT=${DOCKER_BUILDKIT:-1}
 BUILDKIT_PROGRESS=${BUILDKIT_PROGRESS:-plain}
 DOCKER_BUILD_PULL=${DOCKER_BUILD_PULL:-false}
 DOCKER_BUILD_NO_CACHE=${DOCKER_BUILD_NO_CACHE:-false}
+BUILD_CACHE_MAX_USED_SPACE=${BUILD_CACHE_MAX_USED_SPACE:-20GB}
 SOURCE_REVISION=${SOURCE_REVISION:-}
 RELEASE_MANIFEST=${RELEASE_MANIFEST:-}
 ALLOW_DIRTY_SOURCE=${ALLOW_DIRTY_SOURCE:-false}
 HELM_TIMEOUT=${HELM_TIMEOUT:-10m}
 HELM_HISTORY_MAX=${HELM_HISTORY_MAX:-0}
 ROLLOUT_TIMEOUT=${ROLLOUT_TIMEOUT:-5m}
-IMAGE_TAGS_RETAIN=${IMAGE_TAGS_RETAIN:-2}
+IMAGE_TAGS_RETAIN=${IMAGE_TAGS_RETAIN:-1}
 TRAEFIK_ENABLED=${TRAEFIK_ENABLED:-false}
 TRAEFIK_RELEASE=${TRAEFIK_RELEASE:-byte-v-forge-traefik}
 TRAEFIK_NAMESPACE=${TRAEFIK_NAMESPACE:-traefik}
@@ -76,6 +77,8 @@ SKIP_VALIDATE=${SKIP_VALIDATE:-false}
 SKIP_PREFLIGHT=${SKIP_PREFLIGHT:-false}
 VALIDATE_ONLY=${VALIDATE_ONLY:-false}
 KEEP_REMOTE_TAR=${KEEP_REMOTE_TAR:-false}
+BUILD_STARTED=false
+DEPLOY_REGISTRY_STARTED=false
 
 SERVICE_CATALOG=(
   "browser-automation|browser-automation|Dockerfile"
@@ -158,8 +161,9 @@ Environment overrides:
   DEPLOY_REGISTRY_PUSH_ADDR, DEPLOY_REGISTRY_PULL_ADDR, TRAEFIK_ENABLED,
   TRAEFIK_RELEASE, TRAEFIK_NAMESPACE, TRAEFIK_CHART, TRAEFIK_CHART_VERSION,
   TRAEFIK_VALUES_FILE, BUILD_PARALLELISM, DOCKER_BUILDKIT, BUILDKIT_PROGRESS,
-  DOCKER_BUILD_PULL, DOCKER_BUILD_NO_CACHE, SOURCE_REVISION, RELEASE_MANIFEST,
-  ALLOW_DIRTY_SOURCE. BROWSER_FETCH_PROXY defaults to
+  DOCKER_BUILD_PULL, DOCKER_BUILD_NO_CACHE, BUILD_CACHE_MAX_USED_SPACE,
+  SOURCE_REVISION, RELEASE_MANIFEST, ALLOW_DIRTY_SOURCE.
+  BROWSER_FETCH_PROXY defaults to
   http://host.docker.internal:10809 for browser-automation runtime builds.
 EOF
 }
@@ -425,6 +429,10 @@ parse_args() {
     true|false) ;;
     *) die "DOCKER_BUILD_NO_CACHE must be true or false" ;;
   esac
+
+  if [[ ! "$BUILD_CACHE_MAX_USED_SPACE" =~ ^[0-9]+([kKmMgGtTpP][bB]?)?$ ]]; then
+    die "BUILD_CACHE_MAX_USED_SPACE must be a Docker size value such as 20GB or 0"
+  fi
 
   case "$ALLOW_DIRTY_SOURCE" in
     true|false|1|0) ;;
@@ -993,6 +1001,7 @@ build_images() {
   fi
 
   local service pids
+  BUILD_STARTED=true
   pids=()
   log "build parallelism: $BUILD_PARALLELISM"
   for service in "${SERVICES[@]}"; do
@@ -1154,6 +1163,7 @@ ensure_deploy_registry() {
   pull_port=${DEPLOY_REGISTRY_PULL_ADDR##*:}
 
   log "ensure deploy registry push=$DEPLOY_REGISTRY_PUSH_ADDR pull=$DEPLOY_REGISTRY_PULL_ADDR"
+  DEPLOY_REGISTRY_STARTED=true
   remote "set -e; \
     if docker inspect $(shell_quote "$DEPLOY_REGISTRY_CONTAINER") >/dev/null 2>&1; then \
       docker start $(shell_quote "$DEPLOY_REGISTRY_CONTAINER") >/dev/null; \
@@ -1466,18 +1476,36 @@ verify_rollout() {
 }
 
 cleanup_remote_tar() {
-  if [[ "${REMOTE_TAR:-}" == "" || "$KEEP_REMOTE_TAR" == "true" || "$SKIP_BUILD" == "true" || "$SKIP_IMPORT" == "true" ]]; then
+  if [[ "$BUILD_STARTED" != "true" || "${REMOTE_TAR:-}" == "" || "$KEEP_REMOTE_TAR" == "true" || "$SKIP_BUILD" == "true" || "$SKIP_IMPORT" == "true" ]]; then
     return
   fi
   remote "rm -f $(shell_quote "$REMOTE_TAR")" || true
 }
 
 cleanup_deploy_registry() {
-  if [[ "$CLEANUP_DEPLOY_REGISTRY" != "true" || "$SKIP_IMPORT" == "true" ]]; then
+  if [[ "$DEPLOY_REGISTRY_STARTED" != "true" || "$CLEANUP_DEPLOY_REGISTRY" != "true" || "$SKIP_IMPORT" == "true" ]]; then
     return
   fi
   log "cleanup deploy registry container"
   remote "docker rm -f $(shell_quote "$DEPLOY_REGISTRY_CONTAINER") >/dev/null 2>&1 || true"
+}
+
+prune_remote_build_cache() {
+  if [[ "$BUILD_STARTED" != "true" || "$SKIP_BUILD" == "true" || "$DOCKER_BUILDKIT" != "1" ]]; then
+    return
+  fi
+
+  log "prune remote BuildKit cache max-used-space=$BUILD_CACHE_MAX_USED_SPACE"
+  remote "docker buildx prune --builder default --all --force --max-used-space $(shell_quote "$BUILD_CACHE_MAX_USED_SPACE") >/dev/null"
+}
+
+prune_remote_dangling_images() {
+  if [[ "$SKIP_BUILD" == "true" ]]; then
+    return
+  fi
+
+  log "prune remote dangling images"
+  remote "docker image prune --force >/dev/null"
 }
 
 prune_remote_image_tags() {
@@ -1491,7 +1519,7 @@ prune_remote_image_tags() {
   remote "IMAGE_PREFIX=$(shell_quote "$IMAGE_PREFIX") IMAGE_TAGS_RETAIN=$(shell_quote "$IMAGE_TAGS_RETAIN") DEPLOY_SERVICES=$(shell_quote "$services_csv") VM_NAME=$(shell_quote "$VM_NAME") bash -s" <<'REMOTE_SCRIPT'
 set -Eeuo pipefail
 
-keep=${IMAGE_TAGS_RETAIN:-2}
+keep=${IMAGE_TAGS_RETAIN:-1}
 IFS=, read -r -a services <<<"${DEPLOY_SERVICES:-}"
 
 prune_host_docker_repo() {
@@ -1528,8 +1556,17 @@ done
 REMOTE_SCRIPT
 }
 
+cleanup_on_exit() {
+  local status=$?
+  cleanup_remote_tar || true
+  cleanup_deploy_registry || true
+  prune_remote_build_cache || true
+  return "$status"
+}
+
 main() {
   parse_args "$@"
+  trap cleanup_on_exit EXIT
   preflight
   init_deploy_metadata
 
@@ -1557,6 +1594,9 @@ main() {
   cleanup_remote_tar
   cleanup_deploy_registry
   prune_remote_image_tags
+  prune_remote_dangling_images
+  prune_remote_build_cache
+  trap - EXIT
   log "done"
 }
 
