@@ -19,6 +19,7 @@ configEnv:
   BROWSER_AUTOMATION_APPLY_MIGRATIONS: "true"
   BROWSER_AUTOMATION_RUNTIME: camoufox
   BROWSER_AUTOMATION_MAX_CONCURRENT_SESSIONS: "0"
+  BROWSER_AUTOMATION_WEBRTC_TCP_LISTEN_ADDR: ":3478"
   BROWSER_AUTOMATION_WEBRTC_UDP_LISTEN_ADDR: ":3478"
   BROWSER_AUTOMATION_WEBRTC_PUBLIC_IPS: "192.168.0.126"
   BROWSER_AUTOMATION_PROXY_RUNTIME_BASE_URL: 'http://{{ include "byte-v-forge.componentFullname" (dict "root" . "component" "proxy-runtime") }}:8080/api'
@@ -699,6 +700,7 @@ workloads:
       BROWSER_AUTOMATION_APPLY_MIGRATIONS: '{{ .Values.configEnv.BROWSER_AUTOMATION_APPLY_MIGRATIONS }}'
       BROWSER_AUTOMATION_RUNTIME: '{{ .Values.configEnv.BROWSER_AUTOMATION_RUNTIME }}'
       BROWSER_AUTOMATION_MAX_CONCURRENT_SESSIONS: '{{ .Values.configEnv.BROWSER_AUTOMATION_MAX_CONCURRENT_SESSIONS }}'
+      BROWSER_AUTOMATION_WEBRTC_TCP_LISTEN_ADDR: '{{ .Values.configEnv.BROWSER_AUTOMATION_WEBRTC_TCP_LISTEN_ADDR }}'
       BROWSER_AUTOMATION_WEBRTC_UDP_LISTEN_ADDR: '{{ .Values.configEnv.BROWSER_AUTOMATION_WEBRTC_UDP_LISTEN_ADDR }}'
       BROWSER_AUTOMATION_WEBRTC_PUBLIC_IPS: '{{ .Values.configEnv.BROWSER_AUTOMATION_WEBRTC_PUBLIC_IPS }}'
       BROWSER_AUTOMATION_PROXY_RUNTIME_BASE_URL: '{{ tpl .Values.configEnv.BROWSER_AUTOMATION_PROXY_RUNTIME_BASE_URL . }}'
@@ -713,6 +715,10 @@ workloads:
         containerPort: 50051
       - name: http-dashboard
         containerPort: 8080
+      - name: webrtc-tcp
+        containerPort: 3478
+        hostPort: 3478
+        protocol: TCP
       - name: webrtc-udp
         containerPort: 3478
         hostPort: 3478
@@ -727,6 +733,10 @@ workloads:
         - name: http-dashboard
           port: 8080
           targetPort: http-dashboard
+        - name: webrtc-tcp
+          port: 3478
+          targetPort: webrtc-tcp
+          protocol: TCP
         - name: webrtc-udp
           port: 3478
           targetPort: webrtc-udp
