@@ -107,6 +107,9 @@ spec:
                 secretKeyRef:
                   name: {{ include "byte-v-forge.appSecretName" $ }}
                   key: {{ default $item.name $item.key }}
+                  {{- if hasKey $item "optional" }}
+                  optional: {{ $item.optional }}
+                  {{- end }}
             {{- end }}
           {{- end }}
           {{- with $workload.volumeMounts }}

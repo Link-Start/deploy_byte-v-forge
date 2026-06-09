@@ -1006,6 +1006,7 @@ workloads:
     secretEnv:
       - name: WA_COMMON_PROXY
         key: WA_COMMON_PROXY
+        optional: true
     volumeMounts:
       - name: wa-app-data
         mountPath: /var/lib/wa-app

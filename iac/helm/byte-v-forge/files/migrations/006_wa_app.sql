@@ -141,6 +141,11 @@ CREATE TABLE IF NOT EXISTS wa_inbound_messages (
   contact_ref TEXT NOT NULL DEFAULT '',
   sender_ref TEXT NOT NULL DEFAULT '',
   payload_ref TEXT NOT NULL DEFAULT '',
+  provider_message_id TEXT NOT NULL DEFAULT '',
+  provider_timestamp TIMESTAMPTZ,
+  read_at TIMESTAMPTZ,
+  delete_status TEXT NOT NULL DEFAULT 'MESSAGE_DELETE_STATUS_NOT_DELETED',
+  deleted_at TIMESTAMPTZ,
   last_error_code TEXT NOT NULL DEFAULT '',
   last_error_message TEXT NOT NULL DEFAULT '',
   last_error_retryable BOOLEAN NOT NULL DEFAULT false,
@@ -234,6 +239,11 @@ END $$;
 
 ALTER TABLE wa_decrypted_messages ADD COLUMN IF NOT EXISTS plaintext_value TEXT NOT NULL DEFAULT '';
 ALTER TABLE wa_inbound_messages ADD COLUMN IF NOT EXISTS contact_ref TEXT NOT NULL DEFAULT '';
+ALTER TABLE wa_inbound_messages ADD COLUMN IF NOT EXISTS provider_message_id TEXT NOT NULL DEFAULT '';
+ALTER TABLE wa_inbound_messages ADD COLUMN IF NOT EXISTS provider_timestamp TIMESTAMPTZ;
+ALTER TABLE wa_inbound_messages ADD COLUMN IF NOT EXISTS read_at TIMESTAMPTZ;
+ALTER TABLE wa_inbound_messages ADD COLUMN IF NOT EXISTS delete_status TEXT NOT NULL DEFAULT 'MESSAGE_DELETE_STATUS_NOT_DELETED';
+ALTER TABLE wa_inbound_messages ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMPTZ;
 ALTER TABLE wa_contacts ADD COLUMN IF NOT EXISTS profile_picture_id TEXT NOT NULL DEFAULT '';
 
 CREATE UNIQUE INDEX IF NOT EXISTS wa_accounts_e164_number_key ON wa_accounts (e164_number);
@@ -241,6 +251,8 @@ CREATE UNIQUE INDEX IF NOT EXISTS wa_login_states_registration_id_key ON wa_logi
 CREATE UNIQUE INDEX IF NOT EXISTS wa_login_states_registered_identity_id_key ON wa_login_states (registered_identity_id);
 CREATE INDEX IF NOT EXISTS wa_inbound_messages_session_received_idx ON wa_inbound_messages (message_session_id, received_at DESC, message_id DESC);
 CREATE INDEX IF NOT EXISTS wa_inbound_messages_contact_received_idx ON wa_inbound_messages (message_session_id, contact_ref, received_at DESC, message_id DESC);
+CREATE INDEX IF NOT EXISTS wa_inbound_messages_provider_message_idx ON wa_inbound_messages (message_session_id, provider_message_id);
+CREATE INDEX IF NOT EXISTS wa_inbound_messages_delete_status_idx ON wa_inbound_messages (message_session_id, delete_status, received_at DESC);
 CREATE INDEX IF NOT EXISTS wa_decrypted_messages_message_decrypted_idx ON wa_decrypted_messages (message_id, decrypted_at DESC, decrypted_message_id DESC);
 CREATE INDEX IF NOT EXISTS wa_contacts_account_updated_idx ON wa_contacts (wa_account_id, updated_at DESC, contact_id DESC);
 CREATE INDEX IF NOT EXISTS wa_contacts_account_jid_idx ON wa_contacts (wa_account_id, jid);
