@@ -36,11 +36,6 @@ configEnv:
   SMS_NATS_URL: '{{ tpl .Values.configEnv.PLATFORM_NATS_URL . }}'
   SMS_EVENT_STREAM_NAME: BYTE_V_FORGE_EVENTS
   PROXY_RUNTIME_API_BASE_URL: 'http://{{ include "byte-v-forge.componentFullname" (dict "root" . "component" "proxy-runtime") }}:8080/api'
-  WA_LONG_CONNECTION_PROXY_USERNAME: whatsapp
-  WA_NUMBER_PROBE_PROXY_USERNAME: whatsapp-probe
-  WA_REGISTRATION_PROXY_USERNAME: whatsapp-reg
-  WA_ACCOUNT_SETTINGS_PROXY_USERNAME: whatsapp-reg
-  WA_LOGIN_STATE_CHECK_PROXY_USERNAME: whatsapp-reg
   WORKFLOW_RUNTIME_API_BASE_URL: 'http://{{ include "byte-v-forge.componentFullname" (dict "root" . "component" "workflow-runtime") }}:8080/api/workflow-runtime'
   MAILBOX_WEBHOOK_HTTP_ADDR: ":8082"
   MAILBOX_DASHBOARD_HTTP_ADDR: ":8080"
@@ -50,8 +45,6 @@ configEnv:
   WA_APP_DATA_DIR: /var/lib/wa-app
   WA_APP_PG_DSN: '{{ include "byte-v-forge.pgDsn" . }}'
   WA_APP_REDIS_URL: '{{ tpl .Values.configEnv.PLATFORM_REDIS_URL . }}'
-  WA_APP_PROXY_RUNTIME_API_BASE_URL: '{{ tpl .Values.configEnv.PROXY_RUNTIME_API_BASE_URL . }}'
-  WA_APP_PROXY_RUNTIME_LOCAL_PROTOCOL: socks5
   GOPAY_HTTP_LISTEN_ADDR: ":8080"
   GOPAY_DASHBOARD_STATIC_DIR: /app/dashboard/gopay
   MAILBOX_CLOUDFLARE_MAX_MESSAGES_PER_DOMAIN: "500"
@@ -975,13 +968,6 @@ workloads:
       WA_APP_DATA_DIR: '{{ .Values.configEnv.WA_APP_DATA_DIR }}'
       WA_APP_PG_DSN: '{{ tpl .Values.configEnv.WA_APP_PG_DSN . }}'
       WA_APP_REDIS_URL: '{{ tpl .Values.configEnv.WA_APP_REDIS_URL . }}'
-      WA_APP_PROXY_RUNTIME_API_BASE_URL: '{{ tpl .Values.configEnv.WA_APP_PROXY_RUNTIME_API_BASE_URL . }}'
-      WA_APP_PROXY_RUNTIME_LOCAL_PROTOCOL: '{{ .Values.configEnv.WA_APP_PROXY_RUNTIME_LOCAL_PROTOCOL }}'
-      WA_LONG_CONNECTION_PROXY_USERNAME: '{{ .Values.configEnv.WA_LONG_CONNECTION_PROXY_USERNAME }}'
-      WA_NUMBER_PROBE_PROXY_USERNAME: '{{ .Values.configEnv.WA_NUMBER_PROBE_PROXY_USERNAME }}'
-      WA_REGISTRATION_PROXY_USERNAME: '{{ .Values.configEnv.WA_REGISTRATION_PROXY_USERNAME }}'
-      WA_ACCOUNT_SETTINGS_PROXY_USERNAME: '{{ .Values.configEnv.WA_ACCOUNT_SETTINGS_PROXY_USERNAME }}'
-      WA_LOGIN_STATE_CHECK_PROXY_USERNAME: '{{ .Values.configEnv.WA_LOGIN_STATE_CHECK_PROXY_USERNAME }}'
     secretEnv:
       - name: WA_COMMON_PROXY
         key: WA_COMMON_PROXY
