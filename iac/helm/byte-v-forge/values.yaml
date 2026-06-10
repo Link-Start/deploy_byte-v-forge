@@ -49,7 +49,6 @@ configEnv:
   GPT_DASHBOARD_HTTP_ADDR: ":8080"
   SMS_DASHBOARD_HTTP_ADDR: ":8080"
   WA_APP_DASHBOARD_HTTP_ADDR: ":8080"
-  WA_APP_AUTH_USERNAME: ""
   WA_APP_DATA_DIR: /var/lib/wa-app
   WA_APP_PG_DSN: ""
   WA_APP_REDIS_URL: ""
@@ -1004,7 +1003,6 @@ workloads:
       WA_APP_LISTEN_ADDR: ":50051"
       WA_APP_DASHBOARD_HTTP_ADDR: '{{ .Values.configEnv.WA_APP_DASHBOARD_HTTP_ADDR }}'
       WA_APP_DASHBOARD_STATIC_DIR: /app/dashboard/wa
-      WA_APP_AUTH_USERNAME: '{{ .Values.configEnv.WA_APP_AUTH_USERNAME }}'
       WA_APP_DATA_DIR: '{{ .Values.configEnv.WA_APP_DATA_DIR }}'
       WA_APP_PG_DSN: '{{ tpl .Values.configEnv.WA_APP_PG_DSN . }}'
       WA_APP_REDIS_URL: '{{ tpl .Values.configEnv.WA_APP_REDIS_URL . }}'

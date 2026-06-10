@@ -16,7 +16,6 @@ configEnv:
   GOPAY_ACTION_API_BASE_URL: 'http://{{ include "byte-v-forge.componentFullname" (dict "root" . "component" "gopay-app") }}:8080/api/gopay/actions'
   GOPAY_API_BASE_URL: 'http://{{ include "byte-v-forge.componentFullname" (dict "root" . "component" "gopay-app") }}:8080/api/gopay'
   WA_ACTION_API_BASE_URL: 'http://{{ include "byte-v-forge.componentFullname" (dict "root" . "component" "wa-app-service") }}:8080/api/wa/actions'
-  WA_APP_AUTH_USERNAME: ""
   WA_APP_DATA_DIR: /var/lib/wa-app
   WA_APP_PG_DSN: ""
   WA_APP_REDIS_URL: ""
