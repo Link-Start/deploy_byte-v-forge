@@ -73,12 +73,15 @@ CREATE TABLE IF NOT EXISTS wa_verification_requests (
   delivery_method TEXT NOT NULL,
   status TEXT NOT NULL,
   expected_code_length INTEGER NOT NULL DEFAULT 0,
+  retry_after_seconds INTEGER NOT NULL DEFAULT 0,
   last_error_code TEXT NOT NULL DEFAULT '',
   last_error_message TEXT NOT NULL DEFAULT '',
   last_error_retryable BOOLEAN NOT NULL DEFAULT false,
   requested_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   expires_at TIMESTAMPTZ
 );
+
+ALTER TABLE wa_verification_requests ADD COLUMN IF NOT EXISTS retry_after_seconds INTEGER NOT NULL DEFAULT 0;
 
 CREATE TABLE IF NOT EXISTS wa_registrations (
   registration_id TEXT PRIMARY KEY,
