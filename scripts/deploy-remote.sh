@@ -90,7 +90,7 @@ SERVICE_CATALOG=(
   "gopay-app|.|gopay-app/Dockerfile"
   "mailbox|mailbox|Dockerfile"
   "sms-service|sms|Dockerfile"
-  "wa-app-service|wa-app|Dockerfile"
+  "wa-app-service|.|wa-app/Dockerfile"
 )
 
 SOURCE_REPOS=(
@@ -894,7 +894,7 @@ service_source_repos() {
       printf '%s\n' common-lib sms
       ;;
     wa-app-service)
-      printf '%s\n' wa-app
+      printf '%s\n' common-lib wa-app
       ;;
     browser-automation)
       printf '%s\n' browser-automation

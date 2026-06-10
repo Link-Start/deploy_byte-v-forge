@@ -603,8 +603,8 @@ services:
 
   wa-app-service:
     build:
-      context: ../wa-app
-      dockerfile: Dockerfile
+      context: ..
+      dockerfile: wa-app/Dockerfile
     ports:
       - "127.0.0.1:${WA_APP_GRPC_PORT:-50091}:50051"
     environment:
