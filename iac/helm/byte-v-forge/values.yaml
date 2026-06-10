@@ -50,8 +50,8 @@ configEnv:
   SMS_DASHBOARD_HTTP_ADDR: ":8080"
   WA_APP_DASHBOARD_HTTP_ADDR: ":8080"
   WA_APP_DATA_DIR: /var/lib/wa-app
-  WA_APP_PG_DSN: '{{ include "byte-v-forge.pgDsn" . }}'
-  WA_APP_REDIS_URL: '{{ tpl .Values.configEnv.PLATFORM_REDIS_URL . }}'
+  WA_APP_PG_DSN: ""
+  WA_APP_REDIS_URL: ""
   GOPAY_HTTP_LISTEN_ADDR: ":8080"
   GOPAY_DASHBOARD_STATIC_DIR: /app/dashboard/gopay
   MAILBOX_CLOUDFLARE_MAX_MESSAGES_PER_DOMAIN: "500"

@@ -613,7 +613,7 @@ services:
       - WA_APP_DASHBOARD_STATIC_DIR=/app/dashboard/wa
       - WA_APP_DATA_DIR=${WA_APP_DATA_DIR:-/var/lib/wa-app}
       - WA_APP_PG_DSN=${WA_APP_PG_DSN:-}
-      - WA_APP_REDIS_URL=${WA_APP_REDIS_URL:-redis://platform-redis:6379/0}
+      - WA_APP_REDIS_URL=${WA_APP_REDIS_URL:-}
       - WA_COMMON_PROXY=${WA_COMMON_PROXY:-}
       - WA_NUMBER_PROBE_PROXY=${WA_NUMBER_PROBE_PROXY:-}
       - WA_REGISTRATION_PROXY=${WA_REGISTRATION_PROXY:-}
