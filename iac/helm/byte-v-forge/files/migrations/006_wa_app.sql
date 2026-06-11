@@ -22,6 +22,7 @@ CREATE TABLE IF NOT EXISTS wa_protocol_profiles (
 
 CREATE TABLE IF NOT EXISTS wa_accounts (
   wa_account_id TEXT PRIMARY KEY,
+  display_name TEXT NOT NULL DEFAULT '',
   e164_number TEXT NOT NULL UNIQUE,
   country_calling_code TEXT NOT NULL DEFAULT '',
   national_number TEXT NOT NULL DEFAULT '',
@@ -30,6 +31,8 @@ CREATE TABLE IF NOT EXISTS wa_accounts (
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
+
+ALTER TABLE wa_accounts ADD COLUMN IF NOT EXISTS display_name TEXT NOT NULL DEFAULT '';
 
 CREATE TABLE IF NOT EXISTS wa_client_profiles (
   client_profile_id TEXT PRIMARY KEY,
