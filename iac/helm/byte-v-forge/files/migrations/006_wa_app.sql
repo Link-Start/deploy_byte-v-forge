@@ -30,6 +30,9 @@ CREATE TABLE IF NOT EXISTS wa_accounts (
   status TEXT NOT NULL,
   two_factor_auth_configured BOOLEAN,
   two_factor_email_configured BOOLEAN,
+  two_factor_email_address TEXT,
+  two_factor_email_verified BOOLEAN,
+  two_factor_email_confirmed BOOLEAN,
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
@@ -37,6 +40,9 @@ CREATE TABLE IF NOT EXISTS wa_accounts (
 ALTER TABLE wa_accounts ADD COLUMN IF NOT EXISTS display_name TEXT NOT NULL DEFAULT '';
 ALTER TABLE wa_accounts ADD COLUMN IF NOT EXISTS two_factor_auth_configured BOOLEAN;
 ALTER TABLE wa_accounts ADD COLUMN IF NOT EXISTS two_factor_email_configured BOOLEAN;
+ALTER TABLE wa_accounts ADD COLUMN IF NOT EXISTS two_factor_email_address TEXT;
+ALTER TABLE wa_accounts ADD COLUMN IF NOT EXISTS two_factor_email_verified BOOLEAN;
+ALTER TABLE wa_accounts ADD COLUMN IF NOT EXISTS two_factor_email_confirmed BOOLEAN;
 
 CREATE TABLE IF NOT EXISTS wa_client_profiles (
   client_profile_id TEXT PRIMARY KEY,
