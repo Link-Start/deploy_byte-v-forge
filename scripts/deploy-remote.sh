@@ -894,7 +894,7 @@ service_source_repos() {
       printf '%s\n' common-lib sms
       ;;
     wa-app-service)
-      printf '%s\n' common-lib wa-app
+      printf '%s\n' wa-app
       ;;
     browser-automation)
       printf '%s\n' browser-automation
