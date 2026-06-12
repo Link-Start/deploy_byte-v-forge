@@ -66,6 +66,8 @@ configEnv:
   MAILBOX_NATS_URL: '{{ tpl .Values.configEnv.PLATFORM_NATS_URL . }}'
   MAILBOX_EVENT_STREAM_NAME: BYTE_V_FORGE_EVENTS
   MAILBOX_BROWSER_AUTOMATION_ADDR: ""
+  OPENAI_SSO_LITE_ISSUER: https://sso.uizsdas.bond
+  OPENAI_SSO_LITE_ALLOWED_REDIRECT_URI_PREFIXES: https://external.auth.openai.com/
 
 traefikStatus:
   enabled: true
@@ -149,6 +151,20 @@ dashboardRoutes:
       prefixes:
         - /
       priority: 500
+    - name: openai-sso-lite
+      component: openai-sso-lite
+      portName: http
+      host: openai-sso-lite.byte-v-forge.192.168.0.126.nip.io
+      prefixes:
+        - /
+      priority: 500
+    - name: openai-sso-lite-sso
+      component: openai-sso-lite
+      portName: http
+      host: sso.uizsdas.bond
+      prefixes:
+        - /
+      priority: 600
     - name: proxy-runtime
       component: proxy-runtime
       portName: http
@@ -235,6 +251,9 @@ secrets:
     GOTO_SSO_CLIENT_SECRET: ""
     PROXY_RUNTIME_ENCRYPTION_KEY: byte_v_forge_proxy_runtime_encryption_key_change_me_32
     WORKFLOW_RUNTIME_STEP_UPDATE_TOKEN: byte_v_forge_workflow_runtime_step_update_token_change_me_32
+    OPENAI_SSO_LITE_CLIENT_SECRET: change-me-at-least-32-characters
+    OPENAI_SSO_LITE_ADMIN_TOKEN: change-me-at-least-32-characters
+    OPENAI_SSO_LITE_RSA_PRIVATE_KEY_B64: ""
 
 postgres:
   enabled: true
@@ -1055,6 +1074,44 @@ workloads:
     probes:
       grpc:
         port: 50051
+    resources: {}
+
+  openai-sso-lite:
+    enabled: true
+    replicas: 1
+    image:
+      repository: byte-v-forge/openai-sso-lite
+      tag: latest
+    env:
+      SSO_HTTP_ADDR: ":8080"
+      SSO_ISSUER: '{{ .Values.configEnv.OPENAI_SSO_LITE_ISSUER }}'
+      SSO_REDIS_URL: '{{ tpl .Values.configEnv.PLATFORM_REDIS_URL . }}'
+      SSO_CLIENT_ID: openai-chatgpt
+      SSO_ALLOWED_REDIRECT_URI_PREFIXES: '{{ .Values.configEnv.OPENAI_SSO_LITE_ALLOWED_REDIRECT_URI_PREFIXES }}'
+    secretEnv:
+      - name: SSO_CLIENT_SECRET
+        key: OPENAI_SSO_LITE_CLIENT_SECRET
+      - name: SSO_ADMIN_TOKEN
+        key: OPENAI_SSO_LITE_ADMIN_TOKEN
+      - name: SSO_RSA_PRIVATE_KEY_B64
+        key: OPENAI_SSO_LITE_RSA_PRIVATE_KEY_B64
+    ports:
+      - name: http
+        containerPort: 8080
+    service:
+      enabled: true
+      type: ClusterIP
+      ports:
+        - name: http
+          port: 8080
+          targetPort: http
+        - name: tunnel-http
+          port: 80
+          targetPort: http
+    probes:
+      httpGet:
+        path: /readyz
+        port: http
     resources: {}
 
   workflow-runtime:

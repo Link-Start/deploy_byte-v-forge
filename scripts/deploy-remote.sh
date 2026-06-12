@@ -84,6 +84,7 @@ DEPLOY_REGISTRY_STARTED=false
 SERVICE_CATALOG=(
   "browser-automation|browser-automation|Dockerfile"
   "proxy-runtime|proxy-runtime|Dockerfile"
+  "openai-sso-lite|openai-sso-lite|Dockerfile"
   "workflow-runtime|.|workflow-runtime/Dockerfile"
   "webui|.|webui/Dockerfile"
   "gpt-service|.|gpt/gpt-service/Dockerfile"
@@ -104,6 +105,7 @@ SOURCE_REPOS=(
   sms
   browser-automation
   proxy-runtime
+  openai-sso-lite
   workflow-runtime
   wa-app
 )
@@ -905,6 +907,9 @@ service_source_repos() {
       ;;
     proxy-runtime)
       printf '%s\n' proxy-runtime
+      ;;
+    openai-sso-lite)
+      printf '%s\n' openai-sso-lite
       ;;
     *)
       printf '%s\n' "${SOURCE_REPOS[@]}"

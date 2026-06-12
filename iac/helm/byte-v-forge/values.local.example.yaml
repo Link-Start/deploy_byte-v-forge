@@ -39,6 +39,8 @@ configEnv:
   MAILBOX_NATS_URL: '{{ tpl .Values.configEnv.PLATFORM_NATS_URL . }}'
   MAILBOX_EVENT_STREAM_NAME: BYTE_V_FORGE_EVENTS
   MAILBOX_BROWSER_AUTOMATION_ADDR: ""
+  OPENAI_SSO_LITE_ISSUER: https://sso.example.invalid
+  OPENAI_SSO_LITE_ALLOWED_REDIRECT_URI_PREFIXES: https://external.auth.openai.com/
   BROWSER_AUTOMATION_WEBRTC_UDP_LISTEN_ADDR: ":3478"
   BROWSER_AUTOMATION_WEBRTC_PUBLIC_IPS: "127.0.0.1"
 
@@ -74,6 +76,18 @@ workloads:
     image:
       repository: proxy-runtime
       tag: dev
+  openai-sso-lite:
+    image:
+      repository: openai-sso-lite
+      tag: dev
+    service:
+      ports:
+        - name: http
+          port: 8080
+          targetPort: http
+        - name: tunnel-http
+          port: 80
+          targetPort: http
   workflow-runtime:
     image:
       repository: workflow-runtime
@@ -113,3 +127,6 @@ secrets:
     GOTO_SSO_CLIENT_SECRET: ""
     PROXY_RUNTIME_ENCRYPTION_KEY: change-me-at-least-32-characters
     WORKFLOW_RUNTIME_STEP_UPDATE_TOKEN: change-me-at-least-32-characters
+    OPENAI_SSO_LITE_CLIENT_SECRET: change-me-at-least-32-characters
+    OPENAI_SSO_LITE_ADMIN_TOKEN: change-me-at-least-32-characters
+    OPENAI_SSO_LITE_RSA_PRIVATE_KEY_B64: ""
