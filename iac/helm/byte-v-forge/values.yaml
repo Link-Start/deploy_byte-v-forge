@@ -69,6 +69,13 @@ configEnv:
   OPENAI_SSO_LITE_ISSUER: https://sso.uizsdas.bond
   OPENAI_SSO_LITE_ALLOWED_REDIRECT_URI_PREFIXES: https://external.auth.openai.com/
 
+openaiSsoLite:
+  cloudflareTunnelBridge:
+    enabled: true
+    namespace: authentik
+    serviceName: authentik-server
+    externalName: '{{ include "byte-v-forge.componentFullname" (dict "root" . "component" "openai-sso-lite") }}.{{ .Release.Namespace }}.svc.cluster.local'
+
 traefikStatus:
   enabled: true
   entryPoint: internal

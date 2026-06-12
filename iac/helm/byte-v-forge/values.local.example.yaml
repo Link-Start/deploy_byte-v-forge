@@ -44,6 +44,13 @@ configEnv:
   BROWSER_AUTOMATION_WEBRTC_UDP_LISTEN_ADDR: ":3478"
   BROWSER_AUTOMATION_WEBRTC_PUBLIC_IPS: "127.0.0.1"
 
+openaiSsoLite:
+  cloudflareTunnelBridge:
+    enabled: false
+    namespace: authentik
+    serviceName: authentik-server
+    externalName: byte-v-forge-openai-sso-lite.byte-v-forge.svc.cluster.local
+
 cloudflareEmail:
   zones:
     - zoneName: example.invalid
