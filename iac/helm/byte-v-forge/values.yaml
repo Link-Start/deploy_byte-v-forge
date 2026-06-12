@@ -1079,13 +1079,14 @@ workloads:
   openai-sso-lite:
     enabled: true
     replicas: 1
+    strategyType: Recreate
     image:
       repository: byte-v-forge/openai-sso-lite
       tag: latest
     env:
       SSO_HTTP_ADDR: ":8080"
       SSO_ISSUER: '{{ .Values.configEnv.OPENAI_SSO_LITE_ISSUER }}'
-      SSO_REDIS_URL: '{{ tpl .Values.configEnv.PLATFORM_REDIS_URL . }}'
+      SSO_SQLITE_PATH: /var/lib/openai-sso-lite/openai-sso-lite.db
       SSO_CLIENT_ID: openai-chatgpt
       SSO_ALLOWED_REDIRECT_URI_PREFIXES: '{{ .Values.configEnv.OPENAI_SSO_LITE_ALLOWED_REDIRECT_URI_PREFIXES }}'
     secretEnv:
@@ -1098,6 +1099,17 @@ workloads:
     ports:
       - name: http
         containerPort: 8080
+    volumeMounts:
+      - name: openai-sso-lite-data
+        mountPath: /var/lib/openai-sso-lite
+    volumes:
+      - name: openai-sso-lite-data
+        type: persistentVolumeClaim
+        create: true
+        claimName: '{{ include "byte-v-forge.componentFullname" (dict "root" . "component" "openai-sso-lite") }}-data'
+        accessModes:
+          - ReadWriteOnce
+        size: 1Gi
     service:
       enabled: true
       type: ClusterIP
