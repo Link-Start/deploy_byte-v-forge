@@ -39,6 +39,10 @@ configEnv:
   MAILBOX_BROWSER_AUTOMATION_ADDR: ""
   OPENAI_SSO_LITE_ISSUER: https://sso.example.invalid
   OPENAI_SSO_LITE_ALLOWED_REDIRECT_URI_PREFIXES: https://external.auth.openai.com/
+  OPENAI_SSO_DISCORD_BOT_APPLICATION_ID: ""
+  OPENAI_SSO_DISCORD_BOT_GUILD_ID: ""
+  OPENAI_SSO_DISCORD_BOT_DEFAULT_CLAIM_LIMIT: "1"
+  OPENAI_SSO_DISCORD_BOT_EMAIL_DOMAIN: workspace.example.invalid
   BROWSER_AUTOMATION_WEBRTC_UDP_LISTEN_ADDR: ":3478"
   BROWSER_AUTOMATION_WEBRTC_PUBLIC_IPS: "127.0.0.1"
 
@@ -77,6 +81,11 @@ workloads:
   openai-sso-lite:
     image:
       repository: openai-sso-lite
+      tag: dev
+  openai-sso-discord-bot:
+    enabled: false
+    image:
+      repository: openai-sso-discord-bot
       tag: dev
   workflow-runtime:
     image:
@@ -118,3 +127,4 @@ secrets:
     OPENAI_SSO_LITE_CLIENT_SECRET: change-me-at-least-32-characters
     OPENAI_SSO_LITE_ADMIN_TOKEN: change-me-at-least-32-characters
     OPENAI_SSO_LITE_RSA_PRIVATE_KEY_B64: ""
+    OPENAI_SSO_DISCORD_BOT_TOKEN: ""
