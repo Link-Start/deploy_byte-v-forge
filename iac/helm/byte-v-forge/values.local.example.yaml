@@ -27,8 +27,6 @@ configEnv:
   SMS_EVENT_STREAM_NAME: BYTE_V_FORGE_EVENTS
   PROXY_RUNTIME_API_BASE_URL: 'http://{{ include "byte-v-forge.componentFullname" (dict "root" . "component" "proxy-runtime") }}:8080/api'
   PROXY_RUNTIME_LOCAL_PROTOCOL: socks5
-  WA_NUMBER_PROBE_PROXY_USERNAME: whatsapp-probe
-  WA_REGISTRATION_PROXY_USERNAME: whatsapp-reg
   WORKFLOW_RUNTIME_API_BASE_URL: 'http://{{ include "byte-v-forge.componentFullname" (dict "root" . "component" "workflow-runtime") }}:8080/api/workflow-runtime'
   MAILBOX_CLOUDFLARE_MAX_MESSAGES_PER_DOMAIN: "500"
   MAILBOX_CLOUDFLARE_RELAY_PULL_URL: https://cloudflare-email-relay.example.invalid
