@@ -176,7 +176,7 @@ services:
       - TEAM5000_SSO_ADMIN_TOKEN=${OPENAI_SSO_LITE_ADMIN_TOKEN:-change-me-at-least-32-characters}
       - TEAM5000_WORKSPACE_ID=${TEAM5000_WORKSPACE_ID:-}
       - TEAM5000_PROXY_URL=${TEAM5000_PROXY_URL:-socks5://proxy-runtime:10810}
-      - TEAM5000_MODEL=${TEAM5000_MODEL:-gpt-5.1-codex-max}
+      - TEAM5000_MODEL=${TEAM5000_MODEL:-gpt-5.5}
       - TEAM5000_MAX_PARENT_HELLO=${TEAM5000_MAX_PARENT_HELLO:-0}
       - TEAM5000_OUTPUT=/var/lib/team-5000/sessions
       - TEAM5000_REPORT=/var/lib/team-5000/logs/team5000-cycle.jsonl

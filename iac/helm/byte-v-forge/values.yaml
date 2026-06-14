@@ -72,7 +72,7 @@ configEnv:
   TEAM5000_DOMAIN: workspace.uizsdas.bond
   TEAM5000_WORKSPACE_ID: ""
   TEAM5000_PROXY_URL: 'socks5://{{ include "byte-v-forge.componentFullname" (dict "root" . "component" "proxy-runtime") }}:10810'
-  TEAM5000_MODEL: gpt-5.1-codex-max
+  TEAM5000_MODEL: gpt-5.5
   TEAM5000_MAX_PARENT_HELLO: "0"
 
 traefikStatus:
