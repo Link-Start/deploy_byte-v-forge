@@ -249,6 +249,7 @@ secrets:
           {"name":"payment","proxy_url":"socks5://{{ include "byte-v-forge.componentFullname" (dict "root" . "component" "proxy-runtime") }}:10810","tls_profile":"chrome_146","user_agent":"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36","sec_ch_ua":"\"Google Chrome\";v=\"147\", \"Not.A/Brand\";v=\"8\", \"Chromium\";v=\"147\"","sec_ch_ua_platform":"\"Windows\"","locale":"zh-CN","platform":"Windows","pin_locale":"id"}
     GOTO_SSO_CLIENT_SECRET: ""
     PROXY_RUNTIME_ENCRYPTION_KEY: byte_v_forge_proxy_runtime_encryption_key_change_me_32
+    PROXY_RUNTIME_CONTROL_AUTH_TOKEN: ""
     WORKFLOW_RUNTIME_STEP_UPDATE_TOKEN: byte_v_forge_workflow_runtime_step_update_token_change_me_32
     OPENAI_SSO_LITE_CLIENT_SECRET: change-me-at-least-32-characters
     OPENAI_SSO_LITE_ADMIN_TOKEN: change-me-at-least-32-characters
@@ -670,6 +671,8 @@ workloads:
     secretEnv:
       - name: PROXY_RUNTIME_ENCRYPTION_KEY
         key: PROXY_RUNTIME_ENCRYPTION_KEY
+      - name: PROXY_RUNTIME_CONTROL_AUTH_TOKEN
+        key: PROXY_RUNTIME_CONTROL_AUTH_TOKEN
     ports:
       - name: http
         containerPort: 8080
