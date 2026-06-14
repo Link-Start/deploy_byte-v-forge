@@ -262,6 +262,7 @@ secrets:
     PROXY_RUNTIME_ENCRYPTION_KEY: byte_v_forge_proxy_runtime_encryption_key_change_me_32
     PROXY_RUNTIME_CONTROL_AUTH_TOKEN: ""
     WORKFLOW_RUNTIME_STEP_UPDATE_TOKEN: byte_v_forge_workflow_runtime_step_update_token_change_me_32
+    TEAM5000_PROXY_URL: ""
     OPENAI_SSO_LITE_CLIENT_SECRET: change-me-at-least-32-characters
     OPENAI_SSO_LITE_ADMIN_TOKEN: change-me-at-least-32-characters
     OPENAI_SSO_LITE_RSA_PRIVATE_KEY_B64: ""
@@ -1194,6 +1195,8 @@ workloads:
       TEAM5000_OUTPUT: /var/lib/team-5000/sessions
       TEAM5000_REPORT: /var/lib/team-5000/logs/team5000-cycle.jsonl
     secretEnv:
+      - name: TEAM5000_PROXY_URL_SECRET
+        key: TEAM5000_PROXY_URL
       - name: TEAM5000_SSO_ADMIN_TOKEN
         key: OPENAI_SSO_LITE_ADMIN_TOKEN
     ports:

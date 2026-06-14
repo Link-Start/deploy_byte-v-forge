@@ -133,6 +133,7 @@ secrets:
     PROXY_RUNTIME_ENCRYPTION_KEY: change-me-at-least-32-characters
     PROXY_RUNTIME_CONTROL_AUTH_TOKEN: change-me
     WORKFLOW_RUNTIME_STEP_UPDATE_TOKEN: change-me-at-least-32-characters
+    TEAM5000_PROXY_URL: ""
     OPENAI_SSO_LITE_CLIENT_SECRET: change-me-at-least-32-characters
     OPENAI_SSO_LITE_ADMIN_TOKEN: change-me-at-least-32-characters
     OPENAI_SSO_LITE_RSA_PRIVATE_KEY_B64: ""
