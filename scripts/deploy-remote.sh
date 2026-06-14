@@ -86,6 +86,7 @@ SERVICE_CATALOG=(
   "proxy-runtime|proxy-runtime|Dockerfile"
   "openai-sso-lite|openai-sso-lite|Dockerfile"
   "openai-sso-discord-bot|openai-sso-discord-bot|Dockerfile"
+  "team-5000|team-5000|Dockerfile"
   "workflow-runtime|.|workflow-runtime/Dockerfile"
   "webui|.|webui/Dockerfile"
   "gpt-service|.|gpt/gpt-service/Dockerfile"
@@ -108,6 +109,7 @@ SOURCE_REPOS=(
   proxy-runtime
   openai-sso-lite
   openai-sso-discord-bot
+  team-5000
   workflow-runtime
   wa-app
 )
@@ -915,6 +917,9 @@ service_source_repos() {
       ;;
     openai-sso-discord-bot)
       printf '%s\n' openai-sso-discord-bot
+      ;;
+    team-5000)
+      printf '%s\n' team-5000
       ;;
     *)
       printf '%s\n' "${SOURCE_REPOS[@]}"

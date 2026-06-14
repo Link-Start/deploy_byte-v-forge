@@ -163,6 +163,38 @@ services:
       - openai_sso_discord_bot_data:/var/lib/openai-sso-discord-bot
     restart: always
 
+  team-5000:
+    build:
+      context: ../team-5000
+      dockerfile: Dockerfile
+    ports:
+      - "127.0.0.1:${TEAM5000_HTTP_PORT:-8093}:8080"
+    environment:
+      - TEAM5000_HTTP_ADDR=:8080
+      - TEAM5000_DOMAIN=${TEAM5000_DOMAIN:-workspace.example.invalid}
+      - TEAM5000_SSO_ISSUER=${OPENAI_SSO_LITE_ISSUER:-https://sso.example.invalid}
+      - TEAM5000_SSO_ADMIN_TOKEN=${OPENAI_SSO_LITE_ADMIN_TOKEN:-change-me-at-least-32-characters}
+      - TEAM5000_WORKSPACE_ID=${TEAM5000_WORKSPACE_ID:-}
+      - TEAM5000_PROXY_URL=${TEAM5000_PROXY_URL:-socks5://proxy-runtime:10810}
+      - TEAM5000_MODEL=${TEAM5000_MODEL:-gpt-5.1-codex-max}
+      - TEAM5000_MAX_PARENT_HELLO=${TEAM5000_MAX_PARENT_HELLO:-0}
+      - TEAM5000_OUTPUT=/var/lib/team-5000/sessions
+      - TEAM5000_REPORT=/var/lib/team-5000/logs/team5000-cycle.jsonl
+    volumes:
+      - team_5000_data:/var/lib/team-5000
+    depends_on:
+      - proxy-runtime
+      - openai-sso-lite
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.team-5000.rule=PathPrefix(`/api/team-5000`)"
+      - "traefik.http.routers.team-5000.entrypoints=web"
+      - "traefik.http.routers.team-5000.priority=100"
+      - "traefik.http.routers.team-5000.service=team-5000"
+      - "traefik.http.services.team-5000.loadbalancer.server.port=8080"
+      - "traefik.http.services.team-5000.loadbalancer.healthcheck.path=/healthz"
+    restart: unless-stopped
+
   platform-nats:
     image: docker.m.daocloud.io/library/nats:2.14.1
     command: ["-js", "-sd", "/data", "-m", "8222"]
@@ -740,4 +772,5 @@ volumes:
   proxy_runtime_data:
   openai_sso_lite_data:
   openai_sso_discord_bot_data:
+  team_5000_data:
   wa_app_data:
