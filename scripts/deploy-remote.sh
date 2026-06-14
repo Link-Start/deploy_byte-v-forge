@@ -78,7 +78,7 @@ SKIP_VALIDATE=${SKIP_VALIDATE:-false}
 SKIP_PREFLIGHT=${SKIP_PREFLIGHT:-false}
 VALIDATE_ONLY=${VALIDATE_ONLY:-false}
 KEEP_REMOTE_TAR=${KEEP_REMOTE_TAR:-false}
-BUILD_STARTED=false
+REMOTE_BUILD_CLEANUP_ALLOWED=false
 DEPLOY_REGISTRY_STARTED=false
 
 SERVICE_CATALOG=(
@@ -875,9 +875,7 @@ persist_n8n_workflow_state() {
   fi
   log "persist n8n workflow manifest"
   remote "printf '%s\n' $(shell_quote "$N8N_WORKFLOW_CHECKSUM") > $(shell_quote "$N8N_WORKFLOW_CHECKSUM_FILE")"
-  ssh -o ConnectTimeout=5 "$REMOTE_HOST" "cat > $(shell_quote "$N8N_WORKFLOW_MANIFEST_FILE")" <<EOF
-$N8N_WORKFLOW_MANIFEST
-EOF
+  printf '%s\n' "$N8N_WORKFLOW_MANIFEST" | ssh -o ConnectTimeout=5 "$REMOTE_HOST" "cat > $(shell_quote "$N8N_WORKFLOW_MANIFEST_FILE")"
 }
 
 service_source_repos() {
@@ -1019,7 +1017,6 @@ build_images() {
   fi
 
   local service pids
-  BUILD_STARTED=true
   pids=()
   log "build parallelism: $BUILD_PARALLELISM"
   for service in "${SERVICES[@]}"; do
@@ -1175,20 +1172,24 @@ REMOTE_SCRIPT
 }
 
 ensure_deploy_registry() {
-  local push_port pull_host pull_port
+  local push_port pull_host pull_port registry_volume
   push_port=${DEPLOY_REGISTRY_PUSH_ADDR##*:}
   pull_host=${DEPLOY_REGISTRY_PULL_ADDR%:*}
   pull_port=${DEPLOY_REGISTRY_PULL_ADDR##*:}
+  registry_volume=${DEPLOY_REGISTRY_CONTAINER}-data
 
   log "ensure deploy registry push=$DEPLOY_REGISTRY_PUSH_ADDR pull=$DEPLOY_REGISTRY_PULL_ADDR"
   DEPLOY_REGISTRY_STARTED=true
   remote "set -e; \
     if docker inspect $(shell_quote "$DEPLOY_REGISTRY_CONTAINER") >/dev/null 2>&1; then \
-      docker start $(shell_quote "$DEPLOY_REGISTRY_CONTAINER") >/dev/null; \
+      docker start $(shell_quote "$DEPLOY_REGISTRY_CONTAINER") >/dev/null 2>&1 || true; \
     else \
-      docker run -d --restart unless-stopped --name $(shell_quote "$DEPLOY_REGISTRY_CONTAINER") \
+      docker volume create --label byte-v-forge.role=deploy-registry $(shell_quote "$registry_volume") >/dev/null; \
+      docker run -d --name $(shell_quote "$DEPLOY_REGISTRY_CONTAINER") \
+        --label byte-v-forge.role=deploy-registry \
         -p 127.0.0.1:$(shell_quote "$push_port"):5000 \
         -p $(shell_quote "$pull_host"):$(shell_quote "$pull_port"):5000 \
+        -v $(shell_quote "$registry_volume"):/var/lib/registry \
         registry:2 >/dev/null; \
     fi; \
     for _ in 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30; do \
@@ -1494,10 +1495,11 @@ verify_rollout() {
 }
 
 cleanup_remote_tar() {
-  if [[ "$BUILD_STARTED" != "true" || "${REMOTE_TAR:-}" == "" || "$KEEP_REMOTE_TAR" == "true" || "$SKIP_BUILD" == "true" || "$SKIP_IMPORT" == "true" ]]; then
+  if [[ "$REMOTE_BUILD_CLEANUP_ALLOWED" != "true" || "${REMOTE_TAR:-}" == "" || "$KEEP_REMOTE_TAR" == "true" || "$SKIP_BUILD" == "true" ]]; then
     return
   fi
-  remote "rm -f $(shell_quote "$REMOTE_TAR")" || true
+  log "cleanup remote image tars"
+  remote "rm -f $(shell_quote "$REMOTE_TAR"); find /tmp -maxdepth 1 -type f -name 'byte-v-forge-images-*.tar' -delete" || true
 }
 
 cleanup_deploy_registry() {
@@ -1505,36 +1507,46 @@ cleanup_deploy_registry() {
     return
   fi
   log "cleanup deploy registry container"
-  remote "docker rm -f $(shell_quote "$DEPLOY_REGISTRY_CONTAINER") >/dev/null 2>&1 || true"
+  remote "docker rm -fv $(shell_quote "$DEPLOY_REGISTRY_CONTAINER") >/dev/null 2>&1 || true; docker volume rm -f $(shell_quote "${DEPLOY_REGISTRY_CONTAINER}-data") >/dev/null 2>&1 || true"
 }
 
 prune_remote_build_cache() {
-  if [[ "$BUILD_STARTED" != "true" || "$SKIP_BUILD" == "true" || "$DOCKER_BUILDKIT" != "1" ]]; then
+  if [[ "$REMOTE_BUILD_CLEANUP_ALLOWED" != "true" || "$SKIP_BUILD" == "true" || "$DOCKER_BUILDKIT" != "1" ]]; then
     return
   fi
 
   log "prune remote BuildKit cache max-used-space=$BUILD_CACHE_MAX_USED_SPACE"
-  remote "docker buildx prune --builder default --all --force --max-used-space $(shell_quote "$BUILD_CACHE_MAX_USED_SPACE") >/dev/null"
+  remote "docker buildx prune --builder default --all --force --max-used-space $(shell_quote "$BUILD_CACHE_MAX_USED_SPACE") >/dev/null 2>&1 || true"
 }
 
 prune_remote_dangling_images() {
-  if [[ "$SKIP_BUILD" == "true" ]]; then
+  if [[ "$REMOTE_BUILD_CLEANUP_ALLOWED" != "true" || "$SKIP_BUILD" == "true" ]]; then
     return
   fi
 
   log "prune remote dangling images"
-  remote "docker image prune --force >/dev/null"
+  remote "docker image prune --force >/dev/null 2>&1 || true"
 }
 
-prune_remote_image_tags() {
-  if [[ "$IMAGE_TAGS_RETAIN" == "0" || "$SKIP_BUILD" == "true" ]]; then
+prune_remote_anonymous_volumes() {
+  if [[ "$REMOTE_BUILD_CLEANUP_ALLOWED" != "true" || "$SKIP_BUILD" == "true" ]]; then
     return
   fi
 
-  local services_csv
+  log "prune remote anonymous volumes"
+  remote "docker volume prune --force --filter label=com.docker.volume.anonymous >/dev/null 2>&1 || true"
+}
+
+prune_remote_image_tags() {
+  if [[ "$REMOTE_BUILD_CLEANUP_ALLOWED" != "true" || "$IMAGE_TAGS_RETAIN" == "0" || "$SKIP_BUILD" == "true" ]]; then
+    return
+  fi
+
+  local runtime_repo services_csv
+  runtime_repo=${BROWSER_AUTOMATION_RUNTIME_IMAGE%:*}
   services_csv=$(catalog_service_names | paste -sd, -)
   log "prune remote image tags keep=$IMAGE_TAGS_RETAIN"
-  remote "IMAGE_PREFIX=$(shell_quote "$IMAGE_PREFIX") IMAGE_TAGS_RETAIN=$(shell_quote "$IMAGE_TAGS_RETAIN") DEPLOY_SERVICES=$(shell_quote "$services_csv") VM_NAME=$(shell_quote "$VM_NAME") bash -s" <<'REMOTE_SCRIPT'
+  remote "IMAGE_PREFIX=$(shell_quote "$IMAGE_PREFIX") DEPLOY_REGISTRY_PUSH_ADDR=$(shell_quote "$DEPLOY_REGISTRY_PUSH_ADDR") BROWSER_AUTOMATION_RUNTIME_REPO=$(shell_quote "$runtime_repo") IMAGE_TAGS_RETAIN=$(shell_quote "$IMAGE_TAGS_RETAIN") DEPLOY_SERVICES=$(shell_quote "$services_csv") VM_NAME=$(shell_quote "$VM_NAME") bash -s" <<'REMOTE_SCRIPT'
 set -Eeuo pipefail
 
 keep=${IMAGE_TAGS_RETAIN:-1}
@@ -1542,18 +1554,19 @@ IFS=, read -r -a services <<<"${DEPLOY_SERVICES:-}"
 
 prune_host_docker_repo() {
   local repo=$1
+  local retain=$2
   mapfile -t tags < <(docker image ls "$repo" --format '{{.Tag}}' | awk 'NF && $1 != "<none>"' | sort -r)
-  ((${#tags[@]} > keep)) || return 0
+  ((${#tags[@]} > retain)) || return 0
 
   local keep_set=" "
   local tag
   mapfile -t deploy_tags < <(printf '%s\n' "${tags[@]}" | awk '/^deploy-[0-9]{14}$/ {print}' | sort -r)
   if ((${#deploy_tags[@]} > 0)); then
-    for tag in "${deploy_tags[@]:0:keep}"; do
+    for tag in "${deploy_tags[@]:0:retain}"; do
       keep_set+="$tag "
     done
   else
-    for tag in "${tags[@]:0:keep}"; do
+    for tag in "${tags[@]:0:retain}"; do
       keep_set+="$tag "
     done
   fi
@@ -1568,16 +1581,37 @@ prune_host_docker_repo() {
 
 for service in "${services[@]}"; do
   [[ -n "$service" ]] || continue
-  prune_host_docker_repo "${IMAGE_PREFIX%/}/$service"
+  prune_host_docker_repo "${IMAGE_PREFIX%/}/$service" "$keep"
+  prune_host_docker_repo "${DEPLOY_REGISTRY_PUSH_ADDR%/}/${IMAGE_PREFIX%/}/$service" 0
 done
 
+if [[ -n "${BROWSER_AUTOMATION_RUNTIME_REPO:-}" ]]; then
+  prune_host_docker_repo "$BROWSER_AUTOMATION_RUNTIME_REPO" "$keep"
+fi
+
 REMOTE_SCRIPT
+}
+
+prepare_remote_build_space() {
+  if [[ "$SKIP_BUILD" == "true" ]]; then
+    return
+  fi
+
+  REMOTE_BUILD_CLEANUP_ALLOWED=true
+  cleanup_remote_tar
+  prune_remote_image_tags
+  prune_remote_dangling_images
+  prune_remote_anonymous_volumes
+  prune_remote_build_cache
 }
 
 cleanup_on_exit() {
   local status=$?
   cleanup_remote_tar || true
   cleanup_deploy_registry || true
+  prune_remote_image_tags || true
+  prune_remote_dangling_images || true
+  prune_remote_anonymous_volumes || true
   prune_remote_build_cache || true
   return "$status"
 }
@@ -1600,6 +1634,7 @@ main() {
     log "validate-only done"
     return
   fi
+  prepare_remote_build_space
   build_images
   save_images
   import_images
@@ -1613,6 +1648,7 @@ main() {
   cleanup_deploy_registry
   prune_remote_image_tags
   prune_remote_dangling_images
+  prune_remote_anonymous_volumes
   prune_remote_build_cache
   trap - EXIT
   log "done"
