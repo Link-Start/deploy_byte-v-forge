@@ -261,6 +261,7 @@ secrets:
     GOTO_SSO_CLIENT_SECRET: ""
     PROXY_RUNTIME_ENCRYPTION_KEY: byte_v_forge_proxy_runtime_encryption_key_change_me_32
     PROXY_RUNTIME_CONTROL_AUTH_TOKEN: ""
+    PROXY_RUNTIME_SERVICE_AUTH_TOKEN: ""
     WORKFLOW_RUNTIME_STEP_UPDATE_TOKEN: byte_v_forge_workflow_runtime_step_update_token_change_me_32
     TEAM5000_PROXY_URL: ""
     OPENAI_SSO_LITE_CLIENT_SECRET: change-me-at-least-32-characters
@@ -685,6 +686,8 @@ workloads:
         key: PROXY_RUNTIME_ENCRYPTION_KEY
       - name: PROXY_RUNTIME_CONTROL_AUTH_TOKEN
         key: PROXY_RUNTIME_CONTROL_AUTH_TOKEN
+      - name: PROXY_RUNTIME_SERVICE_AUTH_TOKEN
+        key: PROXY_RUNTIME_SERVICE_AUTH_TOKEN
     ports:
       - name: http
         containerPort: 8080
