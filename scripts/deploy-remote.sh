@@ -991,6 +991,7 @@ build_image() {
     ensure_browser_automation_runtime_image
     build_flags="$build_flags --build-arg BROWSER_AUTOMATION_RUNTIME_IMAGE=$(shell_quote "$BROWSER_AUTOMATION_RUNTIME_IMAGE")"
   elif [[ "$service" == "proxy-runtime" && -n "$METACUBEXD_GIT_PROXY" ]]; then
+    build_flags="$build_flags --add-host=host.docker.internal:host-gateway"
     build_flags="$build_flags --build-arg METACUBEXD_GIT_PROXY=$(shell_quote "$METACUBEXD_GIT_PROXY")"
   elif [[ "$service" == "gpt-service" ]]; then
     build_flags="$build_flags --target $(shell_quote "gpt_service_runtime")"
