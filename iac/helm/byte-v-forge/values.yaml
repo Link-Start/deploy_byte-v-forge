@@ -727,7 +727,13 @@ workloads:
       httpGet:
         path: /healthz
         port: http
-    resources: {}
+    resources:
+      requests:
+        cpu: 500m
+        memory: 512Mi
+      limits:
+        cpu: "4"
+        memory: 2Gi
 
   browser-automation:
     enabled: true
