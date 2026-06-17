@@ -697,6 +697,8 @@ services:
       - WA_APP_PG_DSN=${WA_APP_PG_DSN:-}
       - WA_APP_REDIS_URL=${WA_APP_REDIS_URL:-}
       - WA_COMMON_PROXY=${WA_COMMON_PROXY:-}
+      - PROXY_RUNTIME_API_BASE_URL=${PROXY_RUNTIME_API_BASE_URL:-http://proxy-runtime:8080/api}
+      - PROXY_RUNTIME_SERVICE_AUTH_TOKEN=${PROXY_RUNTIME_SERVICE_AUTH_TOKEN:-}
     volumes:
       - wa_app_data:/var/lib/wa-app
     labels:
