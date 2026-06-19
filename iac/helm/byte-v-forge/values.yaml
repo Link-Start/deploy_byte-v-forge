@@ -55,6 +55,7 @@ configEnv:
   WA_APP_REDIS_URL: ""
   WA_REGISTRATION_PROXY_LEASE_MODE: optional
   WA_REGISTRATION_PROXY_LEASE_API_BASE_URL: 'http://{{ include "byte-v-forge.componentFullname" (dict "root" . "component" "proxy-runtime") }}:8080/api'
+  WA_REGISTRATION_PROXY_LEASE_ACCOUNT_ID: ""
   GOPAY_HTTP_LISTEN_ADDR: ":8080"
   GOPAY_DASHBOARD_STATIC_DIR: /app/dashboard/gopay
   MAILBOX_CLOUDFLARE_MAX_MESSAGES_PER_DOMAIN: "500"
@@ -1062,6 +1063,7 @@ workloads:
       WA_APP_REDIS_URL: '{{ tpl .Values.configEnv.WA_APP_REDIS_URL . }}'
       WA_REGISTRATION_PROXY_LEASE_MODE: '{{ .Values.configEnv.WA_REGISTRATION_PROXY_LEASE_MODE }}'
       WA_REGISTRATION_PROXY_LEASE_API_BASE_URL: '{{ tpl .Values.configEnv.WA_REGISTRATION_PROXY_LEASE_API_BASE_URL . }}'
+      WA_REGISTRATION_PROXY_LEASE_ACCOUNT_ID: '{{ .Values.configEnv.WA_REGISTRATION_PROXY_LEASE_ACCOUNT_ID }}'
     secretEnv:
       - name: WA_APP_AUTH_PASSWORD
         key: WA_APP_AUTH_PASSWORD
