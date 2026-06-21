@@ -1003,6 +1003,7 @@ build_image() {
     # Go 模块走国内 goproxy.cn（builder golang 走 docker.io 本地镜像 127.0.0.1:5001）。
     build_flags="$build_flags --build-arg RUNNER_IMAGE=m.daocloud.io/gcr.io/distroless/static-debian12:nonroot"
     build_flags="$build_flags --build-arg GOPROXY=https://goproxy.cn,direct"
+    build_flags="$build_flags --build-arg NPM_REGISTRY=https://registry.npmmirror.com"
   fi
   log "build $image"
   remote "cd $(shell_quote "$REMOTE_DIR") && DOCKER_BUILDKIT=$(shell_quote "$DOCKER_BUILDKIT") BUILDKIT_PROGRESS=$(shell_quote "$BUILDKIT_PROGRESS") docker build $build_flags -t $(shell_quote "$image") -f $(shell_quote "$dockerfile_arg") $(shell_quote "$context")"
