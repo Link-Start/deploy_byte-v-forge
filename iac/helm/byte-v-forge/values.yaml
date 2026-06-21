@@ -273,8 +273,10 @@ secrets:
     PROXY_RUNTIME_ENCRYPTION_KEY: byte_v_forge_proxy_runtime_encryption_key_change_me_32
     PROXY_RUNTIME_CONTROL_AUTH_TOKEN: ""
     PROXY_RUNTIME_SERVICE_AUTH_TOKEN: ""
-    # mixed-proxy-gateway admin Basic Auth 密码；占位空值，真值经远程 live values 注入（不进 git）。
+    # mixed-proxy-gateway admin 登录密码；占位空值，真值经远程 live values 注入（不进 git）。
     MIXED_PROXY_GATEWAY_ADMIN_PASSWORD: ""
+    # mixed-proxy-gateway 订阅 URL（含 token）；占位空值，真值经远程 live values 注入（不进 git）。
+    MIXED_PROXY_GATEWAY_SUBSCRIPTION_URL: ""
     PROXY_RUNTIME_LOCAL_PASSWORD: ""
     WORKFLOW_RUNTIME_STEP_UPDATE_TOKEN: byte_v_forge_workflow_runtime_step_update_token_change_me_32
     TEAM5000_PROXY_URL: ""
@@ -776,6 +778,9 @@ workloads:
     secretEnv:
       - name: ADMIN_PASSWORD
         key: MIXED_PROXY_GATEWAY_ADMIN_PASSWORD
+      - name: SUBSCRIPTION_URL
+        key: MIXED_PROXY_GATEWAY_SUBSCRIPTION_URL
+        optional: true
     ports:
       - name: admin
         containerPort: 8088
