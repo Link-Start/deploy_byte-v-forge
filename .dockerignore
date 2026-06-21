@@ -10,4 +10,4 @@
 **/build
 **/.wrangler
 **/*.log
-proxy-runtime/workers/cloudflare-edge-canary/.canary-token.local
+proxy-gateway/workers/cloudflare-edge-canary/.canary-token.local

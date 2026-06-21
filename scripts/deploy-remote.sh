@@ -83,7 +83,7 @@ DEPLOY_REGISTRY_STARTED=false
 
 SERVICE_CATALOG=(
   "browser-automation|browser-automation|Dockerfile"
-  "proxy-runtime|proxy-runtime|Dockerfile"
+  "proxy-runtime|proxy-gateway|Dockerfile"
   "openai-sso-lite|openai-sso-lite|Dockerfile"
   "openai-sso-discord-bot|openai-sso-discord-bot|Dockerfile"
   "team-5000|team-5000|Dockerfile"
@@ -106,7 +106,7 @@ SOURCE_REPOS=(
   webui
   sms
   browser-automation
-  proxy-runtime
+  proxy-gateway
   openai-sso-lite
   openai-sso-discord-bot
   team-5000
@@ -908,7 +908,7 @@ service_source_repos() {
       printf '%s\n' common-lib workflow-runtime
       ;;
     proxy-runtime)
-      printf '%s\n' proxy-runtime
+      printf '%s\n' proxy-gateway
       ;;
     openai-sso-lite)
       printf '%s\n' openai-sso-lite
