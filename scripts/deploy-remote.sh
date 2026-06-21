@@ -84,6 +84,7 @@ DEPLOY_REGISTRY_STARTED=false
 SERVICE_CATALOG=(
   "browser-automation|browser-automation|Dockerfile"
   "proxy-runtime|proxy-gateway|Dockerfile"
+  "mixed-proxy-gateway|mixed-proxy-gateway|Dockerfile"
   "openai-sso-lite|openai-sso-lite|Dockerfile"
   "openai-sso-discord-bot|openai-sso-discord-bot|Dockerfile"
   "team-5000|team-5000|Dockerfile"
@@ -108,6 +109,7 @@ SOURCE_REPOS=(
   sms
   browser-automation
   proxy-gateway
+  mixed-proxy-gateway
   openai-sso-lite
   openai-sso-discord-bot
   team-5000
@@ -996,6 +998,11 @@ build_image() {
     build_flags="$build_flags --build-arg METACUBEXD_GIT_PROXY=$(shell_quote "$METACUBEXD_GIT_PROXY")"
   elif [[ "$service" == "gpt-service" ]]; then
     build_flags="$build_flags --target $(shell_quote "gpt_service_runtime")"
+  elif [[ "$service" == "mixed-proxy-gateway" ]]; then
+    # 远程出口不可达 gcr.io / proxy.golang.org：runner 走 daocloud 镜像源，
+    # Go 模块走国内 goproxy.cn（builder golang 走 docker.io 本地镜像 127.0.0.1:5001）。
+    build_flags="$build_flags --build-arg RUNNER_IMAGE=m.daocloud.io/gcr.io/distroless/static-debian12:nonroot"
+    build_flags="$build_flags --build-arg GOPROXY=https://goproxy.cn,direct"
   fi
   log "build $image"
   remote "cd $(shell_quote "$REMOTE_DIR") && DOCKER_BUILDKIT=$(shell_quote "$DOCKER_BUILDKIT") BUILDKIT_PROGRESS=$(shell_quote "$BUILDKIT_PROGRESS") docker build $build_flags -t $(shell_quote "$image") -f $(shell_quote "$dockerfile_arg") $(shell_quote "$context")"

@@ -53,6 +53,10 @@ spec:
       {{- with $workload.dnsPolicy }}
       dnsPolicy: {{ . }}
       {{- end }}
+      {{- with $workload.podSecurityContext }}
+      securityContext:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
       {{- $cloudflareTunnelSidecar := and (eq $component "mailbox") $.Values.cloudflareTunnel.enabled }}
       containers:
         - name: {{ $component }}

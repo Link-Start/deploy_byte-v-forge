@@ -187,6 +187,13 @@ dashboardRoutes:
       prefixes:
         - /
       priority: 500
+    - name: mixed-proxy-gateway
+      component: mixed-proxy-gateway
+      portName: admin
+      host: mixed-proxy-gateway.byte-v-forge.192.168.0.126.nip.io
+      prefixes:
+        - /
+      priority: 500
     - name: workflow-runtime
       component: workflow-runtime
       portName: http
@@ -266,6 +273,8 @@ secrets:
     PROXY_RUNTIME_ENCRYPTION_KEY: byte_v_forge_proxy_runtime_encryption_key_change_me_32
     PROXY_RUNTIME_CONTROL_AUTH_TOKEN: ""
     PROXY_RUNTIME_SERVICE_AUTH_TOKEN: ""
+    # mixed-proxy-gateway admin Basic Auth 密码；占位空值，真值经远程 live values 注入（不进 git）。
+    MIXED_PROXY_GATEWAY_ADMIN_PASSWORD: ""
     PROXY_RUNTIME_LOCAL_PASSWORD: ""
     WORKFLOW_RUNTIME_STEP_UPDATE_TOKEN: byte_v_forge_workflow_runtime_step_update_token_change_me_32
     TEAM5000_PROXY_URL: ""
@@ -742,6 +751,75 @@ workloads:
       limits:
         cpu: "4"
         memory: 2Gi
+
+  # mixed-proxy-gateway：独立并存的运维代理网关（super-anonymous/mixed-proxy-gateway）。
+  # 与现役 proxy-runtime 零冲突：独立服务名 / 独立端口 / 独立 Traefik host。
+  # 配置 Web UI 管理：chain-config 放可写持久卷（PVC），空池启动后经面板在线添加
+  # provider/规则（PUT /api/config → 热换 + SaveFile 落 PVC，重启不丢）。
+  # 镜像为 distroless nonroot(65532)，fsGroup 让 PVC 卷可写。
+  # admin 密码经 appSecret(MIXED_PROXY_GATEWAY_ADMIN_PASSWORD) 注入，应用层 Basic Auth。
+  mixed-proxy-gateway:
+    enabled: true
+    replicas: 1
+    image:
+      repository: byte-v-forge/mixed-proxy-gateway
+      tag: latest
+    podSecurityContext:
+      fsGroup: 65532
+    args:
+      - "-http-listen=:2260"
+      - "-socks5-listen=:1080"
+      - "-admin-listen=:8088"
+      - "-admin-user=admin"
+      - "-health-listen=:8080"
+      - "-chain-config=/data/chain-config.json"
+    secretEnv:
+      - name: ADMIN_PASSWORD
+        key: MIXED_PROXY_GATEWAY_ADMIN_PASSWORD
+    ports:
+      - name: admin
+        containerPort: 8088
+      - name: http-proxy
+        containerPort: 2260
+      - name: socks
+        containerPort: 1080
+      - name: health
+        containerPort: 8080
+    volumeMounts:
+      - name: config
+        mountPath: /data
+    volumes:
+      - name: config
+        type: persistentVolumeClaim
+        create: true
+        claimName: '{{ include "byte-v-forge.componentFullname" (dict "root" . "component" "mixed-proxy-gateway") }}-config'
+        accessModes:
+          - ReadWriteOnce
+        size: 256Mi
+    service:
+      enabled: true
+      type: ClusterIP
+      ports:
+        - name: admin
+          port: 8088
+          targetPort: admin
+        - name: http-proxy
+          port: 2260
+          targetPort: http-proxy
+        - name: socks
+          port: 1080
+          targetPort: socks
+    probes:
+      httpGet:
+        path: /healthz/live
+        port: health
+    resources:
+      requests:
+        cpu: 50m
+        memory: 64Mi
+      limits:
+        cpu: "1"
+        memory: 256Mi
 
   browser-automation:
     enabled: true
