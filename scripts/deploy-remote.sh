@@ -99,6 +99,7 @@ SERVICE_CATALOG=(
 
 SOURCE_REPOS=(
   common-lib
+  contracts
   gpt
   gpt-private
   gopay-app
@@ -908,7 +909,7 @@ service_source_repos() {
       printf '%s\n' common-lib workflow-runtime
       ;;
     proxy-runtime)
-      printf '%s\n' proxy-gateway
+      printf '%s\n' proxy-gateway contracts
       ;;
     openai-sso-lite)
       printf '%s\n' openai-sso-lite
