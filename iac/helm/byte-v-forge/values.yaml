@@ -53,9 +53,6 @@ configEnv:
   WA_APP_DATA_DIR: /var/lib/wa-app
   WA_APP_PG_DSN: ""
   WA_APP_REDIS_URL: ""
-  WA_REGISTRATION_PROXY_LEASE_MODE: optional
-  WA_REGISTRATION_PROXY_LEASE_API_BASE_URL: 'http://{{ include "byte-v-forge.componentFullname" (dict "root" . "component" "proxy-runtime") }}:8080/api'
-  WA_REGISTRATION_PROXY_LEASE_ACCOUNT_ID: ""
   GOPAY_HTTP_LISTEN_ADDR: ":8080"
   GOPAY_DASHBOARD_STATIC_DIR: /app/dashboard/gopay
   MAILBOX_CLOUDFLARE_MAX_MESSAGES_PER_DOMAIN: "500"
@@ -259,7 +256,6 @@ secrets:
     N8N_INSTANCE_OWNER_PASSWORD_HASH: "$2b$10$j6/JtPvAKtGGGMVOTqIQrOaq3b0.fQyK46ZWQdNN4E4e496n5ToYq"
     WA_APP_AUTH_PASSWORD: ""
     WA_COMMON_PROXY: ""
-    WA_REGISTRATION_PROXY_LEASE_AUTH_TOKEN: ""
     BROWSER_AUTOMATION_PROXY_REFS_JSON: '{"register":"socks5://proxy.internal:10810","outlook":"socks5://proxy.internal:10810"}'
     MAILBOX_WEBHOOK_TOKEN: ""
     MAILBOX_CLOUDFLARE_API_TOKEN: ""
@@ -1144,18 +1140,12 @@ workloads:
       WA_APP_DATA_DIR: '{{ .Values.configEnv.WA_APP_DATA_DIR }}'
       WA_APP_PG_DSN: '{{ tpl .Values.configEnv.WA_APP_PG_DSN . }}'
       WA_APP_REDIS_URL: '{{ tpl .Values.configEnv.WA_APP_REDIS_URL . }}'
-      WA_REGISTRATION_PROXY_LEASE_MODE: '{{ .Values.configEnv.WA_REGISTRATION_PROXY_LEASE_MODE }}'
-      WA_REGISTRATION_PROXY_LEASE_API_BASE_URL: '{{ tpl .Values.configEnv.WA_REGISTRATION_PROXY_LEASE_API_BASE_URL . }}'
-      WA_REGISTRATION_PROXY_LEASE_ACCOUNT_ID: '{{ .Values.configEnv.WA_REGISTRATION_PROXY_LEASE_ACCOUNT_ID }}'
     secretEnv:
       - name: WA_APP_AUTH_PASSWORD
         key: WA_APP_AUTH_PASSWORD
         optional: true
       - name: WA_COMMON_PROXY
         key: WA_COMMON_PROXY
-        optional: true
-      - name: WA_REGISTRATION_PROXY_LEASE_AUTH_TOKEN
-        key: WA_REGISTRATION_PROXY_LEASE_AUTH_TOKEN
         optional: true
     volumeMounts:
       - name: wa-app-data
