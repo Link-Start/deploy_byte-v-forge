@@ -698,6 +698,8 @@ services:
       - WA_APP_PG_DSN=${WA_APP_PG_DSN:-}
       - WA_APP_REDIS_URL=${WA_APP_REDIS_URL:-}
       - WA_COMMON_PROXY=${WA_COMMON_PROXY:-}
+      - WA_APP_PLAY_INTEGRITY_API_URL=${WA_APP_PLAY_INTEGRITY_API_URL:-}
+      - WA_APP_PLAY_INTEGRITY_API_TOKEN=${WA_APP_PLAY_INTEGRITY_API_TOKEN:-}
     volumes:
       - wa_app_data:/var/lib/wa-app
     labels:
@@ -715,6 +717,22 @@ services:
       - "traefik.http.services.wa-app-dashboard.loadbalancer.server.port=8080"
       - "traefik.http.services.wa-app-dashboard.loadbalancer.healthcheck.path=/healthz"
     restart: always
+
+  play-integrity-api:
+    profiles: ["play-integrity"]
+    build:
+      context: ../play-integrity-api
+      dockerfile: Dockerfile
+    ports:
+      - "127.0.0.1:${PLAY_INTEGRITY_API_HTTP_PORT:-8088}:8088"
+    environment:
+      - PLAY_INTEGRITY_API_TOKEN=${PLAY_INTEGRITY_API_TOKEN:-}
+    volumes:
+      - ../play-integrity-api/configs/service.example.json:/etc/play-integrity-api/config.json:ro
+      - ../play-integrity-api/private:/app/private:ro
+      - ../play-integrity-api/work:/app/work
+      - play_integrity_data:/var/lib/play-integrity-api
+    restart: unless-stopped
 
   workflow-runtime:
     build:
@@ -776,3 +794,4 @@ volumes:
   openai_sso_discord_bot_data:
   team_5000_data:
   wa_app_data:
+  play_integrity_data:

@@ -1,228 +1,263 @@
 global:
-  imageRegistry: ""
+  imageRegistry: ''
   imagePullPolicy: IfNotPresent
   imagePullSecrets: []
-
-nameOverride: ""
-fullnameOverride: ""
-
+nameOverride: ''
+fullnameOverride: ''
 serviceAccount:
   create: true
-  name: ""
+  name: ''
   annotations: {}
   automountServiceAccountToken: false
-
 podAnnotations: {}
 podLabels: {}
-
 configEnv:
-  BROWSER_AUTOMATION_APPLY_MIGRATIONS: "true"
+  BROWSER_AUTOMATION_APPLY_MIGRATIONS: 'true'
   BROWSER_AUTOMATION_RUNTIME: camoufox
-  BROWSER_AUTOMATION_MAX_CONCURRENT_SESSIONS: "0"
-  BROWSER_AUTOMATION_WEBRTC_TCP_LISTEN_ADDR: ":3479"
-  BROWSER_AUTOMATION_WEBRTC_UDP_LISTEN_ADDR: ":3478"
-  BROWSER_AUTOMATION_WEBRTC_PUBLIC_IPS: "192.168.0.126"
-  BROWSER_AUTOMATION_PROXY_RUNTIME_BASE_URL: 'http://{{ include "byte-v-forge.componentFullname" (dict "root" . "component" "proxy-runtime") }}:8080/api'
-  BROWSER_AUTOMATION_PROXY_RUNTIME_TIMEOUT_SECONDS: "10"
-  BROWSER_AUTOMATION_PROXY_RUNTIME_ACCOUNT_ID: ""
+  BROWSER_AUTOMATION_MAX_CONCURRENT_SESSIONS: '0'
+  BROWSER_AUTOMATION_WEBRTC_TCP_LISTEN_ADDR: :3479
+  BROWSER_AUTOMATION_WEBRTC_UDP_LISTEN_ADDR: :3478
+  BROWSER_AUTOMATION_WEBRTC_PUBLIC_IPS: 192.168.0.126
+  BROWSER_AUTOMATION_PROXY_RUNTIME_BASE_URL: http://{{ include "byte-v-forge.componentFullname"
+    (dict "root" . "component" "proxy-runtime") }}:8080/api
+  BROWSER_AUTOMATION_PROXY_RUNTIME_TIMEOUT_SECONDS: '10'
+  BROWSER_AUTOMATION_PROXY_RUNTIME_ACCOUNT_ID: ''
   BROWSER_AUTOMATION_PROXY_RUNTIME_PURPOSE: browser-automation
-  PLATFORM_NATS_URL: 'nats://{{ include "byte-v-forge.componentFullname" (dict "root" . "component" "platform-nats") }}:4222'
+  PLATFORM_NATS_URL: nats://{{ include "byte-v-forge.componentFullname" (dict "root"
+    . "component" "platform-nats") }}:4222
   PLATFORM_EVENT_STREAM_NAME: BYTE_V_FORGE_EVENTS
-  PLATFORM_REDIS_URL: 'redis://{{ include "byte-v-forge.componentFullname" (dict "root" . "component" "platform-redis") }}:6379/0'
+  PLATFORM_REDIS_URL: redis://{{ include "byte-v-forge.componentFullname" (dict "root"
+    . "component" "platform-redis") }}:6379/0
   N8N_PUBLIC_URL: http://n8n.byte-v-forge.192.168.0.126.nip.io:30080
-  GPT_N8N_WEBHOOK_BASE_URL: 'http://{{ include "byte-v-forge.componentFullname" (dict "root" . "component" "n8n-webhook") }}:5678/webhook'
-  GOPAY_N8N_WEBHOOK_BASE_URL: 'http://{{ include "byte-v-forge.componentFullname" (dict "root" . "component" "n8n-webhook") }}:5678/webhook'
-  GPT_ACTION_API_BASE_URL: 'http://{{ include "byte-v-forge.componentFullname" (dict "root" . "component" "gpt-service") }}:8080/api/gpt/actions'
-  GOPAY_ACTION_API_BASE_URL: 'http://{{ include "byte-v-forge.componentFullname" (dict "root" . "component" "gopay-app") }}:8080/api/gopay/actions'
-  GOPAY_API_BASE_URL: 'http://{{ include "byte-v-forge.componentFullname" (dict "root" . "component" "gopay-app") }}:8080/api/gopay'
-  WA_ACTION_API_BASE_URL: 'http://{{ include "byte-v-forge.componentFullname" (dict "root" . "component" "wa-app-service") }}:8080/api/wa/actions'
-  WA_API_BASE_URL: 'http://{{ include "byte-v-forge.componentFullname" (dict "root" . "component" "wa-app-service") }}:8080/api/wa'
-  SMS_API_BASE_URL: 'http://{{ include "byte-v-forge.componentFullname" (dict "root" . "component" "sms-service") }}:8080/api/sms'
+  GPT_N8N_WEBHOOK_BASE_URL: http://{{ include "byte-v-forge.componentFullname" (dict
+    "root" . "component" "n8n-webhook") }}:5678/webhook
+  GOPAY_N8N_WEBHOOK_BASE_URL: http://{{ include "byte-v-forge.componentFullname" (dict
+    "root" . "component" "n8n-webhook") }}:5678/webhook
+  GPT_ACTION_API_BASE_URL: http://{{ include "byte-v-forge.componentFullname" (dict
+    "root" . "component" "gpt-service") }}:8080/api/gpt/actions
+  GOPAY_ACTION_API_BASE_URL: http://{{ include "byte-v-forge.componentFullname" (dict
+    "root" . "component" "gopay-app") }}:8080/api/gopay/actions
+  GOPAY_API_BASE_URL: http://{{ include "byte-v-forge.componentFullname" (dict "root"
+    . "component" "gopay-app") }}:8080/api/gopay
+  WA_ACTION_API_BASE_URL: http://{{ include "byte-v-forge.componentFullname" (dict
+    "root" . "component" "wa-app-service") }}:8080/api/wa/actions
+  WA_API_BASE_URL: http://{{ include "byte-v-forge.componentFullname" (dict "root"
+    . "component" "wa-app-service") }}:8080/api/wa
+  SMS_API_BASE_URL: http://{{ include "byte-v-forge.componentFullname" (dict "root"
+    . "component" "sms-service") }}:8080/api/sms
   SMS_PG_DSN: '{{ include "byte-v-forge.pgDsn" . }}'
   SMS_REDIS_URL: '{{ tpl .Values.configEnv.PLATFORM_REDIS_URL . }}'
   SMS_NATS_URL: '{{ tpl .Values.configEnv.PLATFORM_NATS_URL . }}'
   SMS_EVENT_STREAM_NAME: BYTE_V_FORGE_EVENTS
-  PROXY_RUNTIME_API_BASE_URL: 'http://{{ include "byte-v-forge.componentFullname" (dict "root" . "component" "proxy-runtime") }}:8080/api'
+  PROXY_RUNTIME_API_BASE_URL: http://{{ include "byte-v-forge.componentFullname" (dict
+    "root" . "component" "proxy-runtime") }}:8080/api
   PROXY_RUNTIME_LOCAL_PROTOCOL: socks5
-  WORKFLOW_RUNTIME_API_BASE_URL: 'http://{{ include "byte-v-forge.componentFullname" (dict "root" . "component" "workflow-runtime") }}:8080/api/workflow-runtime'
-  MAILBOX_WEBHOOK_HTTP_ADDR: ":8082"
-  MAILBOX_DASHBOARD_HTTP_ADDR: ":8080"
-  GPT_DASHBOARD_HTTP_ADDR: ":8080"
-  SMS_DASHBOARD_HTTP_ADDR: ":8080"
-  WA_APP_DASHBOARD_HTTP_ADDR: ":8080"
+  WORKFLOW_RUNTIME_API_BASE_URL: http://{{ include "byte-v-forge.componentFullname"
+    (dict "root" . "component" "workflow-runtime") }}:8080/api/workflow-runtime
+  MAILBOX_WEBHOOK_HTTP_ADDR: :8082
+  MAILBOX_DASHBOARD_HTTP_ADDR: :8080
+  GPT_DASHBOARD_HTTP_ADDR: :8080
+  SMS_DASHBOARD_HTTP_ADDR: :8080
+  WA_APP_DASHBOARD_HTTP_ADDR: :8080
   WA_APP_DATA_DIR: /var/lib/wa-app
-  WA_APP_PG_DSN: ""
-  WA_APP_REDIS_URL: ""
-  GOPAY_HTTP_LISTEN_ADDR: ":8080"
+  WA_APP_PG_DSN: ''
+  WA_APP_REDIS_URL: ''
+  WA_APP_PLAY_INTEGRITY_API_URL: ''
+  GOPAY_HTTP_LISTEN_ADDR: :8080
   GOPAY_DASHBOARD_STATIC_DIR: /app/dashboard/gopay
-  MAILBOX_CLOUDFLARE_MAX_MESSAGES_PER_DOMAIN: "500"
-  MAILBOX_CLOUDFLARE_RELAY_PULL_URL: ""
-  MAILBOX_OUTLOOK_MAX_MESSAGES_PER_MAILBOX: "100"
+  MAILBOX_CLOUDFLARE_MAX_MESSAGES_PER_DOMAIN: '500'
+  MAILBOX_CLOUDFLARE_RELAY_PULL_URL: ''
+  MAILBOX_OUTLOOK_MAX_MESSAGES_PER_MAILBOX: '100'
   MAILBOX_PG_DSN: '{{ include "byte-v-forge.pgDsn" . }}'
   MAILBOX_COORDINATION_REDIS_URL: '{{ tpl .Values.configEnv.PLATFORM_REDIS_URL . }}'
   MAILBOX_RECENT_EMAIL_REDIS_URL: '{{ tpl .Values.configEnv.PLATFORM_REDIS_URL . }}'
   MAILBOX_NATS_URL: '{{ tpl .Values.configEnv.PLATFORM_NATS_URL . }}'
   MAILBOX_EVENT_STREAM_NAME: BYTE_V_FORGE_EVENTS
-  MAILBOX_BROWSER_AUTOMATION_ADDR: ""
+  MAILBOX_BROWSER_AUTOMATION_ADDR: ''
   OPENAI_SSO_LITE_ISSUER: https://sso.uizsdas.bond
   OPENAI_SSO_LITE_ALLOWED_REDIRECT_URI_PREFIXES: https://external.auth.openai.com/
-  OPENAI_SSO_DISCORD_BOT_APPLICATION_ID: ""
-  OPENAI_SSO_DISCORD_BOT_GUILD_ID: ""
+  OPENAI_SSO_DISCORD_BOT_APPLICATION_ID: ''
+  OPENAI_SSO_DISCORD_BOT_GUILD_ID: ''
   OPENAI_SSO_DISCORD_BOT_EMAIL_DOMAIN: workspace.uizsdas.bond
   TEAM5000_DOMAIN: workspace.uizsdas.bond
-  TEAM5000_WORKSPACE_ID: ""
-  TEAM5000_PROXY_URL: 'socks5://{{ include "byte-v-forge.componentFullname" (dict "root" . "component" "proxy-runtime") }}:10810'
+  TEAM5000_WORKSPACE_ID: ''
+  TEAM5000_PROXY_URL: socks5://{{ include "byte-v-forge.componentFullname" (dict "root"
+    . "component" "proxy-runtime") }}:10810
   TEAM5000_MODEL: gpt-5.5
-  TEAM5000_MAX_PARENT_HELLO: "0"
-
+  TEAM5000_MAX_PARENT_HELLO: '0'
 traefikStatus:
   enabled: true
   entryPoint: internal
   domainSuffix: byte-v-forge.internal
   traefikServiceName: byte-v-forge-traefik-api
   traefikNamespace: traefik
-
 dashboardRoutes:
   enabled: true
   entryPoint: web
   routes:
-    - name: gpt
-      component: gpt-service
-      portName: http-dashboard
-      prefixes:
-        - /api/gpt
-        - /mf/gpt
-      priority: 100
-    - name: mailbox
-      component: mailbox
-      portName: http-dashboard
-      prefixes:
-        - /api/mailbox
-        - /dashboard/mailbox
-      priority: 100
-    - name: mailbox-webhook
-      component: mailbox
-      portName: http-webhook
-      entryPoint: webhook
-      prefixes:
-        - /webhooks/email
-      priority: 200
-    - name: gopay-app
-      component: gopay-app
-      portName: http-dashboard
-      prefixes:
-        - /api/gopay
-        - /mf/gopay
-      priority: 100
-    - name: gopay-otp-webhook
-      component: gopay-app
-      portName: http-webhook
-      entryPoint: webhook
-      prefixes:
-        - /local
-        - /tg
-      priority: 200
-    - name: gopay-otp-webhook-web
-      component: gopay-app
-      portName: http-webhook
-      entryPoint: web
-      prefixes:
-        - /local
-        - /tg
-      priority: 300
-    - name: sms-api
-      component: sms-service
-      portName: http-dashboard
-      prefixes:
-        - /api/sms
-      priority: 100
-    - name: sms-app
-      component: sms-service
-      portName: http-dashboard
-      host: sms.byte-v-forge.192.168.0.126.nip.io
-      prefixes:
-        - /
-      priority: 500
-    - name: wa-app
-      component: wa-app-service
-      portName: http-dashboard
-      host: wa.byte-v-forge.192.168.0.126.nip.io
-      prefixes:
-        - /
-      priority: 500
-    - name: browser-automation
-      component: browser-automation
-      portName: http-dashboard
-      host: browser-automation.byte-v-forge.192.168.0.126.nip.io
-      prefixes:
-        - /
-      priority: 500
-    - name: openai-sso-lite
-      component: openai-sso-lite
-      portName: http
-      host: openai-sso-lite.byte-v-forge.192.168.0.126.nip.io
-      prefixes:
-        - /
-      priority: 500
-    - name: openai-sso-lite-sso
-      component: openai-sso-lite
-      portName: http
-      host: sso.uizsdas.bond
-      prefixes:
-        - /
-      priority: 600
-    - name: team-5000
-      component: team-5000
-      portName: http
-      prefixes:
-        - /api/team-5000
-      priority: 100
-    - name: proxy-runtime
-      component: proxy-runtime
-      portName: http
-      host: proxy-runtime.byte-v-forge.192.168.0.126.nip.io
-      prefixes:
-        - /
-      priority: 500
-    - name: mixed-proxy-gateway
-      component: mixed-proxy-gateway
-      portName: admin
-      host: mixed-proxy-gateway.byte-v-forge.192.168.0.126.nip.io
-      prefixes:
-        - /
-      priority: 500
-    - name: workflow-runtime
-      component: workflow-runtime
-      portName: http
-      prefixes:
-        - /api/workflow-runtime
-        - /mf/workflow-runtime
-      priority: 100
-    - name: n8n-editor
-      component: n8n-main
-      portName: http
-      host: n8n.byte-v-forge.192.168.0.126.nip.io
-      prefixes:
-        - /
-      priority: 300
-    - name: n8n-webhook
-      component: n8n-webhook
-      portName: http
-      entryPoint: webhook
-      prefixes:
-        - /webhook
-        - /webhook-test
-      priority: 200
-    - name: webui
-      component: webui
-      portName: http
-      prefixes:
-        - /
-      priority: 1
-
+  - name: gpt
+    component: gpt-service
+    portName: http-dashboard
+    prefixes:
+    - /api/gpt
+    - /mf/gpt
+    priority: 100
+  - name: mailbox
+    component: mailbox
+    portName: http-dashboard
+    prefixes:
+    - /api/mailbox
+    - /dashboard/mailbox
+    priority: 100
+  - name: mailbox-webhook
+    component: mailbox
+    portName: http-webhook
+    entryPoint: webhook
+    prefixes:
+    - /webhooks/email
+    priority: 200
+  - name: gopay-app
+    component: gopay-app
+    portName: http-dashboard
+    prefixes:
+    - /api/gopay
+    - /mf/gopay
+    priority: 100
+  - name: gopay-otp-webhook
+    component: gopay-app
+    portName: http-webhook
+    entryPoint: webhook
+    prefixes:
+    - /local
+    - /tg
+    priority: 200
+  - name: gopay-otp-webhook-web
+    component: gopay-app
+    portName: http-webhook
+    entryPoint: web
+    prefixes:
+    - /local
+    - /tg
+    priority: 300
+  - name: sms-api
+    component: sms-service
+    portName: http-dashboard
+    prefixes:
+    - /api/sms
+    priority: 100
+  - name: sms-app
+    component: sms-service
+    portName: http-dashboard
+    host: sms.byte-v-forge.192.168.0.126.nip.io
+    prefixes:
+    - /
+    priority: 500
+  - name: wa-app
+    component: wa-app-service
+    portName: http-dashboard
+    host: wa.byte-v-forge.192.168.0.126.nip.io
+    prefixes:
+    - /
+    priority: 500
+  - name: browser-automation
+    component: browser-automation
+    portName: http-dashboard
+    host: browser-automation.byte-v-forge.192.168.0.126.nip.io
+    prefixes:
+    - /
+    priority: 500
+  - name: openai-sso-lite
+    component: openai-sso-lite
+    portName: http
+    host: openai-sso-lite.byte-v-forge.192.168.0.126.nip.io
+    prefixes:
+    - /
+    priority: 500
+  - name: openai-sso-lite-sso
+    component: openai-sso-lite
+    portName: http
+    host: sso.uizsdas.bond
+    prefixes:
+    - /
+    priority: 600
+  - name: team-5000
+    component: team-5000
+    portName: http
+    prefixes:
+    - /api/team-5000
+    priority: 100
+  - name: proxy-runtime
+    component: proxy-runtime
+    portName: http
+    host: proxy-runtime.byte-v-forge.192.168.0.126.nip.io
+    prefixes:
+    - /
+    priority: 500
+  - name: mixed-proxy-gateway
+    component: mixed-proxy-gateway
+    portName: admin
+    host: mixed-proxy-gateway.byte-v-forge.192.168.0.126.nip.io
+    prefixes:
+    - /
+    priority: 500
+  - name: workflow-runtime
+    component: workflow-runtime
+    portName: http
+    prefixes:
+    - /api/workflow-runtime
+    - /mf/workflow-runtime
+    priority: 100
+  - name: n8n-editor
+    component: n8n-main
+    portName: http
+    host: n8n.byte-v-forge.192.168.0.126.nip.io
+    prefixes:
+    - /
+    priority: 300
+  - name: n8n-webhook
+    component: n8n-webhook
+    portName: http
+    entryPoint: webhook
+    prefixes:
+    - /webhook
+    - /webhook-test
+    priority: 200
+  - name: webui
+    component: webui
+    portName: http
+    prefixes:
+    - /
+    priority: 1
 cloudflareEmail:
   zones: []
-
+mixedProxyProviders:
+  providers:
+  - type: b2proxy
+    gateways:
+    - label: US
+      addr: us.rrp.bestgo.work:10000
+    - label: Global
+      addr: global.rrp.bestgo.work:10000
+    - label: HK
+      addr: hk.rrp.bestgo.work:10000
+    - label: Asia
+      addr: as.rrp.bestgo.work:10000
+    - label: EU
+      addr: eu.rrp.bestgo.work:10000
+  - type: ten24
+    gateways:
+    - label: US
+      addr: us.1024proxy.io:3000
+    - label: HK
+      addr: hk.1024proxy.io:3000
+  - type: boltproxy
+    gateways:
+    - label: IP1
+      addr: ip.boltproxy.org:1600
+    - label: IP2
+      addr: ip2.boltproxy.org:1600
+    - label: US
+      addr: us.boltproxy.org:1600
 cloudflareTunnel:
   enabled: false
   hostname: hook.tibo-nice.space
@@ -231,7 +266,6 @@ cloudflareTunnel:
     tag: 2026.5.0
   metricsPort: 2000
   resources: {}
-
 n8nWorkflows:
   enabled: true
   import:
@@ -242,46 +276,54 @@ n8nWorkflows:
     id: UuCRf58ufLoDkhC2
     name: GPT Probe Account
     webhookPath: gpt/probe-account
-
-
 secrets:
   create: true
-  name: ""
+  name: ''
   stringData:
     POSTGRES_PASSWORD: byte_v_forge
     N8N_ENCRYPTION_KEY: byte_v_forge_n8n_encryption_key_change_me_32
     N8N_RUNNERS_AUTH_TOKEN: byte_v_forge_n8n_runner_auth_token_change_me_32
     N8N_POSTGRES_PASSWORD: byte_v_forge_n8n
-    N8N_API_KEY: ""
-    N8N_INSTANCE_OWNER_PASSWORD_HASH: "$2b$10$j6/JtPvAKtGGGMVOTqIQrOaq3b0.fQyK46ZWQdNN4E4e496n5ToYq"
-    WA_APP_AUTH_PASSWORD: ""
-    WA_COMMON_PROXY: ""
+    N8N_API_KEY: ''
+    N8N_INSTANCE_OWNER_PASSWORD_HASH: $2b$10$j6/JtPvAKtGGGMVOTqIQrOaq3b0.fQyK46ZWQdNN4E4e496n5ToYq
+    WA_APP_AUTH_PASSWORD: ''
+    WA_COMMON_PROXY: ''
+    WA_APP_PLAY_INTEGRITY_API_TOKEN: ''
+    PLAY_INTEGRITY_API_TOKEN: ''
+    PLAY_INTEGRITY_SERVICE_CONFIG_JSON: '{"host":"0.0.0.0","port":8088,"route":"/v1/play-integrity/tokens","endpoint":"https://example.invalid/play-integrity/backend","timeoutSeconds":45,"backendRetries":0,"retryBackoffSeconds":0.5,"proxy":null,"packageName":"com.whatsapp","versionCode":262407730,"keyboxXml":"/etc/play-integrity-api-private/keybox.xml","keyboxAlgorithm":"ecdsa","pythonTinkEncrypt":true,"dgRunCommand":"python3
+      scripts/dg-native-warm-ss-runner.py --material-root /var/lib/play-integrity-api/vm/current
+      --vm-id libdA51008A7BD65 --keybox-xml /etc/play-integrity-api-private/keybox.xml
+      --gms-version-code 262433035 --max-events 64 --init-count 240000000 --entry-count
+      30000000 --snapshot-count 30000000","vmRunnerAcquireTimeoutSeconds":180,"dgRunnerAttempts":1,"dgRunnerMinRawDgLen":8000,"dgCreateEndpoint":null,"authTokenEnv":"PLAY_INTEGRITY_API_TOKEN","maxBodyBytes":2097152,"maxConcurrency":1,"workDir":"/var/lib/play-integrity-api/work/api-runs","persistRunSummaries":true,"persistRunMaterial":false,"debugErrors":false,"dgRunnerMode":"daemon","dgRunnerRequestTimeoutSeconds":900}'
     BROWSER_AUTOMATION_PROXY_REFS_JSON: '{"register":"socks5://proxy.internal:10810","outlook":"socks5://proxy.internal:10810"}'
-    MAILBOX_WEBHOOK_TOKEN: ""
-    MAILBOX_CLOUDFLARE_API_TOKEN: ""
-    MAILBOX_CLOUDFLARE_RELAY_PULL_TOKEN: ""
-    CLOUDFLARE_TUNNEL_TOKEN: ""
-    GOPAY_CHECKOUT_PROFILE_JSON: >-
-          {"name":"checkout","proxy_url":"socks5://{{ include "byte-v-forge.componentFullname" (dict "root" . "component" "proxy-runtime") }}:10810","tls_profile":"chrome_146","user_agent":"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36","sec_ch_ua":"\"Google Chrome\";v=\"147\", \"Not.A/Brand\";v=\"8\", \"Chromium\";v=\"147\"","sec_ch_ua_platform":"\"Windows\"","locale":"en-US","platform":"Windows","pin_locale":"id"}
-    GOPAY_PAYMENT_PROFILE_JSON: >-
-          {"name":"payment","proxy_url":"socks5://{{ include "byte-v-forge.componentFullname" (dict "root" . "component" "proxy-runtime") }}:10810","tls_profile":"chrome_146","user_agent":"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36","sec_ch_ua":"\"Google Chrome\";v=\"147\", \"Not.A/Brand\";v=\"8\", \"Chromium\";v=\"147\"","sec_ch_ua_platform":"\"Windows\"","locale":"zh-CN","platform":"Windows","pin_locale":"id"}
-    GOTO_SSO_CLIENT_SECRET: ""
+    MAILBOX_WEBHOOK_TOKEN: ''
+    MAILBOX_CLOUDFLARE_API_TOKEN: ''
+    MAILBOX_CLOUDFLARE_RELAY_PULL_TOKEN: ''
+    CLOUDFLARE_TUNNEL_TOKEN: ''
+    GOPAY_CHECKOUT_PROFILE_JSON: '{"name":"checkout","proxy_url":"socks5://{{ include
+      "byte-v-forge.componentFullname" (dict "root" . "component" "proxy-runtime")
+      }}:10810","tls_profile":"chrome_146","user_agent":"Mozilla/5.0 (Windows NT 10.0;
+      Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36","sec_ch_ua":"\"Google
+      Chrome\";v=\"147\", \"Not.A/Brand\";v=\"8\", \"Chromium\";v=\"147\"","sec_ch_ua_platform":"\"Windows\"","locale":"en-US","platform":"Windows","pin_locale":"id"}'
+    GOPAY_PAYMENT_PROFILE_JSON: '{"name":"payment","proxy_url":"socks5://{{ include
+      "byte-v-forge.componentFullname" (dict "root" . "component" "proxy-runtime")
+      }}:10810","tls_profile":"chrome_146","user_agent":"Mozilla/5.0 (Windows NT 10.0;
+      Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36","sec_ch_ua":"\"Google
+      Chrome\";v=\"147\", \"Not.A/Brand\";v=\"8\", \"Chromium\";v=\"147\"","sec_ch_ua_platform":"\"Windows\"","locale":"zh-CN","platform":"Windows","pin_locale":"id"}'
+    GOTO_SSO_CLIENT_SECRET: ''
     PROXY_RUNTIME_ENCRYPTION_KEY: byte_v_forge_proxy_runtime_encryption_key_change_me_32
-    PROXY_RUNTIME_CONTROL_AUTH_TOKEN: ""
-    PROXY_RUNTIME_SERVICE_AUTH_TOKEN: ""
-    # mixed-proxy-gateway admin 登录密码；占位空值，真值经远程 live values 注入（不进 git）。
-    MIXED_PROXY_GATEWAY_ADMIN_PASSWORD: ""
-    # mixed-proxy-gateway 订阅 URL（含 token）；占位空值，真值经远程 live values 注入（不进 git）。
-    MIXED_PROXY_GATEWAY_SUBSCRIPTION_URL: ""
-    PROXY_RUNTIME_LOCAL_PASSWORD: ""
+    PROXY_RUNTIME_CONTROL_AUTH_TOKEN: ''
+    PROXY_RUNTIME_SERVICE_AUTH_TOKEN: ''
+    MIXED_PROXY_GATEWAY_ADMIN_PASSWORD: ''
+    MIXED_PROXY_GATEWAY_SUBSCRIPTION_URL: ''
+    PROXY_RUNTIME_LOCAL_PASSWORD: ''
     WORKFLOW_RUNTIME_STEP_UPDATE_TOKEN: byte_v_forge_workflow_runtime_step_update_token_change_me_32
-    TEAM5000_PROXY_URL: ""
+    TEAM5000_PROXY_URL: ''
     OPENAI_SSO_LITE_CLIENT_SECRET: change-me-at-least-32-characters
     OPENAI_SSO_LITE_ADMIN_TOKEN: change-me-at-least-32-characters
-    OPENAI_SSO_LITE_RSA_PRIVATE_KEY_B64: ""
-    OPENAI_SSO_DISCORD_BOT_TOKEN: ""
-    OPENAI_SSO_DISCORD_BOT_PROXY_URL: ""
-
+    OPENAI_SSO_LITE_RSA_PRIVATE_KEY_B64: ''
+    OPENAI_SSO_DISCORD_BOT_TOKEN: ''
+    OPENAI_SSO_DISCORD_BOT_PROXY_URL: ''
 postgres:
   enabled: true
   image:
@@ -294,17 +336,15 @@ postgres:
     port: 5432
   sslMode: disable
   external:
-    host: ""
+    host: ''
     port: 5432
   persistence:
     enabled: true
-    storageClass: ""
+    storageClass: ''
     accessModes:
-      - ReadWriteOnce
+    - ReadWriteOnce
     size: 20Gi
   resources: {}
-
-
 workloads:
   n8n-redis:
     enabled: true
@@ -313,25 +353,24 @@ workloads:
       repository: docker.m.daocloud.io/library/redis
       tag: 7-alpine
     command:
-      - redis-server
-      - --save
-      - ""
-      - --appendonly
-      - "no"
+    - redis-server
+    - --save
+    - ''
+    - --appendonly
+    - 'no'
     ports:
-      - name: redis
-        containerPort: 6379
+    - name: redis
+      containerPort: 6379
     service:
       enabled: true
       type: ClusterIP
       ports:
-        - name: redis
-          port: 6379
-          targetPort: redis
+      - name: redis
+        port: 6379
+        targetPort: redis
     probes:
       tcpSocketPort: redis
     resources: {}
-
   n8n-postgres:
     enabled: true
     replicas: 1
@@ -344,54 +383,58 @@ workloads:
       POSTGRES_DB: n8n
       PGDATA: /var/lib/postgresql/data/pgdata
     secretEnv:
-      - name: POSTGRES_PASSWORD
-        key: N8N_POSTGRES_PASSWORD
+    - name: POSTGRES_PASSWORD
+      key: N8N_POSTGRES_PASSWORD
     ports:
-      - name: postgres
-        containerPort: 5432
+    - name: postgres
+      containerPort: 5432
     service:
       enabled: true
       type: ClusterIP
       ports:
-        - name: postgres
-          port: 5432
-          targetPort: postgres
+      - name: postgres
+        port: 5432
+        targetPort: postgres
     probes:
       tcpSocketPort: postgres
     volumeMounts:
-      - name: n8n-postgres-data
-        mountPath: /var/lib/postgresql/data
+    - name: n8n-postgres-data
+      mountPath: /var/lib/postgresql/data
     volumes:
-      - name: n8n-postgres-data
-        type: persistentVolumeClaim
-        create: true
-        claimName: '{{ include "byte-v-forge.componentFullname" (dict "root" . "component" "n8n-postgres") }}-data'
-        accessModes:
-          - ReadWriteOnce
-        size: 10Gi
+    - name: n8n-postgres-data
+      type: persistentVolumeClaim
+      create: true
+      claimName: '{{ include "byte-v-forge.componentFullname" (dict "root" . "component"
+        "n8n-postgres") }}-data'
+      accessModes:
+      - ReadWriteOnce
+      size: 10Gi
     resources: {}
-
   platform-redis:
     enabled: true
     replicas: 1
     image:
       repository: docker.m.daocloud.io/library/redis
       tag: 7-alpine
-    command: [redis-server, --save, "", --appendonly, "no"]
+    command:
+    - redis-server
+    - --save
+    - ''
+    - --appendonly
+    - 'no'
     ports:
-      - name: redis
-        containerPort: 6379
+    - name: redis
+      containerPort: 6379
     service:
       enabled: true
       type: ClusterIP
       ports:
-        - name: redis
-          port: 6379
-          targetPort: redis
+      - name: redis
+        port: 6379
+        targetPort: redis
     probes:
       tcpSocketPort: redis
     resources: {}
-
   platform-nats:
     enabled: true
     replicas: 1
@@ -400,43 +443,43 @@ workloads:
       repository: docker.m.daocloud.io/library/nats
       tag: 2.14.1
     args:
-      - -js
-      - -sd
-      - /data
-      - -m
-      - "8222"
+    - -js
+    - -sd
+    - /data
+    - -m
+    - '8222'
     ports:
-      - name: nats
-        containerPort: 4222
-      - name: monitor
-        containerPort: 8222
+    - name: nats
+      containerPort: 4222
+    - name: monitor
+      containerPort: 8222
     service:
       enabled: true
       type: ClusterIP
       ports:
-        - name: nats
-          port: 4222
-          targetPort: nats
-        - name: monitor
-          port: 8222
-          targetPort: monitor
+      - name: nats
+        port: 4222
+        targetPort: nats
+      - name: monitor
+        port: 8222
+        targetPort: monitor
     probes:
       httpGet:
         path: /healthz
         port: monitor
     volumeMounts:
-      - name: nats-data
-        mountPath: /data
+    - name: nats-data
+      mountPath: /data
     volumes:
-      - name: nats-data
-        type: persistentVolumeClaim
-        create: true
-        claimName: '{{ include "byte-v-forge.componentFullname" (dict "root" . "component" "platform-nats") }}-data'
-        accessModes:
-          - ReadWriteOnce
-        size: 10Gi
+    - name: nats-data
+      type: persistentVolumeClaim
+      create: true
+      claimName: '{{ include "byte-v-forge.componentFullname" (dict "root" . "component"
+        "platform-nats") }}-data'
+      accessModes:
+      - ReadWriteOnce
+      size: 10Gi
     resources: {}
-
   n8n-main:
     enabled: true
     replicas: 1
@@ -445,67 +488,73 @@ workloads:
       tag: 2.21.7
     env:
       DB_TYPE: postgresdb
-      DB_POSTGRESDB_HOST: '{{ include "byte-v-forge.componentFullname" (dict "root" . "component" "n8n-postgres") }}'
-      DB_POSTGRESDB_PORT: "5432"
+      DB_POSTGRESDB_HOST: '{{ include "byte-v-forge.componentFullname" (dict "root"
+        . "component" "n8n-postgres") }}'
+      DB_POSTGRESDB_PORT: '5432'
       DB_POSTGRESDB_DATABASE: n8n
       DB_POSTGRESDB_USER: n8n
       DB_TABLE_PREFIX: n8n_
       EXECUTIONS_MODE: queue
-      EXECUTIONS_DATA_SAVE_ON_PROGRESS: "true"
-      QUEUE_BULL_REDIS_HOST: '{{ include "byte-v-forge.componentFullname" (dict "root" . "component" "n8n-redis") }}'
-      QUEUE_BULL_REDIS_PORT: "6379"
+      EXECUTIONS_DATA_SAVE_ON_PROGRESS: 'true'
+      QUEUE_BULL_REDIS_HOST: '{{ include "byte-v-forge.componentFullname" (dict "root"
+        . "component" "n8n-redis") }}'
+      QUEUE_BULL_REDIS_PORT: '6379'
       N8N_EDITOR_BASE_URL: '{{ .Values.configEnv.N8N_PUBLIC_URL }}'
-      WEBHOOK_URL: 'http://{{ include "byte-v-forge.componentFullname" (dict "root" . "component" "n8n-webhook") }}:5678/'
-      N8N_PROXY_HOPS: "1"
-      OFFLOAD_MANUAL_EXECUTIONS_TO_WORKERS: "true"
+      WEBHOOK_URL: http://{{ include "byte-v-forge.componentFullname" (dict "root"
+        . "component" "n8n-webhook") }}:5678/
+      N8N_PROXY_HOPS: '1'
+      OFFLOAD_MANUAL_EXECUTIONS_TO_WORKERS: 'true'
       N8N_RUNNERS_MODE: external
       N8N_RUNNERS_BROKER_LISTEN_ADDRESS: 0.0.0.0
-      N8N_NATIVE_PYTHON_RUNNER: "true"
-      N8N_ENFORCE_SETTINGS_FILE_PERMISSIONS: "true"
-      N8N_SECURE_COOKIE: "false"
-      N8N_DIAGNOSTICS_ENABLED: "false"
-      N8N_VERSION_NOTIFICATIONS_ENABLED: "false"
-      N8N_TEMPLATES_ENABLED: "false"
-      N8N_BLOCK_ENV_ACCESS_IN_NODE: "false"
-      N8N_INSTANCE_OWNER_MANAGED_BY_ENV: "true"
+      N8N_NATIVE_PYTHON_RUNNER: 'true'
+      N8N_ENFORCE_SETTINGS_FILE_PERMISSIONS: 'true'
+      N8N_SECURE_COOKIE: 'false'
+      N8N_DIAGNOSTICS_ENABLED: 'false'
+      N8N_VERSION_NOTIFICATIONS_ENABLED: 'false'
+      N8N_TEMPLATES_ENABLED: 'false'
+      N8N_BLOCK_ENV_ACCESS_IN_NODE: 'false'
+      N8N_INSTANCE_OWNER_MANAGED_BY_ENV: 'true'
       N8N_INSTANCE_OWNER_EMAIL: byte-v-forge@byte-v-forge.local
       N8N_INSTANCE_OWNER_FIRST_NAME: Byte
       N8N_INSTANCE_OWNER_LAST_NAME: Forge
-      GPT_ACTION_API_BASE_URL: '{{ tpl .Values.configEnv.GPT_ACTION_API_BASE_URL . }}'
-      GOPAY_ACTION_API_BASE_URL: '{{ tpl .Values.configEnv.GOPAY_ACTION_API_BASE_URL . }}'
+      GPT_ACTION_API_BASE_URL: '{{ tpl .Values.configEnv.GPT_ACTION_API_BASE_URL .
+        }}'
+      GOPAY_ACTION_API_BASE_URL: '{{ tpl .Values.configEnv.GOPAY_ACTION_API_BASE_URL
+        . }}'
       GOPAY_API_BASE_URL: '{{ tpl .Values.configEnv.GOPAY_API_BASE_URL . }}'
       WA_ACTION_API_BASE_URL: '{{ tpl .Values.configEnv.WA_ACTION_API_BASE_URL . }}'
       WA_API_BASE_URL: '{{ tpl .Values.configEnv.WA_API_BASE_URL . }}'
       SMS_API_BASE_URL: '{{ tpl .Values.configEnv.SMS_API_BASE_URL . }}'
-      PROXY_RUNTIME_API_BASE_URL: '{{ tpl .Values.configEnv.PROXY_RUNTIME_API_BASE_URL . }}'
-      WORKFLOW_RUNTIME_API_BASE_URL: '{{ tpl .Values.configEnv.WORKFLOW_RUNTIME_API_BASE_URL . }}'
+      PROXY_RUNTIME_API_BASE_URL: '{{ tpl .Values.configEnv.PROXY_RUNTIME_API_BASE_URL
+        . }}'
+      WORKFLOW_RUNTIME_API_BASE_URL: '{{ tpl .Values.configEnv.WORKFLOW_RUNTIME_API_BASE_URL
+        . }}'
     secretEnv:
-      - name: DB_POSTGRESDB_PASSWORD
-        key: N8N_POSTGRES_PASSWORD
-      - name: N8N_ENCRYPTION_KEY
-        key: N8N_ENCRYPTION_KEY
-      - name: N8N_RUNNERS_AUTH_TOKEN
-        key: N8N_RUNNERS_AUTH_TOKEN
-      - name: N8N_INSTANCE_OWNER_PASSWORD_HASH
-        key: N8N_INSTANCE_OWNER_PASSWORD_HASH
-      - name: WORKFLOW_RUNTIME_STEP_UPDATE_TOKEN
-        key: WORKFLOW_RUNTIME_STEP_UPDATE_TOKEN
+    - name: DB_POSTGRESDB_PASSWORD
+      key: N8N_POSTGRES_PASSWORD
+    - name: N8N_ENCRYPTION_KEY
+      key: N8N_ENCRYPTION_KEY
+    - name: N8N_RUNNERS_AUTH_TOKEN
+      key: N8N_RUNNERS_AUTH_TOKEN
+    - name: N8N_INSTANCE_OWNER_PASSWORD_HASH
+      key: N8N_INSTANCE_OWNER_PASSWORD_HASH
+    - name: WORKFLOW_RUNTIME_STEP_UPDATE_TOKEN
+      key: WORKFLOW_RUNTIME_STEP_UPDATE_TOKEN
     ports:
-      - name: http
-        containerPort: 5678
+    - name: http
+      containerPort: 5678
     service:
       enabled: true
       type: ClusterIP
       ports:
-        - name: http
-          port: 5678
-          targetPort: http
+      - name: http
+        port: 5678
+        targetPort: http
     probes:
       httpGet:
         path: /healthz
         port: http
     resources: {}
-
   n8n-worker:
     enabled: true
     replicas: 1
@@ -513,112 +562,118 @@ workloads:
       repository: docker.n8n.io/n8nio/n8n
       tag: 2.21.7
     args:
-      - worker
-      - --concurrency=5
+    - worker
+    - --concurrency=5
     env:
       DB_TYPE: postgresdb
-      DB_POSTGRESDB_HOST: '{{ include "byte-v-forge.componentFullname" (dict "root" . "component" "n8n-postgres") }}'
-      DB_POSTGRESDB_PORT: "5432"
+      DB_POSTGRESDB_HOST: '{{ include "byte-v-forge.componentFullname" (dict "root"
+        . "component" "n8n-postgres") }}'
+      DB_POSTGRESDB_PORT: '5432'
       DB_POSTGRESDB_DATABASE: n8n
       DB_POSTGRESDB_USER: n8n
       DB_TABLE_PREFIX: n8n_
       EXECUTIONS_MODE: queue
-      EXECUTIONS_DATA_SAVE_ON_PROGRESS: "true"
-      QUEUE_BULL_REDIS_HOST: '{{ include "byte-v-forge.componentFullname" (dict "root" . "component" "n8n-redis") }}'
-      QUEUE_BULL_REDIS_PORT: "6379"
-      QUEUE_HEALTH_CHECK_ACTIVE: "true"
-      WEBHOOK_URL: 'http://{{ include "byte-v-forge.componentFullname" (dict "root" . "component" "n8n-webhook") }}:5678/'
+      EXECUTIONS_DATA_SAVE_ON_PROGRESS: 'true'
+      QUEUE_BULL_REDIS_HOST: '{{ include "byte-v-forge.componentFullname" (dict "root"
+        . "component" "n8n-redis") }}'
+      QUEUE_BULL_REDIS_PORT: '6379'
+      QUEUE_HEALTH_CHECK_ACTIVE: 'true'
+      WEBHOOK_URL: http://{{ include "byte-v-forge.componentFullname" (dict "root"
+        . "component" "n8n-webhook") }}:5678/
       N8N_RUNNERS_MODE: external
       N8N_RUNNERS_BROKER_LISTEN_ADDRESS: 0.0.0.0
-      N8N_NATIVE_PYTHON_RUNNER: "true"
-      N8N_ENFORCE_SETTINGS_FILE_PERMISSIONS: "true"
-      N8N_DIAGNOSTICS_ENABLED: "false"
-      N8N_VERSION_NOTIFICATIONS_ENABLED: "false"
-      N8N_TEMPLATES_ENABLED: "false"
-      N8N_BLOCK_ENV_ACCESS_IN_NODE: "false"
-      GPT_ACTION_API_BASE_URL: '{{ tpl .Values.configEnv.GPT_ACTION_API_BASE_URL . }}'
-      GOPAY_ACTION_API_BASE_URL: '{{ tpl .Values.configEnv.GOPAY_ACTION_API_BASE_URL . }}'
+      N8N_NATIVE_PYTHON_RUNNER: 'true'
+      N8N_ENFORCE_SETTINGS_FILE_PERMISSIONS: 'true'
+      N8N_DIAGNOSTICS_ENABLED: 'false'
+      N8N_VERSION_NOTIFICATIONS_ENABLED: 'false'
+      N8N_TEMPLATES_ENABLED: 'false'
+      N8N_BLOCK_ENV_ACCESS_IN_NODE: 'false'
+      GPT_ACTION_API_BASE_URL: '{{ tpl .Values.configEnv.GPT_ACTION_API_BASE_URL .
+        }}'
+      GOPAY_ACTION_API_BASE_URL: '{{ tpl .Values.configEnv.GOPAY_ACTION_API_BASE_URL
+        . }}'
       GOPAY_API_BASE_URL: '{{ tpl .Values.configEnv.GOPAY_API_BASE_URL . }}'
       WA_ACTION_API_BASE_URL: '{{ tpl .Values.configEnv.WA_ACTION_API_BASE_URL . }}'
       WA_API_BASE_URL: '{{ tpl .Values.configEnv.WA_API_BASE_URL . }}'
       SMS_API_BASE_URL: '{{ tpl .Values.configEnv.SMS_API_BASE_URL . }}'
-      PROXY_RUNTIME_API_BASE_URL: '{{ tpl .Values.configEnv.PROXY_RUNTIME_API_BASE_URL . }}'
-      WORKFLOW_RUNTIME_API_BASE_URL: '{{ tpl .Values.configEnv.WORKFLOW_RUNTIME_API_BASE_URL . }}'
+      PROXY_RUNTIME_API_BASE_URL: '{{ tpl .Values.configEnv.PROXY_RUNTIME_API_BASE_URL
+        . }}'
+      WORKFLOW_RUNTIME_API_BASE_URL: '{{ tpl .Values.configEnv.WORKFLOW_RUNTIME_API_BASE_URL
+        . }}'
     secretEnv:
-      - name: DB_POSTGRESDB_PASSWORD
-        key: N8N_POSTGRES_PASSWORD
-      - name: N8N_ENCRYPTION_KEY
-        key: N8N_ENCRYPTION_KEY
-      - name: N8N_RUNNERS_AUTH_TOKEN
-        key: N8N_RUNNERS_AUTH_TOKEN
-      - name: WORKFLOW_RUNTIME_STEP_UPDATE_TOKEN
-        key: WORKFLOW_RUNTIME_STEP_UPDATE_TOKEN
+    - name: DB_POSTGRESDB_PASSWORD
+      key: N8N_POSTGRES_PASSWORD
+    - name: N8N_ENCRYPTION_KEY
+      key: N8N_ENCRYPTION_KEY
+    - name: N8N_RUNNERS_AUTH_TOKEN
+      key: N8N_RUNNERS_AUTH_TOKEN
+    - name: WORKFLOW_RUNTIME_STEP_UPDATE_TOKEN
+      key: WORKFLOW_RUNTIME_STEP_UPDATE_TOKEN
     ports:
-      - name: http
-        containerPort: 5678
+    - name: http
+      containerPort: 5678
     probes:
       httpGet:
         path: /healthz
         port: http
     extraContainers:
-      - name: task-runner
-        image: docker.io/n8nio/runners:2.21.7
-        imagePullPolicy: IfNotPresent
-        env:
-          - name: N8N_RUNNERS_TASK_BROKER_URI
-            value: http://127.0.0.1:5679
-          - name: N8N_RUNNERS_AUTH_TOKEN
-            valueFrom:
-              secretKeyRef:
-                name: '{{ include "byte-v-forge.appSecretName" . }}'
-                key: N8N_RUNNERS_AUTH_TOKEN
-          - name: N8N_RUNNERS_AUTO_SHUTDOWN_TIMEOUT
-            value: "0"
-          - name: N8N_RUNNERS_MAX_CONCURRENCY
-            value: "5"
-          - name: N8N_RUNNERS_LAUNCHER_HEALTH_CHECK_PORT
-            value: "5680"
-          - name: N8N_BLOCK_ENV_ACCESS_IN_NODE
-            value: "false"
-          - name: GPT_ACTION_API_BASE_URL
-            value: '{{ tpl .Values.configEnv.GPT_ACTION_API_BASE_URL . }}'
-          - name: GOPAY_ACTION_API_BASE_URL
-            value: '{{ tpl .Values.configEnv.GOPAY_ACTION_API_BASE_URL . }}'
-          - name: GOPAY_API_BASE_URL
-            value: '{{ tpl .Values.configEnv.GOPAY_API_BASE_URL . }}'
-          - name: WA_ACTION_API_BASE_URL
-            value: '{{ tpl .Values.configEnv.WA_ACTION_API_BASE_URL . }}'
-          - name: WA_API_BASE_URL
-            value: '{{ tpl .Values.configEnv.WA_API_BASE_URL . }}'
-          - name: SMS_API_BASE_URL
-            value: '{{ tpl .Values.configEnv.SMS_API_BASE_URL . }}'
-          - name: PROXY_RUNTIME_API_BASE_URL
-            value: '{{ tpl .Values.configEnv.PROXY_RUNTIME_API_BASE_URL . }}'
-          - name: WORKFLOW_RUNTIME_API_BASE_URL
-            value: '{{ tpl .Values.configEnv.WORKFLOW_RUNTIME_API_BASE_URL . }}'
-          - name: WORKFLOW_RUNTIME_STEP_UPDATE_TOKEN
-            valueFrom:
-              secretKeyRef:
-                name: '{{ include "byte-v-forge.appSecretName" . }}'
-                key: WORKFLOW_RUNTIME_STEP_UPDATE_TOKEN
-        ports:
-          - name: runner-health
-            containerPort: 5680
-        readinessProbe:
-          httpGet:
-            path: /healthz
-            port: runner-health
-          initialDelaySeconds: 5
-          periodSeconds: 10
-        livenessProbe:
-          httpGet:
-            path: /healthz
-            port: runner-health
-          initialDelaySeconds: 20
-          periodSeconds: 20
-        resources: {}
+    - name: task-runner
+      image: docker.io/n8nio/runners:2.21.7
+      imagePullPolicy: IfNotPresent
+      env:
+      - name: N8N_RUNNERS_TASK_BROKER_URI
+        value: http://127.0.0.1:5679
+      - name: N8N_RUNNERS_AUTH_TOKEN
+        valueFrom:
+          secretKeyRef:
+            name: '{{ include "byte-v-forge.appSecretName" . }}'
+            key: N8N_RUNNERS_AUTH_TOKEN
+      - name: N8N_RUNNERS_AUTO_SHUTDOWN_TIMEOUT
+        value: '0'
+      - name: N8N_RUNNERS_MAX_CONCURRENCY
+        value: '5'
+      - name: N8N_RUNNERS_LAUNCHER_HEALTH_CHECK_PORT
+        value: '5680'
+      - name: N8N_BLOCK_ENV_ACCESS_IN_NODE
+        value: 'false'
+      - name: GPT_ACTION_API_BASE_URL
+        value: '{{ tpl .Values.configEnv.GPT_ACTION_API_BASE_URL . }}'
+      - name: GOPAY_ACTION_API_BASE_URL
+        value: '{{ tpl .Values.configEnv.GOPAY_ACTION_API_BASE_URL . }}'
+      - name: GOPAY_API_BASE_URL
+        value: '{{ tpl .Values.configEnv.GOPAY_API_BASE_URL . }}'
+      - name: WA_ACTION_API_BASE_URL
+        value: '{{ tpl .Values.configEnv.WA_ACTION_API_BASE_URL . }}'
+      - name: WA_API_BASE_URL
+        value: '{{ tpl .Values.configEnv.WA_API_BASE_URL . }}'
+      - name: SMS_API_BASE_URL
+        value: '{{ tpl .Values.configEnv.SMS_API_BASE_URL . }}'
+      - name: PROXY_RUNTIME_API_BASE_URL
+        value: '{{ tpl .Values.configEnv.PROXY_RUNTIME_API_BASE_URL . }}'
+      - name: WORKFLOW_RUNTIME_API_BASE_URL
+        value: '{{ tpl .Values.configEnv.WORKFLOW_RUNTIME_API_BASE_URL . }}'
+      - name: WORKFLOW_RUNTIME_STEP_UPDATE_TOKEN
+        valueFrom:
+          secretKeyRef:
+            name: '{{ include "byte-v-forge.appSecretName" . }}'
+            key: WORKFLOW_RUNTIME_STEP_UPDATE_TOKEN
+      ports:
+      - name: runner-health
+        containerPort: 5680
+      readinessProbe:
+        httpGet:
+          path: /healthz
+          port: runner-health
+        initialDelaySeconds: 5
+        periodSeconds: 10
+      livenessProbe:
+        httpGet:
+          path: /healthz
+          port: runner-health
+        initialDelaySeconds: 20
+        periodSeconds: 20
+      resources: {}
     resources: {}
-
   n8n-webhook:
     enabled: true
     replicas: 1
@@ -626,57 +681,62 @@ workloads:
       repository: docker.n8n.io/n8nio/n8n
       tag: 2.21.7
     args:
-      - webhook
+    - webhook
     env:
       DB_TYPE: postgresdb
-      DB_POSTGRESDB_HOST: '{{ include "byte-v-forge.componentFullname" (dict "root" . "component" "n8n-postgres") }}'
-      DB_POSTGRESDB_PORT: "5432"
+      DB_POSTGRESDB_HOST: '{{ include "byte-v-forge.componentFullname" (dict "root"
+        . "component" "n8n-postgres") }}'
+      DB_POSTGRESDB_PORT: '5432'
       DB_POSTGRESDB_DATABASE: n8n
       DB_POSTGRESDB_USER: n8n
       DB_TABLE_PREFIX: n8n_
       EXECUTIONS_MODE: queue
-      EXECUTIONS_DATA_SAVE_ON_PROGRESS: "true"
-      QUEUE_BULL_REDIS_HOST: '{{ include "byte-v-forge.componentFullname" (dict "root" . "component" "n8n-redis") }}'
-      QUEUE_BULL_REDIS_PORT: "6379"
-      WEBHOOK_URL: 'http://{{ include "byte-v-forge.componentFullname" (dict "root" . "component" "n8n-webhook") }}:5678/'
-      N8N_PROXY_HOPS: "1"
-      N8N_ENFORCE_SETTINGS_FILE_PERMISSIONS: "true"
-      N8N_DIAGNOSTICS_ENABLED: "false"
-      N8N_VERSION_NOTIFICATIONS_ENABLED: "false"
-      N8N_TEMPLATES_ENABLED: "false"
-      N8N_BLOCK_ENV_ACCESS_IN_NODE: "false"
-      GPT_ACTION_API_BASE_URL: '{{ tpl .Values.configEnv.GPT_ACTION_API_BASE_URL . }}'
-      GOPAY_ACTION_API_BASE_URL: '{{ tpl .Values.configEnv.GOPAY_ACTION_API_BASE_URL . }}'
+      EXECUTIONS_DATA_SAVE_ON_PROGRESS: 'true'
+      QUEUE_BULL_REDIS_HOST: '{{ include "byte-v-forge.componentFullname" (dict "root"
+        . "component" "n8n-redis") }}'
+      QUEUE_BULL_REDIS_PORT: '6379'
+      WEBHOOK_URL: http://{{ include "byte-v-forge.componentFullname" (dict "root"
+        . "component" "n8n-webhook") }}:5678/
+      N8N_PROXY_HOPS: '1'
+      N8N_ENFORCE_SETTINGS_FILE_PERMISSIONS: 'true'
+      N8N_DIAGNOSTICS_ENABLED: 'false'
+      N8N_VERSION_NOTIFICATIONS_ENABLED: 'false'
+      N8N_TEMPLATES_ENABLED: 'false'
+      N8N_BLOCK_ENV_ACCESS_IN_NODE: 'false'
+      GPT_ACTION_API_BASE_URL: '{{ tpl .Values.configEnv.GPT_ACTION_API_BASE_URL .
+        }}'
+      GOPAY_ACTION_API_BASE_URL: '{{ tpl .Values.configEnv.GOPAY_ACTION_API_BASE_URL
+        . }}'
       GOPAY_API_BASE_URL: '{{ tpl .Values.configEnv.GOPAY_API_BASE_URL . }}'
       WA_ACTION_API_BASE_URL: '{{ tpl .Values.configEnv.WA_ACTION_API_BASE_URL . }}'
       WA_API_BASE_URL: '{{ tpl .Values.configEnv.WA_API_BASE_URL . }}'
       SMS_API_BASE_URL: '{{ tpl .Values.configEnv.SMS_API_BASE_URL . }}'
-      PROXY_RUNTIME_API_BASE_URL: '{{ tpl .Values.configEnv.PROXY_RUNTIME_API_BASE_URL . }}'
-      WORKFLOW_RUNTIME_API_BASE_URL: '{{ tpl .Values.configEnv.WORKFLOW_RUNTIME_API_BASE_URL . }}'
+      PROXY_RUNTIME_API_BASE_URL: '{{ tpl .Values.configEnv.PROXY_RUNTIME_API_BASE_URL
+        . }}'
+      WORKFLOW_RUNTIME_API_BASE_URL: '{{ tpl .Values.configEnv.WORKFLOW_RUNTIME_API_BASE_URL
+        . }}'
     secretEnv:
-      - name: DB_POSTGRESDB_PASSWORD
-        key: N8N_POSTGRES_PASSWORD
-      - name: N8N_ENCRYPTION_KEY
-        key: N8N_ENCRYPTION_KEY
-      - name: WORKFLOW_RUNTIME_STEP_UPDATE_TOKEN
-        key: WORKFLOW_RUNTIME_STEP_UPDATE_TOKEN
+    - name: DB_POSTGRESDB_PASSWORD
+      key: N8N_POSTGRES_PASSWORD
+    - name: N8N_ENCRYPTION_KEY
+      key: N8N_ENCRYPTION_KEY
+    - name: WORKFLOW_RUNTIME_STEP_UPDATE_TOKEN
+      key: WORKFLOW_RUNTIME_STEP_UPDATE_TOKEN
     ports:
-      - name: http
-        containerPort: 5678
+    - name: http
+      containerPort: 5678
     service:
       enabled: true
       type: ClusterIP
       ports:
-        - name: http
-          port: 5678
-          targetPort: http
+      - name: http
+        port: 5678
+        targetPort: http
     probes:
       httpGet:
         path: /healthz
         port: http
     resources: {}
-
-
   proxy-runtime:
     enabled: true
     replicas: 1
@@ -685,59 +745,61 @@ workloads:
       tag: latest
     postgresEnv: true
     env:
-      PROXY_RUNTIME_ADDR: ":8080"
+      PROXY_RUNTIME_ADDR: :8080
       PROXY_RUNTIME_POSTGRES_DSN: '{{ include "byte-v-forge.pgDsn" . }}'
       PROXY_RUNTIME_DATA_DIR: /var/lib/proxy-runtime
       PROXY_RUNTIME_MIHOMO_API_ADDR: 127.0.0.1:18901
-      PROXY_RUNTIME_LOCAL_ADDR: ":10810"
+      PROXY_RUNTIME_LOCAL_ADDR: :10810
       PROXY_RUNTIME_LOCAL_PROTOCOL: socks5
-      PROXY_RUNTIME_SESSION_ADVERTISED_HOST: '{{ include "byte-v-forge.componentFullname" (dict "root" . "component" "proxy-runtime") }}'
+      PROXY_RUNTIME_SESSION_ADVERTISED_HOST: '{{ include "byte-v-forge.componentFullname"
+        (dict "root" . "component" "proxy-runtime") }}'
       PROXY_RUNTIME_REDIS_URL: '{{ tpl .Values.configEnv.PLATFORM_REDIS_URL . }}'
     secretEnv:
-      - name: PROXY_RUNTIME_ENCRYPTION_KEY
-        key: PROXY_RUNTIME_ENCRYPTION_KEY
-      - name: PROXY_RUNTIME_CONTROL_AUTH_TOKEN
-        key: PROXY_RUNTIME_CONTROL_AUTH_TOKEN
-      - name: PROXY_RUNTIME_SERVICE_AUTH_TOKEN
-        key: PROXY_RUNTIME_SERVICE_AUTH_TOKEN
-      - name: PROXY_RUNTIME_LOCAL_PASSWORD
-        key: PROXY_RUNTIME_LOCAL_PASSWORD
-        optional: true
+    - name: PROXY_RUNTIME_ENCRYPTION_KEY
+      key: PROXY_RUNTIME_ENCRYPTION_KEY
+    - name: PROXY_RUNTIME_CONTROL_AUTH_TOKEN
+      key: PROXY_RUNTIME_CONTROL_AUTH_TOKEN
+    - name: PROXY_RUNTIME_SERVICE_AUTH_TOKEN
+      key: PROXY_RUNTIME_SERVICE_AUTH_TOKEN
+    - name: PROXY_RUNTIME_LOCAL_PASSWORD
+      key: PROXY_RUNTIME_LOCAL_PASSWORD
+      optional: true
     ports:
-      - name: http
-        containerPort: 8080
-      - name: common-socks
-        containerPort: 10810
+    - name: http
+      containerPort: 8080
+    - name: common-socks
+      containerPort: 10810
     volumeMounts:
-      - name: runtime-state
-        mountPath: /var/lib/proxy-runtime
+    - name: runtime-state
+      mountPath: /var/lib/proxy-runtime
     volumes:
-      - name: runtime-state
-        type: persistentVolumeClaim
-        create: true
-        claimName: '{{ include "byte-v-forge.componentFullname" (dict "root" . "component" "proxy-runtime") }}-data'
-        accessModes:
-          - ReadWriteOnce
-        size: 1Gi
+    - name: runtime-state
+      type: persistentVolumeClaim
+      create: true
+      claimName: '{{ include "byte-v-forge.componentFullname" (dict "root" . "component"
+        "proxy-runtime") }}-data'
+      accessModes:
+      - ReadWriteOnce
+      size: 1Gi
     service:
       enabled: true
       type: ClusterIP
       ports:
-        - name: http
-          port: 8080
-          targetPort: http
-        - name: common-socks
-          port: 10810
-          targetPort: common-socks
+      - name: http
+        port: 8080
+        targetPort: http
+      - name: common-socks
+        port: 10810
+        targetPort: common-socks
     extraServices:
-      - nameSuffix: gateway
-        enabled: true
-        type: NodePort
-        ports:
-          - name: common-socks
-            port: 10810
-            targetPort: common-socks
-            nodePort: 30081
+    - nameSuffix: gateway
+      enabled: true
+      type: NodePort
+      ports:
+      - name: common-socks
+        port: 10810
+        targetPort: common-socks
+        nodePort: 30081
     probes:
       httpGet:
         path: /healthz
@@ -747,15 +809,8 @@ workloads:
         cpu: 500m
         memory: 512Mi
       limits:
-        cpu: "4"
+        cpu: '4'
         memory: 2Gi
-
-  # mixed-proxy-gateway：独立并存的运维代理网关（super-anonymous/mixed-proxy-gateway）。
-  # 与现役 proxy-runtime 零冲突：独立服务名 / 独立端口 / 独立 Traefik host。
-  # 配置 Web UI 管理：chain-config 放可写持久卷（PVC），空池启动后经面板在线添加
-  # provider/规则（PUT /api/config → 热换 + SaveFile 落 PVC，重启不丢）。
-  # 镜像为 distroless nonroot(65532)，fsGroup 让 PVC 卷可写。
-  # admin 密码经 appSecret(MIXED_PROXY_GATEWAY_ADMIN_PASSWORD) 注入，应用层 Basic Auth。
   mixed-proxy-gateway:
     enabled: true
     replicas: 1
@@ -765,51 +820,60 @@ workloads:
     podSecurityContext:
       fsGroup: 65532
     args:
-      - "-http-listen=:2260"
-      - "-socks5-listen=:1080"
-      - "-admin-listen=:8088"
-      - "-admin-user=admin"
-      - "-health-listen=:8080"
-      - "-chain-config=/data/chain-config.json"
+    - -http-listen=:2260
+    - -socks5-listen=:1080
+    - -admin-listen=:8088
+    - -health-listen=:8080
+    - -chain-config=/data/chain-config.json
+    - -providers-file=/etc/mpg/providers.json
+    - -log-sink=sqlite
+    - -log-sqlite-path=/data/requests.db
     secretEnv:
-      - name: ADMIN_PASSWORD
-        key: MIXED_PROXY_GATEWAY_ADMIN_PASSWORD
-      - name: SUBSCRIPTION_URL
-        key: MIXED_PROXY_GATEWAY_SUBSCRIPTION_URL
-        optional: true
+    - name: ADMIN_PASSWORD
+      key: MIXED_PROXY_GATEWAY_ADMIN_PASSWORD
+    - name: SUBSCRIPTION_URL
+      key: MIXED_PROXY_GATEWAY_SUBSCRIPTION_URL
+      optional: true
     ports:
-      - name: admin
-        containerPort: 8088
-      - name: http-proxy
-        containerPort: 2260
-      - name: socks
-        containerPort: 1080
-      - name: health
-        containerPort: 8080
+    - name: admin
+      containerPort: 8088
+    - name: http-proxy
+      containerPort: 2260
+    - name: socks
+      containerPort: 1080
+    - name: health
+      containerPort: 8080
     volumeMounts:
-      - name: config
-        mountPath: /data
+    - name: config
+      mountPath: /data
+    - name: providers
+      mountPath: /etc/mpg
+      readOnly: true
     volumes:
-      - name: config
-        type: persistentVolumeClaim
-        create: true
-        claimName: '{{ include "byte-v-forge.componentFullname" (dict "root" . "component" "mixed-proxy-gateway") }}-config'
-        accessModes:
-          - ReadWriteOnce
-        size: 256Mi
+    - name: config
+      type: persistentVolumeClaim
+      create: true
+      claimName: '{{ include "byte-v-forge.componentFullname" (dict "root" . "component"
+        "mixed-proxy-gateway") }}-config'
+      accessModes:
+      - ReadWriteOnce
+      size: 256Mi
+    - name: providers
+      type: configMap
+      configMapName: '{{ include "byte-v-forge.fullname" . }}-mixed-proxy-providers'
     service:
       enabled: true
       type: ClusterIP
       ports:
-        - name: admin
-          port: 8088
-          targetPort: admin
-        - name: http-proxy
-          port: 2260
-          targetPort: http-proxy
-        - name: socks
-          port: 1080
-          targetPort: socks
+      - name: admin
+        port: 8088
+        targetPort: admin
+      - name: http-proxy
+        port: 2260
+        targetPort: http-proxy
+      - name: socks
+        port: 1080
+        targetPort: socks
     probes:
       httpGet:
         path: /healthz/live
@@ -819,9 +883,8 @@ workloads:
         cpu: 50m
         memory: 64Mi
       limits:
-        cpu: "1"
+        cpu: '1'
         memory: 256Mi
-
   browser-automation:
     enabled: true
     replicas: 1
@@ -831,68 +894,77 @@ workloads:
       tag: latest
     postgresEnv: true
     env:
-      BROWSER_AUTOMATION_LISTEN_ADDR: ":50051"
-      BROWSER_AUTOMATION_HTTP_LISTEN_ADDR: ":8080"
+      BROWSER_AUTOMATION_LISTEN_ADDR: :50051
+      BROWSER_AUTOMATION_HTTP_LISTEN_ADDR: :8080
       BROWSER_AUTOMATION_POSTGRES_DSN: '{{ include "byte-v-forge.pgDsn" . }}'
-      BROWSER_AUTOMATION_APPLY_MIGRATIONS: '{{ .Values.configEnv.BROWSER_AUTOMATION_APPLY_MIGRATIONS }}'
-      BROWSER_AUTOMATION_RUNTIME: '{{ .Values.configEnv.BROWSER_AUTOMATION_RUNTIME }}'
-      BROWSER_AUTOMATION_MAX_CONCURRENT_SESSIONS: '{{ .Values.configEnv.BROWSER_AUTOMATION_MAX_CONCURRENT_SESSIONS }}'
-      BROWSER_AUTOMATION_WEBRTC_TCP_LISTEN_ADDR: '{{ .Values.configEnv.BROWSER_AUTOMATION_WEBRTC_TCP_LISTEN_ADDR }}'
-      BROWSER_AUTOMATION_WEBRTC_UDP_LISTEN_ADDR: '{{ .Values.configEnv.BROWSER_AUTOMATION_WEBRTC_UDP_LISTEN_ADDR }}'
-      BROWSER_AUTOMATION_WEBRTC_PUBLIC_IPS: '{{ .Values.configEnv.BROWSER_AUTOMATION_WEBRTC_PUBLIC_IPS }}'
-      BROWSER_AUTOMATION_PROXY_RUNTIME_BASE_URL: '{{ tpl .Values.configEnv.BROWSER_AUTOMATION_PROXY_RUNTIME_BASE_URL . }}'
-      BROWSER_AUTOMATION_PROXY_RUNTIME_TIMEOUT_SECONDS: '{{ .Values.configEnv.BROWSER_AUTOMATION_PROXY_RUNTIME_TIMEOUT_SECONDS }}'
-      BROWSER_AUTOMATION_PROXY_RUNTIME_ACCOUNT_ID: '{{ .Values.configEnv.BROWSER_AUTOMATION_PROXY_RUNTIME_ACCOUNT_ID }}'
-      BROWSER_AUTOMATION_PROXY_RUNTIME_PURPOSE: '{{ .Values.configEnv.BROWSER_AUTOMATION_PROXY_RUNTIME_PURPOSE }}'
+      BROWSER_AUTOMATION_APPLY_MIGRATIONS: '{{ .Values.configEnv.BROWSER_AUTOMATION_APPLY_MIGRATIONS
+        }}'
+      BROWSER_AUTOMATION_RUNTIME: '{{ .Values.configEnv.BROWSER_AUTOMATION_RUNTIME
+        }}'
+      BROWSER_AUTOMATION_MAX_CONCURRENT_SESSIONS: '{{ .Values.configEnv.BROWSER_AUTOMATION_MAX_CONCURRENT_SESSIONS
+        }}'
+      BROWSER_AUTOMATION_WEBRTC_TCP_LISTEN_ADDR: '{{ .Values.configEnv.BROWSER_AUTOMATION_WEBRTC_TCP_LISTEN_ADDR
+        }}'
+      BROWSER_AUTOMATION_WEBRTC_UDP_LISTEN_ADDR: '{{ .Values.configEnv.BROWSER_AUTOMATION_WEBRTC_UDP_LISTEN_ADDR
+        }}'
+      BROWSER_AUTOMATION_WEBRTC_PUBLIC_IPS: '{{ .Values.configEnv.BROWSER_AUTOMATION_WEBRTC_PUBLIC_IPS
+        }}'
+      BROWSER_AUTOMATION_PROXY_RUNTIME_BASE_URL: '{{ tpl .Values.configEnv.BROWSER_AUTOMATION_PROXY_RUNTIME_BASE_URL
+        . }}'
+      BROWSER_AUTOMATION_PROXY_RUNTIME_TIMEOUT_SECONDS: '{{ .Values.configEnv.BROWSER_AUTOMATION_PROXY_RUNTIME_TIMEOUT_SECONDS
+        }}'
+      BROWSER_AUTOMATION_PROXY_RUNTIME_ACCOUNT_ID: '{{ .Values.configEnv.BROWSER_AUTOMATION_PROXY_RUNTIME_ACCOUNT_ID
+        }}'
+      BROWSER_AUTOMATION_PROXY_RUNTIME_PURPOSE: '{{ .Values.configEnv.BROWSER_AUTOMATION_PROXY_RUNTIME_PURPOSE
+        }}'
     secretEnv:
-      - name: BROWSER_AUTOMATION_PROXY_REFS_JSON
-        key: BROWSER_AUTOMATION_PROXY_REFS_JSON
+    - name: BROWSER_AUTOMATION_PROXY_REFS_JSON
+      key: BROWSER_AUTOMATION_PROXY_REFS_JSON
     ports:
-      - name: grpc
-        containerPort: 50051
-      - name: http-dashboard
-        containerPort: 8080
-      - name: webrtc-tcp
-        containerPort: 3479
-        hostPort: 3479
-        protocol: TCP
-      - name: webrtc-udp
-        containerPort: 3478
-        hostPort: 3478
-        protocol: UDP
+    - name: grpc
+      containerPort: 50051
+    - name: http-dashboard
+      containerPort: 8080
+    - name: webrtc-tcp
+      containerPort: 3479
+      hostPort: 3479
+      protocol: TCP
+    - name: webrtc-udp
+      containerPort: 3478
+      hostPort: 3478
+      protocol: UDP
     service:
       enabled: true
       type: ClusterIP
       ports:
-        - name: grpc
-          port: 50051
-          targetPort: grpc
-        - name: http-dashboard
-          port: 8080
-          targetPort: http-dashboard
-        - name: webrtc-tcp
-          port: 3479
-          targetPort: webrtc-tcp
-          protocol: TCP
-        - name: webrtc-udp
-          port: 3478
-          targetPort: webrtc-udp
-          protocol: UDP
+      - name: grpc
+        port: 50051
+        targetPort: grpc
+      - name: http-dashboard
+        port: 8080
+        targetPort: http-dashboard
+      - name: webrtc-tcp
+        port: 3479
+        targetPort: webrtc-tcp
+        protocol: TCP
+      - name: webrtc-udp
+        port: 3478
+        targetPort: webrtc-udp
+        protocol: UDP
     probes:
       grpc:
         port: 50051
     volumeMounts:
-      - name: shm
-        mountPath: /dev/shm
+    - name: shm
+      mountPath: /dev/shm
     volumes:
-      - name: shm
-        type: emptyDir
-        medium: Memory
-        sizeLimit: 2Gi
+    - name: shm
+      type: emptyDir
+      medium: Memory
+      sizeLimit: 2Gi
     resources:
       limits:
         memory: 4Gi
-
   mailbox:
     enabled: true
     replicas: 1
@@ -901,69 +973,76 @@ workloads:
       tag: latest
     postgresEnv: true
     env:
-      MAILBOX_LISTEN_ADDR: ":50051"
+      MAILBOX_LISTEN_ADDR: :50051
       MAILBOX_WEBHOOK_HTTP_ADDR: '{{ .Values.configEnv.MAILBOX_WEBHOOK_HTTP_ADDR }}'
-      MAILBOX_DASHBOARD_HTTP_ADDR: '{{ .Values.configEnv.MAILBOX_DASHBOARD_HTTP_ADDR }}'
+      MAILBOX_DASHBOARD_HTTP_ADDR: '{{ .Values.configEnv.MAILBOX_DASHBOARD_HTTP_ADDR
+        }}'
       MAILBOX_DASHBOARD_STATIC_DIR: /app/dashboard/mailbox
       MAILBOX_CLOUDFLARE_EMAIL_CONFIG_FILE: /etc/mailbox/cloudflare-email/cloudflare-email.json
-      MAILBOX_CLOUDFLARE_MAX_MESSAGES_PER_DOMAIN: '{{ .Values.configEnv.MAILBOX_CLOUDFLARE_MAX_MESSAGES_PER_DOMAIN }}'
-      MAILBOX_CLOUDFLARE_RELAY_PULL_URL: '{{ .Values.configEnv.MAILBOX_CLOUDFLARE_RELAY_PULL_URL }}'
-      MAILBOX_OUTLOOK_MAX_MESSAGES_PER_MAILBOX: '{{ .Values.configEnv.MAILBOX_OUTLOOK_MAX_MESSAGES_PER_MAILBOX }}'
-      MAILBOX_COORDINATION_REDIS_URL: '{{ tpl .Values.configEnv.MAILBOX_COORDINATION_REDIS_URL . }}'
-      MAILBOX_RECENT_EMAIL_REDIS_URL: '{{ tpl .Values.configEnv.MAILBOX_RECENT_EMAIL_REDIS_URL . }}'
+      MAILBOX_CLOUDFLARE_MAX_MESSAGES_PER_DOMAIN: '{{ .Values.configEnv.MAILBOX_CLOUDFLARE_MAX_MESSAGES_PER_DOMAIN
+        }}'
+      MAILBOX_CLOUDFLARE_RELAY_PULL_URL: '{{ .Values.configEnv.MAILBOX_CLOUDFLARE_RELAY_PULL_URL
+        }}'
+      MAILBOX_OUTLOOK_MAX_MESSAGES_PER_MAILBOX: '{{ .Values.configEnv.MAILBOX_OUTLOOK_MAX_MESSAGES_PER_MAILBOX
+        }}'
+      MAILBOX_COORDINATION_REDIS_URL: '{{ tpl .Values.configEnv.MAILBOX_COORDINATION_REDIS_URL
+        . }}'
+      MAILBOX_RECENT_EMAIL_REDIS_URL: '{{ tpl .Values.configEnv.MAILBOX_RECENT_EMAIL_REDIS_URL
+        . }}'
       MAILBOX_NATS_URL: '{{ tpl .Values.configEnv.MAILBOX_NATS_URL . }}'
       MAILBOX_EVENT_STREAM_NAME: '{{ .Values.configEnv.MAILBOX_EVENT_STREAM_NAME }}'
       PLATFORM_REDIS_URL: '{{ tpl .Values.configEnv.PLATFORM_REDIS_URL . }}'
       PLATFORM_NATS_URL: '{{ tpl .Values.configEnv.PLATFORM_NATS_URL . }}'
-      PLATFORM_EVENT_STREAM_NAME: '{{ .Values.configEnv.PLATFORM_EVENT_STREAM_NAME }}'
+      PLATFORM_EVENT_STREAM_NAME: '{{ .Values.configEnv.PLATFORM_EVENT_STREAM_NAME
+        }}'
       MAILBOX_RECENT_EMAIL_CACHE_KEY_PREFIX: byte-v-forge:mailbox:recent-email
-      MAILBOX_RECENT_EMAIL_CACHE_TTL_SECONDS: "3600"
-      MAILBOX_RECENT_EMAIL_CACHE_MAX_MESSAGES: "20"
+      MAILBOX_RECENT_EMAIL_CACHE_TTL_SECONDS: '3600'
+      MAILBOX_RECENT_EMAIL_CACHE_MAX_MESSAGES: '20'
       MAILBOX_INBOX_LOCK_KEY_PREFIX: byte-v-forge:mailbox:locks
-      MAILBOX_INBOX_LOCK_TTL_SECONDS: "600"
-      MAILBOX_INBOX_LOCK_RETRY_SECONDS: "1"
+      MAILBOX_INBOX_LOCK_TTL_SECONDS: '600'
+      MAILBOX_INBOX_LOCK_RETRY_SECONDS: '1'
       MAILBOX_PG_DSN: '{{ tpl .Values.configEnv.MAILBOX_PG_DSN . }}'
-      MAILBOX_BROWSER_AUTOMATION_ADDR: '{{ tpl .Values.configEnv.MAILBOX_BROWSER_AUTOMATION_ADDR . }}'
+      MAILBOX_BROWSER_AUTOMATION_ADDR: '{{ tpl .Values.configEnv.MAILBOX_BROWSER_AUTOMATION_ADDR
+        . }}'
     secretEnv:
-      - name: MAILBOX_WEBHOOK_TOKEN
-        key: MAILBOX_WEBHOOK_TOKEN
-      - name: MAILBOX_CLOUDFLARE_API_TOKEN
-        key: MAILBOX_CLOUDFLARE_API_TOKEN
-      - name: MAILBOX_CLOUDFLARE_RELAY_PULL_TOKEN
-        key: MAILBOX_CLOUDFLARE_RELAY_PULL_TOKEN
+    - name: MAILBOX_WEBHOOK_TOKEN
+      key: MAILBOX_WEBHOOK_TOKEN
+    - name: MAILBOX_CLOUDFLARE_API_TOKEN
+      key: MAILBOX_CLOUDFLARE_API_TOKEN
+    - name: MAILBOX_CLOUDFLARE_RELAY_PULL_TOKEN
+      key: MAILBOX_CLOUDFLARE_RELAY_PULL_TOKEN
     volumeMounts:
-      - name: cloudflare-email
-        mountPath: /etc/mailbox/cloudflare-email
-        readOnly: true
+    - name: cloudflare-email
+      mountPath: /etc/mailbox/cloudflare-email
+      readOnly: true
     volumes:
-      - name: cloudflare-email
-        type: configMap
-        configMapName: '{{ include "byte-v-forge.fullname" . }}-cloudflare-email'
+    - name: cloudflare-email
+      type: configMap
+      configMapName: '{{ include "byte-v-forge.fullname" . }}-cloudflare-email'
     ports:
-      - name: grpc
-        containerPort: 50051
-      - name: http-webhook
-        containerPort: 8082
-      - name: http-dashboard
-        containerPort: 8080
+    - name: grpc
+      containerPort: 50051
+    - name: http-webhook
+      containerPort: 8082
+    - name: http-dashboard
+      containerPort: 8080
     service:
       enabled: true
       type: ClusterIP
       ports:
-        - name: grpc
-          port: 50051
-          targetPort: grpc
-        - name: http-webhook
-          port: 8082
-          targetPort: http-webhook
-        - name: http-dashboard
-          port: 8080
-          targetPort: http-dashboard
+      - name: grpc
+        port: 50051
+        targetPort: grpc
+      - name: http-webhook
+        port: 8082
+        targetPort: http-webhook
+      - name: http-dashboard
+        port: 8080
+        targetPort: http-dashboard
     probes:
       grpc:
         port: 50051
     resources: {}
-
   gpt-service:
     enabled: true
     replicas: 1
@@ -972,47 +1051,54 @@ workloads:
       tag: latest
     postgresEnv: true
     env:
-      GPT_SERVICE_LISTEN_ADDR: ":50051"
+      GPT_SERVICE_LISTEN_ADDR: :50051
       GPT_DASHBOARD_HTTP_ADDR: '{{ .Values.configEnv.GPT_DASHBOARD_HTTP_ADDR }}'
-      GPT_N8N_WEBHOOK_BASE_URL: '{{ tpl .Values.configEnv.GPT_N8N_WEBHOOK_BASE_URL . }}'
-      GPT_ACCOUNT_INTERNAL_ADDR: "127.0.0.1:50052"
-      GPT_PAYMENT_INTERNAL_ADDR: '{{ include "byte-v-forge.componentFullname" (dict "root" . "component" "gpt-checkout") }}:50054'
-      GPT_PRIVATE_APP_INTERNAL_ADDR: '{{ include "byte-v-forge.componentFullname" (dict "root" . "component" "gopay-app") }}:50051'
+      GPT_N8N_WEBHOOK_BASE_URL: '{{ tpl .Values.configEnv.GPT_N8N_WEBHOOK_BASE_URL
+        . }}'
+      GPT_ACCOUNT_INTERNAL_ADDR: 127.0.0.1:50052
+      GPT_PAYMENT_INTERNAL_ADDR: '{{ include "byte-v-forge.componentFullname" (dict
+        "root" . "component" "gpt-checkout") }}:50054'
+      GPT_PRIVATE_APP_INTERNAL_ADDR: '{{ include "byte-v-forge.componentFullname"
+        (dict "root" . "component" "gopay-app") }}:50051'
       GPT_SERVICE_PG_DSN: '{{ include "byte-v-forge.pgDsn" . }}'
-      GPT_RUNTIME_SECRET_REDIS_URL: '{{ tpl .Values.configEnv.PLATFORM_REDIS_URL . }}'
+      GPT_RUNTIME_SECRET_REDIS_URL: '{{ tpl .Values.configEnv.PLATFORM_REDIS_URL .
+        }}'
       GPT_OTP_RELAY_REDIS_URL: '{{ tpl .Values.configEnv.PLATFORM_REDIS_URL . }}'
       PLATFORM_NATS_URL: '{{ tpl .Values.configEnv.PLATFORM_NATS_URL . }}'
-      PLATFORM_EVENT_STREAM_NAME: '{{ .Values.configEnv.PLATFORM_EVENT_STREAM_NAME }}'
+      PLATFORM_EVENT_STREAM_NAME: '{{ .Values.configEnv.PLATFORM_EVENT_STREAM_NAME
+        }}'
       GPT_RUNTIME_SECRET_KEY_PREFIX: byte-v-forge:gpt:runtime-secrets
-      GPT_RUNTIME_SECRET_TTL_SECONDS: "86400"
-      BROWSER_AUTOMATION_ADDR: '{{ include "byte-v-forge.componentFullname" (dict "root" . "component" "browser-automation") }}:50051'
-      SMS_ADDR: '{{ include "byte-v-forge.componentFullname" (dict "root" . "component" "sms-service") }}:50051'
-      PROXY_RUNTIME_HTTP_ADDR: 'http://{{ include "byte-v-forge.componentFullname" (dict "root" . "component" "proxy-runtime") }}:8080'
+      GPT_RUNTIME_SECRET_TTL_SECONDS: '86400'
+      BROWSER_AUTOMATION_ADDR: '{{ include "byte-v-forge.componentFullname" (dict
+        "root" . "component" "browser-automation") }}:50051'
+      SMS_ADDR: '{{ include "byte-v-forge.componentFullname" (dict "root" . "component"
+        "sms-service") }}:50051'
+      PROXY_RUNTIME_HTTP_ADDR: http://{{ include "byte-v-forge.componentFullname"
+        (dict "root" . "component" "proxy-runtime") }}:8080
     ports:
-      - name: grpc
-        containerPort: 50051
-      - name: account-grpc
-        containerPort: 50052
-      - name: http-dashboard
-        containerPort: 8080
+    - name: grpc
+      containerPort: 50051
+    - name: account-grpc
+      containerPort: 50052
+    - name: http-dashboard
+      containerPort: 8080
     service:
       enabled: true
       type: ClusterIP
       ports:
-        - name: grpc
-          port: 50051
-          targetPort: grpc
-        - name: account-grpc
-          port: 50052
-          targetPort: account-grpc
-        - name: http-dashboard
-          port: 8080
-          targetPort: http-dashboard
+      - name: grpc
+        port: 50051
+        targetPort: grpc
+      - name: account-grpc
+        port: 50052
+        targetPort: account-grpc
+      - name: http-dashboard
+        port: 8080
+        targetPort: http-dashboard
     probes:
       grpc:
         port: 50051
     resources: {}
-
   gpt-checkout:
     enabled: true
     replicas: 1
@@ -1020,26 +1106,25 @@ workloads:
       repository: byte-v-forge/gpt-checkout
       tag: latest
     env:
-      GOPAY_PAYMENT_LISTEN_ADDR: ":50054"
-      GOPAY_ALLOW_NONZERO_EXPECTED_AMOUNT: "true"
+      GOPAY_PAYMENT_LISTEN_ADDR: :50054
+      GOPAY_ALLOW_NONZERO_EXPECTED_AMOUNT: 'true'
     secretEnv:
-      - name: GOPAY_CHECKOUT_PROFILE_JSON
-      - name: GOPAY_PAYMENT_PROFILE_JSON
+    - name: GOPAY_CHECKOUT_PROFILE_JSON
+    - name: GOPAY_PAYMENT_PROFILE_JSON
     ports:
-      - name: grpc
-        containerPort: 50054
+    - name: grpc
+      containerPort: 50054
     service:
       enabled: true
       type: ClusterIP
       ports:
-        - name: grpc
-          port: 50054
-          targetPort: grpc
+      - name: grpc
+        port: 50054
+        targetPort: grpc
     probes:
       grpc:
         port: 50054
     resources: {}
-
   gopay-app:
     enabled: true
     replicas: 1
@@ -1047,46 +1132,49 @@ workloads:
       repository: byte-v-forge/gopay-app
       tag: latest
     env:
-      GOPAY_APP_PORT: "50051"
+      GOPAY_APP_PORT: '50051'
       GOPAY_HTTP_LISTEN_ADDR: '{{ .Values.configEnv.GOPAY_HTTP_LISTEN_ADDR }}'
-      GOPAY_DASHBOARD_STATIC_DIR: '{{ .Values.configEnv.GOPAY_DASHBOARD_STATIC_DIR }}'
-      GOPAY_N8N_WEBHOOK_BASE_URL: '{{ tpl .Values.configEnv.GOPAY_N8N_WEBHOOK_BASE_URL . }}'
+      GOPAY_DASHBOARD_STATIC_DIR: '{{ .Values.configEnv.GOPAY_DASHBOARD_STATIC_DIR
+        }}'
+      GOPAY_N8N_WEBHOOK_BASE_URL: '{{ tpl .Values.configEnv.GOPAY_N8N_WEBHOOK_BASE_URL
+        . }}'
       GOPAY_STATE_REDIS_URL: '{{ tpl .Values.configEnv.PLATFORM_REDIS_URL . }}'
       GOPAY_STATE_KEY_PREFIX: byte-v-forge:gopay-app:state
-      GOPAY_STATE_TTL_SECONDS: "604800"
-      PROXY_RUNTIME_HTTP_ADDR: 'http://{{ include "byte-v-forge.componentFullname" (dict "root" . "component" "proxy-runtime") }}:8080'
-      GOPAY_SIGNUP_INITIATE_JITTER_MIN_SECONDS: "8"
-      GOPAY_SIGNUP_INITIATE_JITTER_MAX_SECONDS: "25"
-      GOPAY_SIGNUP_RATE_LIMIT_COOLDOWN_SECONDS: "900"
-      GOPAY_OTP_WEBHOOK_LISTEN_ADDR: ":8081"
-      GOPAY_OTP_SUBMIT_URL: 'http://{{ include "byte-v-forge.componentFullname" (dict "root" . "component" "gopay-app") }}:8080/api/gopay/otp/submit'
+      GOPAY_STATE_TTL_SECONDS: '604800'
+      PROXY_RUNTIME_HTTP_ADDR: http://{{ include "byte-v-forge.componentFullname"
+        (dict "root" . "component" "proxy-runtime") }}:8080
+      GOPAY_SIGNUP_INITIATE_JITTER_MIN_SECONDS: '8'
+      GOPAY_SIGNUP_INITIATE_JITTER_MAX_SECONDS: '25'
+      GOPAY_SIGNUP_RATE_LIMIT_COOLDOWN_SECONDS: '900'
+      GOPAY_OTP_WEBHOOK_LISTEN_ADDR: :8081
+      GOPAY_OTP_SUBMIT_URL: http://{{ include "byte-v-forge.componentFullname" (dict
+        "root" . "component" "gopay-app") }}:8080/api/gopay/otp/submit
     secretEnv:
-      - name: GOTO_SSO_CLIENT_SECRET
+    - name: GOTO_SSO_CLIENT_SECRET
     ports:
-      - name: grpc
-        containerPort: 50051
-      - name: http-dashboard
-        containerPort: 8080
-      - name: http-webhook
-        containerPort: 8081
+    - name: grpc
+      containerPort: 50051
+    - name: http-dashboard
+      containerPort: 8080
+    - name: http-webhook
+      containerPort: 8081
     service:
       enabled: true
       type: ClusterIP
       ports:
-        - name: grpc
-          port: 50051
-          targetPort: grpc
-        - name: http-dashboard
-          port: 8080
-          targetPort: http-dashboard
-        - name: http-webhook
-          port: 8081
-          targetPort: http-webhook
+      - name: grpc
+        port: 50051
+        targetPort: grpc
+      - name: http-dashboard
+        port: 8080
+        targetPort: http-dashboard
+      - name: http-webhook
+        port: 8081
+        targetPort: http-webhook
     probes:
       grpc:
         port: 50051
     resources: {}
-
   sms-service:
     enabled: true
     replicas: 1
@@ -1095,7 +1183,7 @@ workloads:
       tag: latest
     postgresEnv: true
     env:
-      SMS_LISTEN_ADDR: ":50051"
+      SMS_LISTEN_ADDR: :50051
       SMS_DASHBOARD_HTTP_ADDR: '{{ .Values.configEnv.SMS_DASHBOARD_HTTP_ADDR }}'
       SMS_DASHBOARD_STATIC_DIR: /app/dashboard/sms
       SMS_PG_DSN: '{{ tpl .Values.configEnv.SMS_PG_DSN . }}'
@@ -1104,28 +1192,92 @@ workloads:
       SMS_EVENT_STREAM_NAME: '{{ tpl .Values.configEnv.SMS_EVENT_STREAM_NAME . }}'
       PLATFORM_REDIS_URL: '{{ tpl .Values.configEnv.PLATFORM_REDIS_URL . }}'
       PLATFORM_NATS_URL: '{{ tpl .Values.configEnv.PLATFORM_NATS_URL . }}'
-      PLATFORM_EVENT_STREAM_NAME: '{{ .Values.configEnv.PLATFORM_EVENT_STREAM_NAME }}'
-      SMS_PROVIDER_HTTP_PROXY: 'socks5://sms:sms@{{ include "byte-v-forge.componentFullname" (dict "root" . "component" "proxy-runtime") }}:10810'
+      PLATFORM_EVENT_STREAM_NAME: '{{ .Values.configEnv.PLATFORM_EVENT_STREAM_NAME
+        }}'
+      SMS_PROVIDER_HTTP_PROXY: socks5://sms:sms@{{ include "byte-v-forge.componentFullname"
+        (dict "root" . "component" "proxy-runtime") }}:10810
     ports:
-      - name: grpc
-        containerPort: 50051
-      - name: http-dashboard
-        containerPort: 8080
+    - name: grpc
+      containerPort: 50051
+    - name: http-dashboard
+      containerPort: 8080
     service:
       enabled: true
       type: ClusterIP
       ports:
-        - name: grpc
-          port: 50051
-          targetPort: grpc
-        - name: http-dashboard
-          port: 8080
-          targetPort: http-dashboard
+      - name: grpc
+        port: 50051
+        targetPort: grpc
+      - name: http-dashboard
+        port: 8080
+        targetPort: http-dashboard
     probes:
       grpc:
         port: 50051
     resources: {}
-
+  play-integrity-api:
+    enabled: false
+    replicas: 1
+    strategyType: Recreate
+    image:
+      repository: byte-v-forge/play-integrity-api
+      tag: latest
+    podSecurityContext:
+      fsGroup: 65532
+    secretEnv:
+    - name: PLAY_INTEGRITY_API_TOKEN
+      key: PLAY_INTEGRITY_API_TOKEN
+    ports:
+    - name: http
+      containerPort: 8088
+    volumeMounts:
+    - name: service-config
+      mountPath: /etc/play-integrity-api
+      readOnly: true
+    - name: private-material
+      mountPath: /etc/play-integrity-api-private
+      readOnly: true
+    - name: runtime-data
+      mountPath: /var/lib/play-integrity-api
+    volumes:
+    - name: service-config
+      type: secret
+      secretName: '{{ include "byte-v-forge.appSecretName" . }}'
+      items:
+      - key: PLAY_INTEGRITY_SERVICE_CONFIG_JSON
+        path: config.json
+    - name: private-material
+      type: secret
+      secretName: '{{ include "byte-v-forge.fullname" . }}-play-integrity-api-private'
+      items:
+      - key: keybox.xml
+        path: keybox.xml
+    - name: runtime-data
+      type: persistentVolumeClaim
+      create: true
+      claimName: '{{ include "byte-v-forge.componentFullname" (dict "root" . "component"
+        "play-integrity-api") }}-data'
+      accessModes:
+      - ReadWriteOnce
+      size: 5Gi
+    service:
+      enabled: true
+      type: ClusterIP
+      ports:
+      - name: http
+        port: 8088
+        targetPort: http
+    probes:
+      httpGet:
+        path: /healthz
+        port: http
+    resources:
+      requests:
+        cpu: '1'
+        memory: 1Gi
+      limits:
+        cpu: '4'
+        memory: 4Gi
   wa-app-service:
     enabled: true
     replicas: 1
@@ -1134,50 +1286,56 @@ workloads:
       tag: latest
     postgresEnv: true
     env:
-      WA_APP_LISTEN_ADDR: ":50051"
-      WA_APP_DASHBOARD_HTTP_ADDR: '{{ .Values.configEnv.WA_APP_DASHBOARD_HTTP_ADDR }}'
+      WA_APP_LISTEN_ADDR: :50051
+      WA_APP_DASHBOARD_HTTP_ADDR: '{{ .Values.configEnv.WA_APP_DASHBOARD_HTTP_ADDR
+        }}'
       WA_APP_DASHBOARD_STATIC_DIR: /app/dashboard/wa
       WA_APP_DATA_DIR: '{{ .Values.configEnv.WA_APP_DATA_DIR }}'
       WA_APP_PG_DSN: '{{ tpl .Values.configEnv.WA_APP_PG_DSN . }}'
       WA_APP_REDIS_URL: '{{ tpl .Values.configEnv.WA_APP_REDIS_URL . }}'
+      WA_APP_PLAY_INTEGRITY_API_URL: '{{ tpl .Values.configEnv.WA_APP_PLAY_INTEGRITY_API_URL
+        . }}'
     secretEnv:
-      - name: WA_APP_AUTH_PASSWORD
-        key: WA_APP_AUTH_PASSWORD
-        optional: true
-      - name: WA_COMMON_PROXY
-        key: WA_COMMON_PROXY
-        optional: true
+    - name: WA_APP_AUTH_PASSWORD
+      key: WA_APP_AUTH_PASSWORD
+      optional: true
+    - name: WA_COMMON_PROXY
+      key: WA_COMMON_PROXY
+      optional: true
+    - name: WA_APP_PLAY_INTEGRITY_API_TOKEN
+      key: WA_APP_PLAY_INTEGRITY_API_TOKEN
+      optional: true
     volumeMounts:
-      - name: wa-app-data
-        mountPath: /var/lib/wa-app
+    - name: wa-app-data
+      mountPath: /var/lib/wa-app
     volumes:
-      - name: wa-app-data
-        type: persistentVolumeClaim
-        create: true
-        claimName: '{{ include "byte-v-forge.componentFullname" (dict "root" . "component" "wa-app-service") }}-data'
-        accessModes:
-          - ReadWriteOnce
-        size: 1Gi
+    - name: wa-app-data
+      type: persistentVolumeClaim
+      create: true
+      claimName: '{{ include "byte-v-forge.componentFullname" (dict "root" . "component"
+        "wa-app-service") }}-data'
+      accessModes:
+      - ReadWriteOnce
+      size: 1Gi
     ports:
-      - name: grpc
-        containerPort: 50051
-      - name: http-dashboard
-        containerPort: 8080
+    - name: grpc
+      containerPort: 50051
+    - name: http-dashboard
+      containerPort: 8080
     service:
       enabled: true
       type: ClusterIP
       ports:
-        - name: grpc
-          port: 50051
-          targetPort: grpc
-        - name: http-dashboard
-          port: 8080
-          targetPort: http-dashboard
+      - name: grpc
+        port: 50051
+        targetPort: grpc
+      - name: http-dashboard
+        port: 8080
+        targetPort: http-dashboard
     probes:
       grpc:
         port: 50051
     resources: {}
-
   openai-sso-lite:
     enabled: true
     replicas: 1
@@ -1186,45 +1344,46 @@ workloads:
       repository: byte-v-forge/openai-sso-lite
       tag: latest
     env:
-      SSO_HTTP_ADDR: ":8080"
+      SSO_HTTP_ADDR: :8080
       SSO_ISSUER: '{{ .Values.configEnv.OPENAI_SSO_LITE_ISSUER }}'
       SSO_SQLITE_PATH: /var/lib/openai-sso-lite/openai-sso-lite.db
       SSO_CLIENT_ID: openai-chatgpt
-      SSO_ALLOWED_REDIRECT_URI_PREFIXES: '{{ .Values.configEnv.OPENAI_SSO_LITE_ALLOWED_REDIRECT_URI_PREFIXES }}'
+      SSO_ALLOWED_REDIRECT_URI_PREFIXES: '{{ .Values.configEnv.OPENAI_SSO_LITE_ALLOWED_REDIRECT_URI_PREFIXES
+        }}'
     secretEnv:
-      - name: SSO_CLIENT_SECRET
-        key: OPENAI_SSO_LITE_CLIENT_SECRET
-      - name: SSO_ADMIN_TOKEN
-        key: OPENAI_SSO_LITE_ADMIN_TOKEN
-      - name: SSO_RSA_PRIVATE_KEY_B64
-        key: OPENAI_SSO_LITE_RSA_PRIVATE_KEY_B64
+    - name: SSO_CLIENT_SECRET
+      key: OPENAI_SSO_LITE_CLIENT_SECRET
+    - name: SSO_ADMIN_TOKEN
+      key: OPENAI_SSO_LITE_ADMIN_TOKEN
+    - name: SSO_RSA_PRIVATE_KEY_B64
+      key: OPENAI_SSO_LITE_RSA_PRIVATE_KEY_B64
     ports:
-      - name: http
-        containerPort: 8080
+    - name: http
+      containerPort: 8080
     volumeMounts:
-      - name: openai-sso-lite-data
-        mountPath: /var/lib/openai-sso-lite
+    - name: openai-sso-lite-data
+      mountPath: /var/lib/openai-sso-lite
     volumes:
-      - name: openai-sso-lite-data
-        type: persistentVolumeClaim
-        create: true
-        claimName: '{{ include "byte-v-forge.componentFullname" (dict "root" . "component" "openai-sso-lite") }}-data'
-        accessModes:
-          - ReadWriteOnce
-        size: 1Gi
+    - name: openai-sso-lite-data
+      type: persistentVolumeClaim
+      create: true
+      claimName: '{{ include "byte-v-forge.componentFullname" (dict "root" . "component"
+        "openai-sso-lite") }}-data'
+      accessModes:
+      - ReadWriteOnce
+      size: 1Gi
     service:
       enabled: true
       type: ClusterIP
       ports:
-        - name: http
-          port: 8080
-          targetPort: http
+      - name: http
+        port: 8080
+        targetPort: http
     probes:
       httpGet:
         path: /readyz
         port: http
     resources: {}
-
   openai-sso-discord-bot:
     enabled: false
     replicas: 1
@@ -1233,46 +1392,48 @@ workloads:
       repository: byte-v-forge/openai-sso-discord-bot
       tag: latest
     env:
-      DISCORD_APPLICATION_ID: '{{ .Values.configEnv.OPENAI_SSO_DISCORD_BOT_APPLICATION_ID }}'
+      DISCORD_APPLICATION_ID: '{{ .Values.configEnv.OPENAI_SSO_DISCORD_BOT_APPLICATION_ID
+        }}'
       DISCORD_GUILD_ID: '{{ .Values.configEnv.OPENAI_SSO_DISCORD_BOT_GUILD_ID }}'
-      DISCORD_SSO_HTTP_ADDR: ":8080"
+      DISCORD_SSO_HTTP_ADDR: :8080
       DISCORD_SSO_SQLITE_PATH: /var/lib/openai-sso-discord-bot/openai-sso-discord-bot.db
       SSO_ISSUER: '{{ .Values.configEnv.OPENAI_SSO_LITE_ISSUER }}'
-      SSO_EMAIL_DOMAIN: '{{ .Values.configEnv.OPENAI_SSO_DISCORD_BOT_EMAIL_DOMAIN }}'
+      SSO_EMAIL_DOMAIN: '{{ .Values.configEnv.OPENAI_SSO_DISCORD_BOT_EMAIL_DOMAIN
+        }}'
     secretEnv:
-      - name: DISCORD_BOT_TOKEN
-        key: OPENAI_SSO_DISCORD_BOT_TOKEN
-      - name: DISCORD_SSO_PROXY_URL
-        key: OPENAI_SSO_DISCORD_BOT_PROXY_URL
-      - name: SSO_ADMIN_TOKEN
-        key: OPENAI_SSO_LITE_ADMIN_TOKEN
+    - name: DISCORD_BOT_TOKEN
+      key: OPENAI_SSO_DISCORD_BOT_TOKEN
+    - name: DISCORD_SSO_PROXY_URL
+      key: OPENAI_SSO_DISCORD_BOT_PROXY_URL
+    - name: SSO_ADMIN_TOKEN
+      key: OPENAI_SSO_LITE_ADMIN_TOKEN
     ports:
-      - name: http
-        containerPort: 8080
+    - name: http
+      containerPort: 8080
     volumeMounts:
-      - name: openai-sso-discord-bot-data
-        mountPath: /var/lib/openai-sso-discord-bot
+    - name: openai-sso-discord-bot-data
+      mountPath: /var/lib/openai-sso-discord-bot
     volumes:
-      - name: openai-sso-discord-bot-data
-        type: persistentVolumeClaim
-        create: true
-        claimName: '{{ include "byte-v-forge.componentFullname" (dict "root" . "component" "openai-sso-discord-bot") }}-data'
-        accessModes:
-          - ReadWriteOnce
-        size: 1Gi
+    - name: openai-sso-discord-bot-data
+      type: persistentVolumeClaim
+      create: true
+      claimName: '{{ include "byte-v-forge.componentFullname" (dict "root" . "component"
+        "openai-sso-discord-bot") }}-data'
+      accessModes:
+      - ReadWriteOnce
+      size: 1Gi
     service:
       enabled: true
       type: ClusterIP
       ports:
-        - name: http
-          port: 8080
-          targetPort: http
+      - name: http
+        port: 8080
+        targetPort: http
     probes:
       httpGet:
         path: /readyz
         port: http
     resources: {}
-
   team-5000:
     enabled: true
     replicas: 1
@@ -1281,7 +1442,7 @@ workloads:
       repository: byte-v-forge/team-5000
       tag: latest
     env:
-      TEAM5000_HTTP_ADDR: ":8080"
+      TEAM5000_HTTP_ADDR: :8080
       TEAM5000_DOMAIN: '{{ .Values.configEnv.TEAM5000_DOMAIN }}'
       TEAM5000_SSO_ISSUER: '{{ .Values.configEnv.OPENAI_SSO_LITE_ISSUER }}'
       TEAM5000_WORKSPACE_ID: '{{ .Values.configEnv.TEAM5000_WORKSPACE_ID }}'
@@ -1291,37 +1452,37 @@ workloads:
       TEAM5000_OUTPUT: /var/lib/team-5000/sessions
       TEAM5000_REPORT: /var/lib/team-5000/logs/team5000-cycle.jsonl
     secretEnv:
-      - name: TEAM5000_PROXY_URL_SECRET
-        key: TEAM5000_PROXY_URL
-      - name: TEAM5000_SSO_ADMIN_TOKEN
-        key: OPENAI_SSO_LITE_ADMIN_TOKEN
+    - name: TEAM5000_PROXY_URL_SECRET
+      key: TEAM5000_PROXY_URL
+    - name: TEAM5000_SSO_ADMIN_TOKEN
+      key: OPENAI_SSO_LITE_ADMIN_TOKEN
     ports:
-      - name: http
-        containerPort: 8080
+    - name: http
+      containerPort: 8080
     volumeMounts:
-      - name: team-5000-data
-        mountPath: /var/lib/team-5000
+    - name: team-5000-data
+      mountPath: /var/lib/team-5000
     volumes:
-      - name: team-5000-data
-        type: persistentVolumeClaim
-        create: true
-        claimName: '{{ include "byte-v-forge.componentFullname" (dict "root" . "component" "team-5000") }}-data'
-        accessModes:
-          - ReadWriteOnce
-        size: 1Gi
+    - name: team-5000-data
+      type: persistentVolumeClaim
+      create: true
+      claimName: '{{ include "byte-v-forge.componentFullname" (dict "root" . "component"
+        "team-5000") }}-data'
+      accessModes:
+      - ReadWriteOnce
+      size: 1Gi
     service:
       enabled: true
       type: ClusterIP
       ports:
-        - name: http
-          port: 8080
-          targetPort: http
+      - name: http
+        port: 8080
+        targetPort: http
     probes:
       httpGet:
         path: /healthz
         port: http
     resources: {}
-
   workflow-runtime:
     enabled: true
     replicas: 1
@@ -1330,32 +1491,32 @@ workloads:
       tag: latest
     postgresEnv: true
     env:
-      WORKFLOW_RUNTIME_HTTP_ADDR: ":8080"
+      WORKFLOW_RUNTIME_HTTP_ADDR: :8080
       WORKFLOW_RUNTIME_DASHBOARD_STATIC_DIR: /app/dashboard/workflow-runtime
       WORKFLOW_RUNTIME_DATABASE_URL: '{{ include "byte-v-forge.pgDsn" . }}'
-      N8N_INTERNAL_URL: 'http://{{ include "byte-v-forge.componentFullname" (dict "root" . "component" "n8n-main") }}:5678'
+      N8N_INTERNAL_URL: http://{{ include "byte-v-forge.componentFullname" (dict "root"
+        . "component" "n8n-main") }}:5678
       N8N_PUBLIC_URL: '{{ .Values.configEnv.N8N_PUBLIC_URL }}'
     secretEnv:
-      - name: N8N_API_KEY
-        key: N8N_API_KEY
-      - name: WORKFLOW_RUNTIME_STEP_UPDATE_TOKEN
-        key: WORKFLOW_RUNTIME_STEP_UPDATE_TOKEN
+    - name: N8N_API_KEY
+      key: N8N_API_KEY
+    - name: WORKFLOW_RUNTIME_STEP_UPDATE_TOKEN
+      key: WORKFLOW_RUNTIME_STEP_UPDATE_TOKEN
     ports:
-      - name: http
-        containerPort: 8080
+    - name: http
+      containerPort: 8080
     service:
       enabled: true
       type: ClusterIP
       ports:
-        - name: http
-          port: 8080
-          targetPort: http
+      - name: http
+        port: 8080
+        targetPort: http
     probes:
       httpGet:
         path: /healthz
         port: http
     resources: {}
-
   webui:
     enabled: true
     replicas: 1
@@ -1363,18 +1524,19 @@ workloads:
       repository: byte-v-forge/webui
       tag: latest
     env:
-      LISTEN_ADDR: ":8080"
-      TRAEFIK_API_ADDR: 'http://{{ .Values.traefikStatus.traefikServiceName }}.{{ .Values.traefikStatus.traefikNamespace }}.svc.cluster.local:8080'
+      LISTEN_ADDR: :8080
+      TRAEFIK_API_ADDR: http://{{ .Values.traefikStatus.traefikServiceName }}.{{ .Values.traefikStatus.traefikNamespace
+        }}.svc.cluster.local:8080
     ports:
-      - name: http
-        containerPort: 8080
+    - name: http
+      containerPort: 8080
     service:
       enabled: true
       type: ClusterIP
       ports:
-        - name: http
-          port: 8080
-          targetPort: http
+      - name: http
+        port: 8080
+        targetPort: http
     probes:
       httpGet:
         path: /api/health

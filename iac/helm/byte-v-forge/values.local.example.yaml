@@ -2,65 +2,75 @@ global:
   imageRegistry: registry.example.internal/byte-v-forge
   imagePullPolicy: IfNotPresent
   imagePullSecrets: []
-
 configEnv:
-  PLATFORM_NATS_URL: 'nats://{{ include "byte-v-forge.componentFullname" (dict "root" . "component" "platform-nats") }}:4222'
+  PLATFORM_NATS_URL: nats://{{ include "byte-v-forge.componentFullname" (dict "root"
+    . "component" "platform-nats") }}:4222
   PLATFORM_EVENT_STREAM_NAME: BYTE_V_FORGE_EVENTS
-  PLATFORM_REDIS_URL: 'redis://{{ include "byte-v-forge.componentFullname" (dict "root" . "component" "platform-redis") }}:6379/0'
+  PLATFORM_REDIS_URL: redis://{{ include "byte-v-forge.componentFullname" (dict "root"
+    . "component" "platform-redis") }}:6379/0
   N8N_PUBLIC_URL: http://n8n.byte-v-forge.example.internal
-  GPT_N8N_WEBHOOK_BASE_URL: 'http://{{ include "byte-v-forge.componentFullname" (dict "root" . "component" "n8n-webhook") }}:5678/webhook'
-  GOPAY_N8N_WEBHOOK_BASE_URL: 'http://{{ include "byte-v-forge.componentFullname" (dict "root" . "component" "n8n-webhook") }}:5678/webhook'
-  GPT_ACTION_API_BASE_URL: 'http://{{ include "byte-v-forge.componentFullname" (dict "root" . "component" "gpt-service") }}:8080/api/gpt/actions'
-  GOPAY_HTTP_LISTEN_ADDR: ":8080"
+  GPT_N8N_WEBHOOK_BASE_URL: http://{{ include "byte-v-forge.componentFullname" (dict
+    "root" . "component" "n8n-webhook") }}:5678/webhook
+  GOPAY_N8N_WEBHOOK_BASE_URL: http://{{ include "byte-v-forge.componentFullname" (dict
+    "root" . "component" "n8n-webhook") }}:5678/webhook
+  GPT_ACTION_API_BASE_URL: http://{{ include "byte-v-forge.componentFullname" (dict
+    "root" . "component" "gpt-service") }}:8080/api/gpt/actions
+  GOPAY_HTTP_LISTEN_ADDR: :8080
   GOPAY_DASHBOARD_STATIC_DIR: /app/dashboard/gopay
-  GOPAY_ACTION_API_BASE_URL: 'http://{{ include "byte-v-forge.componentFullname" (dict "root" . "component" "gopay-app") }}:8080/api/gopay/actions'
-  GOPAY_API_BASE_URL: 'http://{{ include "byte-v-forge.componentFullname" (dict "root" . "component" "gopay-app") }}:8080/api/gopay'
-  WA_ACTION_API_BASE_URL: 'http://{{ include "byte-v-forge.componentFullname" (dict "root" . "component" "wa-app-service") }}:8080/api/wa/actions'
+  GOPAY_ACTION_API_BASE_URL: http://{{ include "byte-v-forge.componentFullname" (dict
+    "root" . "component" "gopay-app") }}:8080/api/gopay/actions
+  GOPAY_API_BASE_URL: http://{{ include "byte-v-forge.componentFullname" (dict "root"
+    . "component" "gopay-app") }}:8080/api/gopay
+  WA_ACTION_API_BASE_URL: http://{{ include "byte-v-forge.componentFullname" (dict
+    "root" . "component" "wa-app-service") }}:8080/api/wa/actions
   WA_APP_DATA_DIR: /var/lib/wa-app
-  WA_APP_PG_DSN: ""
-  WA_APP_REDIS_URL: ""
-  WA_API_BASE_URL: 'http://{{ include "byte-v-forge.componentFullname" (dict "root" . "component" "wa-app-service") }}:8080/api/wa'
-  SMS_API_BASE_URL: 'http://{{ include "byte-v-forge.componentFullname" (dict "root" . "component" "sms-service") }}:8080/api/sms'
+  WA_APP_PG_DSN: ''
+  WA_APP_REDIS_URL: ''
+  WA_APP_PLAY_INTEGRITY_API_URL: ''
+  WA_API_BASE_URL: http://{{ include "byte-v-forge.componentFullname" (dict "root"
+    . "component" "wa-app-service") }}:8080/api/wa
+  SMS_API_BASE_URL: http://{{ include "byte-v-forge.componentFullname" (dict "root"
+    . "component" "sms-service") }}:8080/api/sms
   SMS_PG_DSN: '{{ include "byte-v-forge.pgDsn" . }}'
   SMS_REDIS_URL: '{{ tpl .Values.configEnv.PLATFORM_REDIS_URL . }}'
   SMS_NATS_URL: '{{ tpl .Values.configEnv.PLATFORM_NATS_URL . }}'
   SMS_EVENT_STREAM_NAME: BYTE_V_FORGE_EVENTS
-  PROXY_RUNTIME_API_BASE_URL: 'http://{{ include "byte-v-forge.componentFullname" (dict "root" . "component" "proxy-runtime") }}:8080/api'
+  PROXY_RUNTIME_API_BASE_URL: http://{{ include "byte-v-forge.componentFullname" (dict
+    "root" . "component" "proxy-runtime") }}:8080/api
   PROXY_RUNTIME_LOCAL_PROTOCOL: socks5
-  WORKFLOW_RUNTIME_API_BASE_URL: 'http://{{ include "byte-v-forge.componentFullname" (dict "root" . "component" "workflow-runtime") }}:8080/api/workflow-runtime'
-  MAILBOX_CLOUDFLARE_MAX_MESSAGES_PER_DOMAIN: "500"
+  WORKFLOW_RUNTIME_API_BASE_URL: http://{{ include "byte-v-forge.componentFullname"
+    (dict "root" . "component" "workflow-runtime") }}:8080/api/workflow-runtime
+  MAILBOX_CLOUDFLARE_MAX_MESSAGES_PER_DOMAIN: '500'
   MAILBOX_CLOUDFLARE_RELAY_PULL_URL: https://cloudflare-email-relay.example.invalid
-  MAILBOX_OUTLOOK_MAX_MESSAGES_PER_MAILBOX: "100"
-  MAILBOX_PG_DSN: ""
+  MAILBOX_OUTLOOK_MAX_MESSAGES_PER_MAILBOX: '100'
+  MAILBOX_PG_DSN: ''
   MAILBOX_COORDINATION_REDIS_URL: '{{ tpl .Values.configEnv.PLATFORM_REDIS_URL . }}'
   MAILBOX_RECENT_EMAIL_REDIS_URL: '{{ tpl .Values.configEnv.PLATFORM_REDIS_URL . }}'
   MAILBOX_NATS_URL: '{{ tpl .Values.configEnv.PLATFORM_NATS_URL . }}'
   MAILBOX_EVENT_STREAM_NAME: BYTE_V_FORGE_EVENTS
-  MAILBOX_BROWSER_AUTOMATION_ADDR: ""
+  MAILBOX_BROWSER_AUTOMATION_ADDR: ''
   OPENAI_SSO_LITE_ISSUER: https://sso.example.invalid
   OPENAI_SSO_LITE_ALLOWED_REDIRECT_URI_PREFIXES: https://external.auth.openai.com/
-  OPENAI_SSO_DISCORD_BOT_APPLICATION_ID: ""
-  OPENAI_SSO_DISCORD_BOT_GUILD_ID: ""
+  OPENAI_SSO_DISCORD_BOT_APPLICATION_ID: ''
+  OPENAI_SSO_DISCORD_BOT_GUILD_ID: ''
   OPENAI_SSO_DISCORD_BOT_EMAIL_DOMAIN: workspace.example.invalid
   TEAM5000_DOMAIN: workspace.example.invalid
-  TEAM5000_WORKSPACE_ID: ""
-  TEAM5000_PROXY_URL: 'socks5://{{ include "byte-v-forge.componentFullname" (dict "root" . "component" "proxy-runtime") }}:10810'
+  TEAM5000_WORKSPACE_ID: ''
+  TEAM5000_PROXY_URL: socks5://{{ include "byte-v-forge.componentFullname" (dict "root"
+    . "component" "proxy-runtime") }}:10810
   TEAM5000_MODEL: gpt-5.5
-  TEAM5000_MAX_PARENT_HELLO: "0"
-  BROWSER_AUTOMATION_WEBRTC_UDP_LISTEN_ADDR: ":3478"
-  BROWSER_AUTOMATION_WEBRTC_PUBLIC_IPS: "127.0.0.1"
-
+  TEAM5000_MAX_PARENT_HELLO: '0'
+  BROWSER_AUTOMATION_WEBRTC_UDP_LISTEN_ADDR: :3478
+  BROWSER_AUTOMATION_WEBRTC_PUBLIC_IPS: 127.0.0.1
 cloudflareEmail:
   zones:
-    - zoneName: example.invalid
-      enabled: true
-      workerName: cloudflare-email-relay
-      catchAllEnabled: true
-
+  - zoneName: example.invalid
+    enabled: true
+    workerName: cloudflare-email-relay
+    catchAllEnabled: true
 cloudflareTunnel:
   enabled: false
   hostname: hook.example.invalid
-
 workloads:
   gpt-service:
     image:
@@ -99,45 +109,62 @@ workloads:
     image:
       repository: workflow-runtime
       tag: dev
+  play-integrity-api:
+    enabled: false
+    image:
+      repository: play-integrity-api
+      tag: dev
   sms-service:
     image:
       repository: sms-service
       tag: dev
     env:
-      SMS_PROVIDER_HTTP_PROXY: 'socks5://sms:sms@{{ include "byte-v-forge.componentFullname" (dict "root" . "component" "proxy-runtime") }}:10810'
+      SMS_PROVIDER_HTTP_PROXY: socks5://sms:sms@{{ include "byte-v-forge.componentFullname"
+        (dict "root" . "component" "proxy-runtime") }}:10810
   webui:
     image:
       repository: webui
       tag: dev
-
-
 secrets:
   stringData:
     POSTGRES_PASSWORD: change-me
     N8N_ENCRYPTION_KEY: change-me-at-least-32-characters
     N8N_RUNNERS_AUTH_TOKEN: change-me-at-least-32-characters
-    N8N_API_KEY: ""
-    WA_APP_AUTH_PASSWORD: ""
-    WA_COMMON_PROXY: ""
-    N8N_INSTANCE_OWNER_PASSWORD_HASH: "$2b$10$j6/JtPvAKtGGGMVOTqIQrOaq3b0.fQyK46ZWQdNN4E4e496n5ToYq"
+    N8N_API_KEY: ''
+    WA_APP_AUTH_PASSWORD: ''
+    WA_COMMON_PROXY: ''
+    WA_APP_PLAY_INTEGRITY_API_TOKEN: ''
+    PLAY_INTEGRITY_API_TOKEN: ''
+    PLAY_INTEGRITY_SERVICE_CONFIG_JSON: '{"host":"0.0.0.0","port":8088,"route":"/v1/play-integrity/tokens","endpoint":"https://example.invalid/play-integrity/backend","timeoutSeconds":45,"backendRetries":0,"retryBackoffSeconds":0.5,"proxy":null,"packageName":"com.whatsapp","versionCode":262407730,"keyboxXml":"/etc/play-integrity-api-private/keybox.xml","keyboxAlgorithm":"ecdsa","pythonTinkEncrypt":true,"dgRunCommand":"python3
+      scripts/dg-native-warm-ss-runner.py --material-root /var/lib/play-integrity-api/vm/current
+      --vm-id libdA51008A7BD65 --keybox-xml /etc/play-integrity-api-private/keybox.xml
+      --gms-version-code 262433035 --max-events 64 --init-count 240000000 --entry-count
+      30000000 --snapshot-count 30000000","vmRunnerAcquireTimeoutSeconds":180,"dgRunnerAttempts":1,"dgRunnerMinRawDgLen":8000,"dgCreateEndpoint":null,"authTokenEnv":"PLAY_INTEGRITY_API_TOKEN","maxBodyBytes":2097152,"maxConcurrency":1,"workDir":"/var/lib/play-integrity-api/work/api-runs","persistRunSummaries":true,"persistRunMaterial":false,"debugErrors":false,"dgRunnerMode":"daemon","dgRunnerRequestTimeoutSeconds":900}'
+    N8N_INSTANCE_OWNER_PASSWORD_HASH: $2b$10$j6/JtPvAKtGGGMVOTqIQrOaq3b0.fQyK46ZWQdNN4E4e496n5ToYq
     BROWSER_AUTOMATION_PROXY_REFS_JSON: '{"register":"socks5://proxy.internal:10810","outlook":"socks5://proxy.internal:10810"}'
     MAILBOX_WEBHOOK_TOKEN: change-me
     MAILBOX_CLOUDFLARE_API_TOKEN: change-me
     MAILBOX_CLOUDFLARE_RELAY_PULL_TOKEN: change-me
     CLOUDFLARE_TUNNEL_TOKEN: change-me
-    GOPAY_CHECKOUT_PROFILE_JSON: >-
-          {"name":"checkout","proxy_url":"socks5://{{ include "byte-v-forge.componentFullname" (dict "root" . "component" "proxy-runtime") }}:10810","tls_profile":"chrome_146","user_agent":"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36","sec_ch_ua":"\"Google Chrome\";v=\"147\", \"Not.A/Brand\";v=\"8\", \"Chromium\";v=\"147\"","sec_ch_ua_platform":"\"Windows\"","locale":"en-US","platform":"Windows","pin_locale":"id"}
-    GOPAY_PAYMENT_PROFILE_JSON: >-
-          {"name":"payment","proxy_url":"socks5://{{ include "byte-v-forge.componentFullname" (dict "root" . "component" "proxy-runtime") }}:10810","tls_profile":"chrome_146","user_agent":"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36","sec_ch_ua":"\"Google Chrome\";v=\"147\", \"Not.A/Brand\";v=\"8\", \"Chromium\";v=\"147\"","sec_ch_ua_platform":"\"Windows\"","locale":"zh-CN","platform":"Windows","pin_locale":"id"}
-    GOTO_SSO_CLIENT_SECRET: ""
+    GOPAY_CHECKOUT_PROFILE_JSON: '{"name":"checkout","proxy_url":"socks5://{{ include
+      "byte-v-forge.componentFullname" (dict "root" . "component" "proxy-runtime")
+      }}:10810","tls_profile":"chrome_146","user_agent":"Mozilla/5.0 (Windows NT 10.0;
+      Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36","sec_ch_ua":"\"Google
+      Chrome\";v=\"147\", \"Not.A/Brand\";v=\"8\", \"Chromium\";v=\"147\"","sec_ch_ua_platform":"\"Windows\"","locale":"en-US","platform":"Windows","pin_locale":"id"}'
+    GOPAY_PAYMENT_PROFILE_JSON: '{"name":"payment","proxy_url":"socks5://{{ include
+      "byte-v-forge.componentFullname" (dict "root" . "component" "proxy-runtime")
+      }}:10810","tls_profile":"chrome_146","user_agent":"Mozilla/5.0 (Windows NT 10.0;
+      Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36","sec_ch_ua":"\"Google
+      Chrome\";v=\"147\", \"Not.A/Brand\";v=\"8\", \"Chromium\";v=\"147\"","sec_ch_ua_platform":"\"Windows\"","locale":"zh-CN","platform":"Windows","pin_locale":"id"}'
+    GOTO_SSO_CLIENT_SECRET: ''
     PROXY_RUNTIME_ENCRYPTION_KEY: change-me-at-least-32-characters
     PROXY_RUNTIME_CONTROL_AUTH_TOKEN: change-me
     PROXY_RUNTIME_SERVICE_AUTH_TOKEN: change-me-at-least-32-characters
     PROXY_RUNTIME_LOCAL_PASSWORD: change-me-at-least-16-characters
     WORKFLOW_RUNTIME_STEP_UPDATE_TOKEN: change-me-at-least-32-characters
-    TEAM5000_PROXY_URL: ""
+    TEAM5000_PROXY_URL: ''
     OPENAI_SSO_LITE_CLIENT_SECRET: change-me-at-least-32-characters
     OPENAI_SSO_LITE_ADMIN_TOKEN: change-me-at-least-32-characters
-    OPENAI_SSO_LITE_RSA_PRIVATE_KEY_B64: ""
+    OPENAI_SSO_LITE_RSA_PRIVATE_KEY_B64: ''
     OPENAI_SSO_DISCORD_BOT_PROXY_URL: socks5://user:password@proxy-runtime:10810
-    OPENAI_SSO_DISCORD_BOT_TOKEN: ""
+    OPENAI_SSO_DISCORD_BOT_TOKEN: ''

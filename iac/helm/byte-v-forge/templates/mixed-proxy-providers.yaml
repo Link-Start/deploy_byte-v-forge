@@ -1,0 +1,13 @@
+{{- $mpg := index .Values.workloads "mixed-proxy-gateway" -}}
+{{- if $mpg.enabled }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "byte-v-forge.fullname" . }}-mixed-proxy-providers
+  labels:
+    {{- include "byte-v-forge.labels" . | nindent 4 }}
+data:
+  # 代理商网关清单（-providers-file）：{"providers":[{type,gateways:[{label,addr}]}]}
+  providers.json: |
+{{ toJson .Values.mixedProxyProviders | nindent 4 }}
+{{- end }}

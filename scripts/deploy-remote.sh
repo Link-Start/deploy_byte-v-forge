@@ -96,6 +96,7 @@ SERVICE_CATALOG=(
   "mailbox|mailbox|Dockerfile"
   "sms-service|sms|Dockerfile"
   "wa-app-service|.|wa-app/Dockerfile"
+  "play-integrity-api|play-integrity-api|Dockerfile"
 )
 
 SOURCE_REPOS=(
@@ -115,6 +116,7 @@ SOURCE_REPOS=(
   team-5000
   workflow-runtime
   wa-app
+  play-integrity-api
 )
 
 RSYNC_EXCLUDES=(
@@ -130,6 +132,14 @@ RSYNC_EXCLUDES=(
   --exclude '**/dist/'
   --exclude '**/build/'
   --exclude '**/*.log'
+  --exclude 'work/'
+  --exclude 'private/'
+  --exclude 'captures/'
+  --exclude 'logs/'
+  --exclude '**/work/'
+  --exclude '**/private/'
+  --exclude '**/captures/'
+  --exclude '**/logs/'
 )
 
 usage() {
@@ -904,6 +914,9 @@ service_source_repos() {
     wa-app-service)
       printf '%s\n' wa-app
       ;;
+    play-integrity-api)
+      printf '%s\n' play-integrity-api
+      ;;
     browser-automation)
       printf '%s\n' browser-automation
       ;;
@@ -912,6 +925,9 @@ service_source_repos() {
       ;;
     proxy-runtime)
       printf '%s\n' proxy-gateway contracts
+      ;;
+    mixed-proxy-gateway)
+      printf '%s\n' mixed-proxy-gateway
       ;;
     openai-sso-lite)
       printf '%s\n' openai-sso-lite
