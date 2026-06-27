@@ -287,14 +287,10 @@ secrets:
     N8N_API_KEY: ''
     N8N_INSTANCE_OWNER_PASSWORD_HASH: $2b$10$j6/JtPvAKtGGGMVOTqIQrOaq3b0.fQyK46ZWQdNN4E4e496n5ToYq
     WA_APP_AUTH_PASSWORD: ''
+    COMMON_PROXY: ''
     WA_COMMON_PROXY: ''
     WA_APP_PLAY_INTEGRITY_API_TOKEN: ''
-    PLAY_INTEGRITY_API_TOKEN: ''
-    PLAY_INTEGRITY_SERVICE_CONFIG_JSON: '{"host":"0.0.0.0","port":8088,"route":"/v1/play-integrity/tokens","endpoint":"https://example.invalid/play-integrity/backend","timeoutSeconds":45,"backendRetries":0,"retryBackoffSeconds":0.5,"proxy":null,"packageName":"com.whatsapp","versionCode":262407730,"keyboxXml":"/etc/play-integrity-api-private/keybox.xml","keyboxAlgorithm":"ecdsa","pythonTinkEncrypt":true,"dgRunCommand":"python3
-      scripts/dg-native-warm-ss-runner.py --material-root /var/lib/play-integrity-api/vm/current
-      --vm-id libdA51008A7BD65 --keybox-xml /etc/play-integrity-api-private/keybox.xml
-      --gms-version-code 262433035 --max-events 64 --init-count 240000000 --entry-count
-      30000000 --snapshot-count 30000000","vmRunnerAcquireTimeoutSeconds":180,"dgRunnerAttempts":1,"dgRunnerMinRawDgLen":8000,"dgCreateEndpoint":null,"authTokenEnv":"PLAY_INTEGRITY_API_TOKEN","maxBodyBytes":2097152,"maxConcurrency":1,"workDir":"/var/lib/play-integrity-api/work/api-runs","persistRunSummaries":true,"persistRunMaterial":false,"debugErrors":false,"dgRunnerMode":"daemon","dgRunnerRequestTimeoutSeconds":900}'
+    PLAY_INTEGRITY_SERVICE_CONFIG_JSON: '{"host":"0.0.0.0","port":8088,"route":"/v1/play-integrity/tokens","endpoint":"https://deviceintegritytokens-pa.googleapis.com/v1/getPoIntegrityToken?alt=proto&key=AIzaSyBtL0AK6Hzgr69rQyeyhi-V1lmtsPGZd1M","timeoutSeconds":45,"backendRetries":0,"retryBackoffSeconds":0.5,"endpointHeaders":[],"androidPackageHeader":null,"androidCertHeader":null,"packageName":"com.whatsapp","versionCode":262407730,"keyboxXml":"/etc/play-integrity-api-private/keybox.xml","keyboxAlgorithm":"ecdsa","hardwareKeyPem":null,"signCommand":null,"certChain":null,"encryptCommand":null,"pythonTinkEncrypt":true,"dgRunCommand":null,"vmRunnerAcquireTimeoutSeconds":180,"dgRunnerAttempts":1,"dgRunnerMinRawDgLen":8000,"dgCreateEndpoint":null,"dgCreateHeaders":[],"dgCreateTimeoutSeconds":30,"dgFreshMaterialRoot":"/var/lib/play-integrity-api/fresh/material","dgFreshOutDir":"/var/lib/play-integrity-api/work/runners/dg-fresh-create","dgGmsVersionCode":262433035,"dgFreshInitCount":240000000,"dgFreshEntryCount":30000000,"dgFreshSnapshotCount":30000000,"dgFreshBudgetRetryMultiplier":1,"dgFreshMaxEvents":64,"dgNativeSo":null,"dgVmIrJson":null,"dgTraceJson":null,"dgDecodedStream":null,"dgVmId":null,"dgPureRuntimeScript":null,"authTokenEnv":null,"authTokenFile":null,"maxBodyBytes":2097152,"maxConcurrency":1,"workDir":"/var/lib/play-integrity-api/work/api-runs","persistRunSummaries":true,"persistRunMaterial":false,"debugErrors":false,"dgRunnerMode":"daemon","dgRunnerRequestTimeoutSeconds":900,"dgRunnerMaterialRoot":"/app/runtime/droidguard/current","dgRunnerVmId":"libdA51008A7BD65","dgRunnerGmsVersionCode":262433035,"dgRunnerMaxEvents":64,"dgRunnerInitCount":240000000,"dgRunnerEntryCount":30000000,"dgRunnerSnapshotCount":30000000}'
     BROWSER_AUTOMATION_PROXY_REFS_JSON: '{"register":"socks5://proxy.internal:10810","outlook":"socks5://proxy.internal:10810"}'
     MAILBOX_WEBHOOK_TOKEN: ''
     MAILBOX_CLOUDFLARE_API_TOKEN: ''
@@ -1225,8 +1221,9 @@ workloads:
     podSecurityContext:
       fsGroup: 65532
     secretEnv:
-    - name: PLAY_INTEGRITY_API_TOKEN
-      key: PLAY_INTEGRITY_API_TOKEN
+    - name: COMMON_PROXY
+      key: COMMON_PROXY
+      optional: true
     ports:
     - name: http
       containerPort: 8088
