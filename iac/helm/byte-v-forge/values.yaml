@@ -749,7 +749,7 @@ workloads:
       PROXY_RUNTIME_LOCAL_PROTOCOL: socks5
       PROXY_RUNTIME_SESSION_ADVERTISED_HOST: '{{ include "byte-v-forge.componentFullname"
         (dict "root" . "component" "proxy-runtime") }}'
-      PROXY_RUNTIME_REDIS_URL: '{{ tpl .Values.configEnv.PLATFORM_REDIS_URL . }}'
+      PROXY_GATEWAY_REDIS_URL: '{{ tpl .Values.configEnv.PLATFORM_REDIS_URL . }}'
     secretEnv:
     - name: PROXY_RUNTIME_ENCRYPTION_KEY
       key: PROXY_RUNTIME_ENCRYPTION_KEY
