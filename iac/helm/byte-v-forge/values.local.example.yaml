@@ -37,7 +37,7 @@ configEnv:
   SMS_EVENT_STREAM_NAME: BYTE_V_FORGE_EVENTS
   PROXY_RUNTIME_API_BASE_URL: http://{{ include "byte-v-forge.componentFullname" (dict
     "root" . "component" "proxy-runtime") }}:8080/api
-  PROXY_RUNTIME_LOCAL_PROTOCOL: socks5
+  PROXY_GATEWAY_LOCAL_PROTOCOL: socks5
   WORKFLOW_RUNTIME_API_BASE_URL: http://{{ include "byte-v-forge.componentFullname"
     (dict "root" . "component" "workflow-runtime") }}:8080/api/workflow-runtime
   MAILBOX_CLOUDFLARE_MAX_MESSAGES_PER_DOMAIN: '500'
@@ -153,10 +153,10 @@ secrets:
       Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36","sec_ch_ua":"\"Google
       Chrome\";v=\"147\", \"Not.A/Brand\";v=\"8\", \"Chromium\";v=\"147\"","sec_ch_ua_platform":"\"Windows\"","locale":"zh-CN","platform":"Windows","pin_locale":"id"}'
     GOTO_SSO_CLIENT_SECRET: ''
-    PROXY_RUNTIME_ENCRYPTION_KEY: change-me-at-least-32-characters
-    PROXY_RUNTIME_CONTROL_AUTH_TOKEN: change-me
-    PROXY_RUNTIME_SERVICE_AUTH_TOKEN: change-me-at-least-32-characters
-    PROXY_RUNTIME_LOCAL_PASSWORD: change-me-at-least-16-characters
+    PROXY_GATEWAY_ENCRYPTION_KEY: change-me-at-least-32-characters
+    PROXY_GATEWAY_CONTROL_AUTH_TOKEN: change-me
+    PROXY_GATEWAY_SERVICE_AUTH_TOKEN: change-me-at-least-32-characters
+    PROXY_GATEWAY_LOCAL_PASSWORD: change-me-at-least-16-characters
     WORKFLOW_RUNTIME_STEP_UPDATE_TOKEN: change-me-at-least-32-characters
     TEAM5000_PROXY_URL: ''
     OPENAI_SSO_LITE_CLIENT_SECRET: change-me-at-least-32-characters

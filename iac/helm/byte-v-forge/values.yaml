@@ -51,7 +51,7 @@ configEnv:
   SMS_EVENT_STREAM_NAME: BYTE_V_FORGE_EVENTS
   PROXY_RUNTIME_API_BASE_URL: http://{{ include "byte-v-forge.componentFullname" (dict
     "root" . "component" "proxy-runtime") }}:8080/api
-  PROXY_RUNTIME_LOCAL_PROTOCOL: socks5
+  PROXY_GATEWAY_LOCAL_PROTOCOL: socks5
   WORKFLOW_RUNTIME_API_BASE_URL: http://{{ include "byte-v-forge.componentFullname"
     (dict "root" . "component" "workflow-runtime") }}:8080/api/workflow-runtime
   MAILBOX_WEBHOOK_HTTP_ADDR: :8082
@@ -307,12 +307,12 @@ secrets:
       Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36","sec_ch_ua":"\"Google
       Chrome\";v=\"147\", \"Not.A/Brand\";v=\"8\", \"Chromium\";v=\"147\"","sec_ch_ua_platform":"\"Windows\"","locale":"zh-CN","platform":"Windows","pin_locale":"id"}'
     GOTO_SSO_CLIENT_SECRET: ''
-    PROXY_RUNTIME_ENCRYPTION_KEY: byte_v_forge_proxy_runtime_encryption_key_change_me_32
-    PROXY_RUNTIME_CONTROL_AUTH_TOKEN: ''
-    PROXY_RUNTIME_SERVICE_AUTH_TOKEN: ''
+    PROXY_GATEWAY_ENCRYPTION_KEY: byte_v_forge_proxy_gateway_encryption_key_change_me_32
+    PROXY_GATEWAY_CONTROL_AUTH_TOKEN: ''
+    PROXY_GATEWAY_SERVICE_AUTH_TOKEN: ''
     MIXED_PROXY_GATEWAY_ADMIN_PASSWORD: ''
     MIXED_PROXY_GATEWAY_SUBSCRIPTION_URL: ''
-    PROXY_RUNTIME_LOCAL_PASSWORD: ''
+    PROXY_GATEWAY_LOCAL_PASSWORD: ''
     WORKFLOW_RUNTIME_STEP_UPDATE_TOKEN: byte_v_forge_workflow_runtime_step_update_token_change_me_32
     TEAM5000_PROXY_URL: ''
     OPENAI_SSO_LITE_CLIENT_SECRET: change-me-at-least-32-characters
@@ -741,24 +741,24 @@ workloads:
       tag: latest
     postgresEnv: true
     env:
-      PROXY_RUNTIME_ADDR: :8080
-      PROXY_RUNTIME_POSTGRES_DSN: '{{ include "byte-v-forge.pgDsn" . }}'
-      PROXY_RUNTIME_DATA_DIR: /var/lib/proxy-runtime
-      PROXY_RUNTIME_MIHOMO_API_ADDR: 127.0.0.1:18901
-      PROXY_RUNTIME_LOCAL_ADDR: :10810
-      PROXY_RUNTIME_LOCAL_PROTOCOL: socks5
-      PROXY_RUNTIME_SESSION_ADVERTISED_HOST: '{{ include "byte-v-forge.componentFullname"
+      PROXY_GATEWAY_ADDR: :8080
+      PROXY_GATEWAY_POSTGRES_DSN: '{{ include "byte-v-forge.pgDsn" . }}'
+      PROXY_GATEWAY_DATA_DIR: /var/lib/proxy-runtime
+      PROXY_GATEWAY_MIHOMO_API_ADDR: 127.0.0.1:18901
+      PROXY_GATEWAY_LOCAL_ADDR: :10810
+      PROXY_GATEWAY_LOCAL_PROTOCOL: socks5
+      PROXY_GATEWAY_SESSION_ADVERTISED_HOST: '{{ include "byte-v-forge.componentFullname"
         (dict "root" . "component" "proxy-runtime") }}'
       PROXY_GATEWAY_REDIS_URL: '{{ tpl .Values.configEnv.PLATFORM_REDIS_URL . }}'
     secretEnv:
-    - name: PROXY_RUNTIME_ENCRYPTION_KEY
-      key: PROXY_RUNTIME_ENCRYPTION_KEY
-    - name: PROXY_RUNTIME_CONTROL_AUTH_TOKEN
-      key: PROXY_RUNTIME_CONTROL_AUTH_TOKEN
-    - name: PROXY_RUNTIME_SERVICE_AUTH_TOKEN
-      key: PROXY_RUNTIME_SERVICE_AUTH_TOKEN
-    - name: PROXY_RUNTIME_LOCAL_PASSWORD
-      key: PROXY_RUNTIME_LOCAL_PASSWORD
+    - name: PROXY_GATEWAY_ENCRYPTION_KEY
+      key: PROXY_GATEWAY_ENCRYPTION_KEY
+    - name: PROXY_GATEWAY_CONTROL_AUTH_TOKEN
+      key: PROXY_GATEWAY_CONTROL_AUTH_TOKEN
+    - name: PROXY_GATEWAY_SERVICE_AUTH_TOKEN
+      key: PROXY_GATEWAY_SERVICE_AUTH_TOKEN
+    - name: PROXY_GATEWAY_LOCAL_PASSWORD
+      key: PROXY_GATEWAY_LOCAL_PASSWORD
       optional: true
     ports:
     - name: http
