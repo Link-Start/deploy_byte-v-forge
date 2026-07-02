@@ -182,7 +182,8 @@ Environment overrides:
   TRAEFIK_RELEASE, TRAEFIK_NAMESPACE, TRAEFIK_CHART, TRAEFIK_CHART_VERSION,
   TRAEFIK_VALUES_FILE, BUILD_PARALLELISM, DOCKER_BUILDKIT, BUILDKIT_PROGRESS,
   DOCKER_BUILD_PULL, DOCKER_BUILD_NO_CACHE, BUILD_CACHE_MAX_USED_SPACE,
-  SOURCE_REVISION, RELEASE_MANIFEST, ALLOW_DIRTY_SOURCE.
+  SOURCE_REVISION, RELEASE_MANIFEST, ALLOW_DIRTY_SOURCE,
+  PROXY_RUNTIME_CONTRACTS_REPO, PROXY_RUNTIME_CONTRACTS_REF.
   BROWSER_FETCH_PROXY defaults to
   http://host.docker.internal:10809 for browser-automation runtime builds.
 EOF
@@ -1009,9 +1010,19 @@ build_image() {
   if [[ "$service" == "browser-automation" ]]; then
     ensure_browser_automation_runtime_image
     build_flags="$build_flags --build-arg BROWSER_AUTOMATION_RUNTIME_IMAGE=$(shell_quote "$BROWSER_AUTOMATION_RUNTIME_IMAGE")"
-  elif [[ "$service" == "proxy-runtime" && -n "$METACUBEXD_GIT_PROXY" ]]; then
-    build_flags="$build_flags --add-host=host.docker.internal:host-gateway"
-    build_flags="$build_flags --build-arg METACUBEXD_GIT_PROXY=$(shell_quote "$METACUBEXD_GIT_PROXY")"
+  elif [[ "$service" == "proxy-runtime" ]]; then
+    if [[ -n "$METACUBEXD_GIT_PROXY" || "${PROXY_RUNTIME_CONTRACTS_REPO:-}" == *host.docker.internal* ]]; then
+      build_flags="$build_flags --add-host=host.docker.internal:host-gateway"
+    fi
+    if [[ -n "$METACUBEXD_GIT_PROXY" ]]; then
+      build_flags="$build_flags --build-arg METACUBEXD_GIT_PROXY=$(shell_quote "$METACUBEXD_GIT_PROXY")"
+    fi
+    if [[ -n "${PROXY_RUNTIME_CONTRACTS_REPO:-}" ]]; then
+      build_flags="$build_flags --build-arg CONTRACTS_REPO=$(shell_quote "$PROXY_RUNTIME_CONTRACTS_REPO")"
+    fi
+    if [[ -n "${PROXY_RUNTIME_CONTRACTS_REF:-}" ]]; then
+      build_flags="$build_flags --build-arg CONTRACTS_REF=$(shell_quote "$PROXY_RUNTIME_CONTRACTS_REF")"
+    fi
   elif [[ "$service" == "gpt-service" ]]; then
     build_flags="$build_flags --target $(shell_quote "gpt_service_runtime")"
   elif [[ "$service" == "mixed-proxy-gateway" ]]; then
